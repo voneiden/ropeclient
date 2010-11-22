@@ -140,9 +140,21 @@ class ServeGame(LineReceiver):
                     dice = 3
                     continue
                 else:
-                    output += dbuf
+                    roll = self.dice(dbuf)
+                    if roll:
+                        color.append(ansi(COLOR['gray']))
+                        output += color[-1] + '[' + roll[0] + ': '
+                        color.append(ansi(COLOR['green']))
+                        output += color[-1] + roll[1]
+                        color.pop()
+                        output += color[-1] + ']'
+                        color.pop()
+                        output += color[-1]
+                    else:
+                        output += dbuf
                     dbuf = ''
                     dice = False
+                    continue
 
             elif dice == 3:
                 if char.isdigit():
