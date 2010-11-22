@@ -135,7 +135,10 @@ class ServeGame(LineReceiver):
                     
                 
             elif dice == 2:
-                if char == 'd':
+                if char.isdigit():
+                    dbuf += char
+                    continue
+                elif char == 'd':
                     dbuf += char
                     dice = 3
                     continue
