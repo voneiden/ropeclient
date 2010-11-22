@@ -5,7 +5,7 @@ import hashlib, random
 
 
 players = []
-
+linebuffer  = []
 NOECHO = '\xff\xfb\x01'
 ECHO   = '\xff\xfc\x01'
 
@@ -30,11 +30,11 @@ def ansi(code):
     return CSI + code 
 
 commands = {
-'/re':'%s'%ansi('red'),
-'/gr':'%s'%ansi('green'),
-'/bl':'%s'%ansi('blue'),
-'/ye':'%s'%ansi('yellow')}
-
+'/re':'%s'%ansi(COLOR['red']),
+'/gr':'%s'%ansi(COLOR['green']),
+'/bl':'%s'%ansi(COLOR['blue']),
+'/ye':'%s'%ansi(COLOR['yellow']),
+'/cl':'CLEAR'}
 
 class ServeGame(LineReceiver):
     def connectionMade(self):
@@ -83,11 +83,15 @@ class ServeGame(LineReceiver):
                 pl = []
                 for player in players: pl.append(player.nick)
                 self.announce("D_PLAYERS %s"%(" ".join(pl)))
+                for line in linebuffer[-100:]:
+                    self.write(line)
             elif tok[0] == 'SETNAME':
                 self.name = " ".join(tok[1:])   
             
     def announce(self,data):
+        global linebuffer
         text = self.wrap(data)
+        linebuffer.append( text)
         for player in players: player.write(text)
     def wrap(self,data):
         ''' Miten ois v2 mika lukee koko paskan kirjain kirjaimelta -> varien sailytys onnistuis '''
@@ -101,20 +105,7 @@ class ServeGame(LineReceiver):
         cbuf = ''
         color = [ansi(COLOR['white'])]
         print data
-        '''
-        for tok in data.split(' '):
-            if len(tok) == 0: print "funny",data.split(' ');continue
-            if tok[0] == '!':
-                if len(tok) > 2:
-                    # Probably a dice, hit it, machine!
-                    roll = self.dice(tok)
-                    if roll:
-                        color.append(ansi(COLOR['red']))
-                        output += color[-1] + roll
-                        color.pop()
-                        output += color[-1] + ' '
-                        continue
-            '''     
+      
         for char in data:
 
             if char == '!' and not dice:
@@ -155,8 +146,12 @@ class ServeGame(LineReceiver):
                     dice = False
                     roll = self.dice(dbuf)
                     if roll:
-                        color.append(ansi(COLOR['red']))
-                        output += color[-1] + roll
+                        color.append(ansi(COLOR['gray']))
+                        output += color[-1] + '[' + roll[0] + ': '
+                        color.append(ansi(COLOR['green']))
+                        output += color[-1] + roll[1]
+                        color.pop()
+                        output += color[-1] + ']'
                         color.pop()
                         output += color[-1]
                     else:
@@ -176,7 +171,14 @@ class ServeGame(LineReceiver):
             elif cmode == 2:
                 cmode = False
                 cbuf += char
-                try: c = commands[cbuf]; output += c
+                try: 
+                    c = commands[cbuf]
+                    if c == 'CLEAR':
+                        color.pop()
+                        output += color[-1]
+                    else:
+                        output += c
+                        color.append(c)
                 except: output += cbuf
                 cbuf = ''
                 continue
@@ -207,7 +209,18 @@ class ServeGame(LineReceiver):
             else: output += char
             #output += ' '
         #output += dbuf
-        if len(dbuf) > 0: output += self.dice(dbuf)
+        if len(dbuf) > 0: 
+            roll=self.dice(dbuf)
+            if roll: 
+                        color.append(ansi(COLOR['gray']))
+                        output += color[-1] + '[' + roll[0] + ': '
+                        color.append(ansi(COLOR['green']))
+                        output += color[-1] + roll[1]
+                        color.pop()
+                        output += color[-1] + ']'
+                        color.pop()
+                        output += color[-1]
+            else: output += dbuf
         if len(cbuf) > 0: output += cbuf
         print output
         return output
@@ -247,7 +260,12 @@ class ServeGame(LineReceiver):
         elif tok[0] == '/name': self.name = " ".join(tok[1:])
         else: 
             if data[0] == '*': self.announce('''%s %s'''%(self.name,data[1:]))
-            if data[0] == '!': self.announce('''%s'''%(data[1:]))
+            elif data[0] == '!': 
+                #roll = self.dice(data)
+                #if roll: self.announce('''(%s: %s)'''%(self.name,roll))
+                #else: 
+                self.announce('''(%s: %s'''%(self.name,data))
+            elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]))
             elif data[0] == '(': self.announce('''(%s: %s'''%(self.name,data[1:]))
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
@@ -258,7 +276,8 @@ class ServeGame(LineReceiver):
             if player.typing: pl.append("*" + player.nick)
             else: pl.append(player.nick)
         self.announce("D_PLAYERS %s"%(" ".join(pl)))
-    def dice(self,x):
+    def dice(self,data):
+        x=data
         roll = [] # Dices we still need to roll [add/subtract, dice string]
         rolled = [] # Dices we have rolled: [add/subtract, dice string, result]
 
@@ -300,8 +319,8 @@ class ServeGame(LineReceiver):
                 output.append("-[%s:-%i]"%(obj[1],obj[2]))  # write it
         if tot == 0: return                                 # dont bother to send if there are no results   
         #msg.Chat.SendMessage("%s rolls: %i (%s)"%(msg.FromDisplayName,tot,"".join(output))) #combine and send it
-        return "%s (%s)"%(str(tot), "".join(output))
-
+        #return "[(%s) = %s]"%(str(tot), data[1:])#"".join(output))
+        return data[1:],str(tot)
 
 class ServeGameFactory(Factory):
     protocol = ServeGame
