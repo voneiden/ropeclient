@@ -199,9 +199,12 @@ class CFactory(ReconnectingClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         self.window.display_line(' Lost connection. Reason:' + str(reason))
+        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
         self.window.display_line( 'Connection failed. Reason:' + str(reason))
+        ReconnectingClientFactory.clientConnectionFailed(self, connector,
+                                                         reason)
 
 
 if __name__ == '__main__':
