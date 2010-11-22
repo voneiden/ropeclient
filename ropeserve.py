@@ -3,11 +3,6 @@ from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 import hashlib, random
 
-commands = {
-'/re':'%s%s'%(CSI,COLOR['red']),
-'/gr':'%s%s'%(CSI,COLOR['green']),
-'/bl':'%s%s'%(CSI,COLOR['blue']),
-'/ye':'%s%s'%(CSI,COLOR['yellow'])}
 
 players = []
 
@@ -34,6 +29,11 @@ COLOR = {
 def ansi(code):
     return CSI + code 
 
+commands = {
+'/re':'%s'%(ansi('red'),
+'/gr':'%s'%(ansi('green'),
+'/bl':'%s'%(ansi('blue'),
+'/ye':'%s'%(ansi('yellow')}
 
 
 class ServeGame(LineReceiver):
