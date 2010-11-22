@@ -93,8 +93,10 @@ class ServeGame(LineReceiver):
         quote = False
         offtopic = False
         dice  = False
+        cmode = False
         output = ''
         dbuf = ''
+        cbuf = ''
         color = [ansi(COLOR['white'])]
         print data
         '''
@@ -161,7 +163,22 @@ class ServeGame(LineReceiver):
                     dbuf = ''
 
 
-            
+            if char == '/' and not cmode:
+                cmode = 1
+                cbuf += char
+                continue
+            elif cmode == 1:
+                cmode = 2
+                cbuf += char
+                continue
+            elif cmode == 2:
+                cmode = False
+                cbuf += char
+                try: c = commands[cbuf]; output += c
+                except: output += cbuf
+                cbuf = ''
+                continue
+
             if char == '"' and not quote:
                 quote = True
                 color.append(ansi(COLOR['cyan']))
@@ -189,6 +206,7 @@ class ServeGame(LineReceiver):
             #output += ' '
         #output += dbuf
         if len(dbuf) > 0: output += self.dice(dbuf)
+        if len(cbuf) > 0: output += cbuf
         print output
         return output
                 
@@ -227,6 +245,7 @@ class ServeGame(LineReceiver):
         elif tok[0] == '/name': self.name = " ".join(tok[1:])
         else: 
             if data[0] == '*': self.announce('''%s %s'''%(self.name,data[1:]))
+            if data[0] == '!': self.announce('''%s'''%(data[1:]))
             elif data[0] == '(': self.announce('''(%s: %s'''%(self.name,data[1:]))
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
