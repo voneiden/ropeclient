@@ -3,9 +3,11 @@ from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 import hashlib, random
 
-accounts = {
-    'patseli':'774a3cdfc9d251d95a823f1a5178d4703fdd892c657bd46fa3f5fde6a77ccfab',
-    'pietu':'774a3cdfc9d251d95a823f1a5178d4703fdd892c657bd46fa3f5fde6a77ccfab'}
+commands = {
+'/re':'%s%s'%(CSI,COLOR['red']),
+'/gr':'%s%s'%(CSI,COLOR['green']),
+'/bl':'%s%s'%(CSI,COLOR['blue']),
+'/ye':'%s%s'%(CSI,COLOR['yellow'])}
 
 players = []
 
