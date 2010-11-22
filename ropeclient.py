@@ -85,11 +85,13 @@ class Window:
             nick  = parser.get('general','nick')
             name = parser.get('general','charname')
             host = parser.get('general','host')
+            color = parser.get('general','charcolor')
         except: self.display_line("Could not find option nick in section [general]");return False
 
         self.nick = nick
         self.name = name
         self.host = host
+        self.color = color
         self.display_line("Your nick is: %s"%self.nick)
         return True
     def update_players(self,players):
@@ -160,6 +162,7 @@ class Client(LineReceiver):
         self.window.display_line("Connected!")
         self.write("SUPERHANDSHAKE")
         self.write("SETNAME %s"%self.window.name)
+        self.write("SETCOLOR %s"%self.window.color)
         self.write("SETNICK %s"%self.window.nick)
         
     def lineReceived(self, data):

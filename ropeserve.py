@@ -5,6 +5,8 @@ import hashlib, random
 
 
 players = []
+chartoplayer = {}
+
 linebuffer  = []
 NOECHO = '\xff\xfb\x01'
 ECHO   = '\xff\xfc\x01'
@@ -40,7 +42,7 @@ class ServeGame(LineReceiver):
     def connectionMade(self):
         self.handle = self.login
         self.state = 0
-
+        self.color = ''
         #self.write(self.factory.text)
         #self.write("Login: ")
         #self.transport.loseConnection()
@@ -79,6 +81,7 @@ class ServeGame(LineReceiver):
                 self.nick = tok[1]
                 self.handle = self.game
                 players.append(self)
+                chartoplayer[self.name] = self
                 self.announce("(%s has joined the game!)"%self.nick)
                 pl = []
                 for player in players: pl.append(player.nick)
@@ -86,7 +89,10 @@ class ServeGame(LineReceiver):
                 for line in linebuffer[-100:]:
                     self.write(line)
             elif tok[0] == 'SETNAME':
-                self.name = " ".join(tok[1:])   
+                self.name = " ".join(tok[1:])
+            elif tok[0] == 'SETCOLOR':
+                try: self.color = CSI + COLOR[" ".join(tok[1:])]
+                except: self.color = CSI + COLOR['gray']; self.write("Invalid color, defaulting to gray")
             
     def announce(self,data):
         global linebuffer
@@ -141,6 +147,10 @@ class ServeGame(LineReceiver):
             elif dice == 3:
                 if char.isdigit():
                     dbuf += char
+                    continue
+                elif char == '+' or char == '-':
+                    dbuf += char
+                    dice = 1
                     continue
                 else:
                     dice = False

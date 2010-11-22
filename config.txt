@@ -1,4 +1,5 @@
 [general]
-nick=Matti-linux
+nick=Matti
 charname=Tailabar
-host=localhost
+charcolor=green
+host=ninjabox.sytes.net
