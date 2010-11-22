@@ -30,10 +30,10 @@ def ansi(code):
     return CSI + code 
 
 commands = {
-'/re':'%s'%(ansi('red'),
-'/gr':'%s'%(ansi('green'),
-'/bl':'%s'%(ansi('blue'),
-'/ye':'%s'%(ansi('yellow')}
+'/re':'%s'%ansi('red'),
+'/gr':'%s'%ansi('green'),
+'/bl':'%s'%ansi('blue'),
+'/ye':'%s'%ansi('yellow')}
 
 
 class ServeGame(LineReceiver):
