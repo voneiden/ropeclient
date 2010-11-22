@@ -1,0 +1,4 @@
+[general]
+nick=Matti-linux
+charname=Tailabar
+host=ninjabox.sytes.net
