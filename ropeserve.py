@@ -254,10 +254,14 @@ class ServeGame(LineReceiver):
         who = tok[0].lower()
         txt = " ".join(tok[1:])
         tells = []
+        told = 0
         for player in players:
-            if player.nick.lower() == who or who in player.name.lower(): player.write("(%s%s tells you: %s))"%(ansi(COLOR['magneta']),self.name,txt))
-            elif player.nick.lower() == self.nick.lower(): player.write("(%sYou tell %s: %s)"%(ansi(COLOR['magneta']),who,txt))
-            elif player.gm: player.write("(%s%s tells %s: %s)"%(ansi(COLOR['yellow']),self.name,who,txt))
+            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s))"%(ansi(COLOR['magneta']),ansi(COLOR['magneta']),self.name,txt));told=1
+            elif player.nick.lower() == self.nick.lower(): pass
+            elif player.gm: player.write("%s(%s%s tells %s: %s)"%(ansi(COLOR['yellow']),ansi(COLOR['yellow']),self.name,who,txt))
+
+        if told: self.write("%s(%sYou tell %s: %s)"%(ansi(COLOR['magneta']),ansi(COLOR['magneta']),who,txt))
+        else: self.write("%s(%sNobody here with that name)"%(ansi(COLOR['magneta']),ansi(COLOR['magneta'])))
 
     def game(self,data):
         if len(data) == 0: return
