@@ -82,10 +82,11 @@ class ServeGame(LineReceiver):
                 self.handle = self.game
                 players.append(self)
                 chartoplayer[self.name] = self
-                self.announce("(%s has joined the game!)"%self.nick)
-                pl = []
-                for player in players: pl.append(player.nick)
-                self.announce("D_PLAYERS %s"%(" ".join(pl)))
+                #self.announce("(%s has joined the game!)"%self.nick)
+                #pl = []
+                #for player in players: pl.append(player.nick)
+                #self.announce("D_PLAYERS %s"%(" ".join(pl))) 
+                self.announce_players()
                 for line in linebuffer[-100:]:
                     self.write(line)
             elif tok[0] == 'SETNAME':
