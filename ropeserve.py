@@ -47,7 +47,7 @@ class ServeGame(LineReceiver):
         #self.write("Login: ")
         #self.transport.loseConnection()
         self.typing = False
-        
+        self.gm     = False
     def lineReceived(self, data):
         print("Line received!")
         self.handle(data)
@@ -250,32 +250,15 @@ class ServeGame(LineReceiver):
         print output
         return output
                 
-        '''
-        print(data)
-        buffer = []
-        data = data.split('"')
-        for i,tok in enumerate(data):
-            if   i == 0: buffer.append(tok)
-            elif i % 2 : buffer.append(ansi(COLOR['cyan']) + '"' + tok + '"' + ansi(COLOR['white']))
-            else:        buffer.append(tok)
-        data = "".join(buffer)
-        print(data)
+    def tell(self,tok):
+        who = tok[0].lower()
+        txt = " ".join(tok[1:])
+        tells = []
+        for player in players:
+            if player.nick.lower() == who or who in player.name.lower(): player.write("(%s%s tells you: %s))"%(ansi(COLOR['magneta']),self.name,txt))
+            elif player.nick.lower() == self.nick.lower(): player.write("(%sYou tell %s: %s)"%(ansi(COLOR['magneta']),who,txt))
+            elif player.gm: player.write("(%s%s tells %s: %s)"%(ansi(COLOR['yellow']),self.name,who,txt))
 
-        buffer = []
-        data = data.split('(')
-        print( "split",data)
-        for i,tok in enumerate(data):
-            if i == 0: buffer.append(tok)
-            else:
-                data2 = tok.split(')')
-                print ("split2",data2)
-                for j,tok2 in enumerate(data2):
-                    if j == 0: buffer.append(ansi(COLOR['gray']) + '(' + tok2)
-                    else: buffer.append(')' + ansi(COLOR['white']) + tok2)
-
-        data = "".join(buffer)
-        return data
-        '''
     def game(self,data):
         if len(data) == 0: return
         data = data.decode('utf-8')
@@ -283,13 +266,15 @@ class ServeGame(LineReceiver):
         if tok[0] == 'TYPING': self.typing = True;self.announce_players()
         elif tok[0] == 'NOT_TYPING': self.typing = False;self.announce_players()
         elif tok[0] == '/name': self.name = " ".join(tok[1:])
+        elif tok[0] == '/gm': self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
+        elif tok[0] == '/tell': self.tell(tok[1:])
         else: 
             if data[0] == '*': self.announce('''%s %s'''%(self.name,data[1:]))
             elif data[0] == '!': 
                 #roll = self.dice(data)
                 #if roll: self.announce('''(%s: %s)'''%(self.name,roll))
                 #else: 
-                self.announce('''(%s: %s'''%(self.name,data))
+                self.announce('''(%s: %s)'''%(self.name,data))
             elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]))
             elif data[0] == '(': self.announce('''(%s: %s'''%(self.name,data[1:]))
             else: self.announce('''%s says, "%s"'''%(self.name,data))
@@ -298,8 +283,10 @@ class ServeGame(LineReceiver):
     def announce_players(self):
         pl = []
         for player in players: 
-            if player.typing: pl.append("*" + player.nick)
-            else: pl.append(player.nick)
+            nick = player.nick
+            if player.typing: nick = "*" + nick
+            if player.gm:  nick = "[%s]"%nick
+            pl.append(nick)
         self.announce("D_PLAYERS %s"%(" ".join(pl)))
     def dice(self,data):
         x=data

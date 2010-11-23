@@ -32,11 +32,11 @@ class Window:
     def __init__(self):
         self.root = Tk()
         self.root.protocol("WM_DELETE_WINDOW", self.stop)
-
+        self.root.title('Ropeclient')
         self.mainframe = Frame(self.root,background="black")
         self.mainframe.pack(fill=BOTH,expand=YES)
         self.mainframe2 = Frame(self.root)
-        self.mainframe2.pack(fill=BOTH,expand=YES)
+        self.mainframe2.pack(fill=BOTH,expand=NO)
 
         self.textarea = ScrolledText(self.mainframe,width=80,height=20,
                                      wrap=WORD,
@@ -44,7 +44,7 @@ class Window:
         self.textarea.pack(side=LEFT,fill=BOTH, expand = YES)
         self.textarea.bind(sequence="<FocusIn>", func=self.returnfocus)
         self.listbox = Listbox(self.mainframe,width=12,background="black",foreground="white")
-        self.listbox.pack(side=LEFT,fill=Y,expand=YES)
+        self.listbox.pack(side=LEFT,fill=BOTH,expand=NO)
         self.command = StringVar()
         self.entry = Entry(self.mainframe2,
                              textvariable=self.command,
@@ -90,6 +90,7 @@ class Window:
 
         self.nick = nick
         self.name = name
+        self.root.title("Ropeclient: %s"%self.name)
         self.host = host
         self.color = color
         self.display_line("Your nick is: %s"%self.nick)
@@ -137,6 +138,8 @@ class Window:
         self.typing = False
         data=unicode(self.command.get())
         self.command.set("")
+        tok = data.split(' ')
+        if tok[0]== '/name': self.root.title("Ropeclient: %s"%" ".join(tok[1:]))
         try:
             self.connection.write(data.encode('utf-8'))
         except:
