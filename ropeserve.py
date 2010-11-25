@@ -14,6 +14,12 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+    Also, this program features very messy code, don't hurt your head
+    trying to decypher it.
+
+    Copyright 2010 Matti Eiden <snaipperi()gmail.com>
 '''
 
 
@@ -63,9 +69,6 @@ class ServeGame(LineReceiver):
         self.handle = self.login
         self.state = 0
         self.color = ''
-        #self.write(self.factory.text)
-        #self.write("Login: ")
-        #self.transport.loseConnection()
         self.typing = False
         self.gm     = False
         self.re_dice = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
@@ -128,21 +131,6 @@ class ServeGame(LineReceiver):
         ''' Regex replace function for dice rolls '''
         roll = self.dice(match.group())
         if roll:
-            #buf = []
-            '''
-            self.colorstack.append(ansi(COLOR['gray']))
-            buf.append(self.colorstack[-1])
-            buf.append("[%s: "%roll[0])
-            self.colorstack.append(ansi(COLOR['green']))
-            buf.append(self.colorstack[-1])
-            buf.append("%s"%roll[1])
-            self.colorstack.pop()
-            buf.append(self.colorstack[-1])
-            buf.append("]")
-            self.colorstack.pop()
-            buf.append(self.colorstack[-1])
-            print "buf",buf
-            '''
             return "%s[%s: %s%s%s]%s"%(
                 ansi(COLOR['gray']),
                 roll[0],
@@ -150,41 +138,38 @@ class ServeGame(LineReceiver):
                 roll[1],
                 ansi(COLOR['reset']),
                 ansi(COLOR['reset']))
-            #return "".join(buf)
         else: return match.group()
     def rf_quote(self,match):
         ''' Regex replace function for quotes '''
-        #buf = []
-        '''
-        self.colorstack.append(ansi(COLOR['cyan']))
-        buf.append(self.colorstack[-1])
-        buf.append(match.group())
-        self.colorstack.pop()
-        buf.append(self.colorstack[-1])
-        '''
-        #buf.append("%s%s%s"%(ansi(COLOR['cyan']),match.group(),ansi(COLOR['reset'])))
         return "%s%s%s"%(ansi(COLOR['cyan']),match.group(),ansi(COLOR['reset']))
     def rf_off(self,match):
         ''' Regex replace function for quotes '''
-        #buf = []
-        #buf.append("%s%s%s"%(ansi(COLOR['gray']),match.group(),ansi(COLOR['reset'])))
         return "%s%s%s"%(ansi(COLOR['gray']),match.group(),ansi(COLOR['reset']))
     def rf_nam(self,match):
-        print "Found name match.",self.color
         return "%s%s%s"%(self.color,match.group(),ansi(COLOR['reset']))
     def wrap(self,data):
-        ''' this version supports full regex
+        ''' this version supports full regex. probably the 4th time I rewrote it
         Initial color is WHITE. When you change color, please remember to RESET
         '''
         
-        data = re.sub(self.re_dice,self.rf_dice,data)
-        data = re.sub(self.re_quote,self.rf_quote,data)
-        data = re.sub(self.re_off,self.rf_off,data)
+        data = re.sub(self.re_dice,self.rf_dice,data)   #Search for dice combinatinos
+        data = re.sub(self.re_quote,self.rf_quote,data) #Search for text in between quotes
+        data = re.sub(self.re_off,self.rf_off,data)     #Search for offtopic 
         
         for player in players:
-            data=re.sub(player.regex,player.rf_nam,data)
+            data=re.sub(player.regex,player.rf_nam,data)#Search for player name highlights
         data = "%s%s"%(ansi(COLOR['white']),data)
 
+
+        ''' Building a color stack
+
+            To be able to properly color everything,
+            the final coloring must be done after
+            the regex coloring. The final coloring
+            looks for reset values, and then chooses
+            the appropriate color to reset to from the
+            color stack. It's pretty cool.
+        '''
 
         colorstack = []
         for color in re.finditer(CSIregex,data):
@@ -228,9 +213,6 @@ class ServeGame(LineReceiver):
         else: 
             if data[0] == '*': self.announce('''%s %s'''%(self.name,data[1:]))
             elif data[0] == '!': 
-                #roll = self.dice(data)
-                #if roll: self.announce('''(%s: %s)'''%(self.name,roll))
-                #else: 
                 self.announce('''(%s: %s)'''%(self.name,data))
             elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]))
             elif data[0] == '(': self.announce('''(%s: %s'''%(self.name,data[1:]))
@@ -246,7 +228,18 @@ class ServeGame(LineReceiver):
             pl.append(nick)
         ann = "D_PLAYERS %s"%(" ".join(pl))
         for player in players: player.write(ann)
+
+
+
+
+        
     def dice(self,data):
+        ''' This is an old dice function I wrote long time ago
+            It takes dice data, sums and differences. It works
+            very well, however it looks quite complex now. Again,
+            could look neater if done with regex, but I'm happy
+            the way it works now.
+        '''
         x=data
         roll = [] # Dices we still need to roll [add/subtract, dice string]
         rolled = [] # Dices we have rolled: [add/subtract, dice string, result]
@@ -296,7 +289,7 @@ class ServeGameFactory(Factory):
     protocol = ServeGame
     def __init__(self, text=None):
         if text is None:
-            text = """Sup bro. Please use a %stelnet/mud%s client that has back background. Using a command line is a good idea too."""%(ansi(COLOR['red']),ansi(COLOR['white']))
+            text = """Sup bro. Please use a %stelnet/mud%s client that has black background. Using a command line is a good idea too."""%(ansi(COLOR['red']),ansi(COLOR['white']))
         self.text = text
 
 if __name__ == '__main__':
