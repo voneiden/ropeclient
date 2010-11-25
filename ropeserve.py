@@ -1,7 +1,26 @@
+#!/usr/bin/python2
+# -*- coding: utf-8 -*-
+
+'''
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+'''
+
+
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
-import hashlib, random
+import hashlib, random, re
 
 
 players = []
@@ -12,8 +31,9 @@ NOECHO = '\xff\xfb\x01'
 ECHO   = '\xff\xfc\x01'
 
 CSI = '\033['
-
+CSIregex = re.compile('\033\[\d\d\d')
 COLOR = {
+    'reset':'000',
     'black':'001',
     'red':'002',
     'green':'003',
@@ -48,6 +68,9 @@ class ServeGame(LineReceiver):
         #self.transport.loseConnection()
         self.typing = False
         self.gm     = False
+        self.re_dice = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
+        self.re_quote = re.compile('".*?"')
+        self.re_off   = re.compile('\(.*?\)*?')
     def lineReceived(self, data):
         print("Line received!")
         self.handle(data)
@@ -81,7 +104,7 @@ class ServeGame(LineReceiver):
                 self.nick = tok[1]
                 self.handle = self.game
                 players.append(self)
-                chartoplayer[self.name] = self
+                
                 self.announce("(%s has joined the game!)"%self.nick)
                 #pl = []
                 #for player in players: pl.append(player.nick)
@@ -90,7 +113,8 @@ class ServeGame(LineReceiver):
                 for line in linebuffer[-100:]:
                     self.write(line)
             elif tok[0] == 'SETNAME':
-                self.name = " ".join(tok[1:])
+                self.setname(" ".join(tok[1:]))
+                
             elif tok[0] == 'SETCOLOR':
                 try: self.color = CSI + COLOR[" ".join(tok[1:])]
                 except: self.color = CSI + COLOR['gray']; self.write("Invalid color, defaulting to gray")
@@ -100,157 +124,85 @@ class ServeGame(LineReceiver):
         text = self.wrap(data)
         linebuffer.append( text)
         for player in players: player.write(text)
+    def rf_dice(self,match):
+        ''' Regex replace function for dice rolls '''
+        roll = self.dice(match.group())
+        if roll:
+            #buf = []
+            '''
+            self.colorstack.append(ansi(COLOR['gray']))
+            buf.append(self.colorstack[-1])
+            buf.append("[%s: "%roll[0])
+            self.colorstack.append(ansi(COLOR['green']))
+            buf.append(self.colorstack[-1])
+            buf.append("%s"%roll[1])
+            self.colorstack.pop()
+            buf.append(self.colorstack[-1])
+            buf.append("]")
+            self.colorstack.pop()
+            buf.append(self.colorstack[-1])
+            print "buf",buf
+            '''
+            return "%s[%s: %s%s%s]%s"%(
+                ansi(COLOR['gray']),
+                roll[0],
+                ansi(COLOR['green']),
+                roll[1],
+                ansi(COLOR['reset']),
+                ansi(COLOR['reset']))
+            #return "".join(buf)
+        else: return match.group()
+    def rf_quote(self,match):
+        ''' Regex replace function for quotes '''
+        #buf = []
+        '''
+        self.colorstack.append(ansi(COLOR['cyan']))
+        buf.append(self.colorstack[-1])
+        buf.append(match.group())
+        self.colorstack.pop()
+        buf.append(self.colorstack[-1])
+        '''
+        #buf.append("%s%s%s"%(ansi(COLOR['cyan']),match.group(),ansi(COLOR['reset'])))
+        return "%s%s%s"%(ansi(COLOR['cyan']),match.group(),ansi(COLOR['reset']))
+    def rf_off(self,match):
+        ''' Regex replace function for quotes '''
+        #buf = []
+        #buf.append("%s%s%s"%(ansi(COLOR['gray']),match.group(),ansi(COLOR['reset'])))
+        return "%s%s%s"%(ansi(COLOR['gray']),match.group(),ansi(COLOR['reset']))
+    def rf_nam(self,match):
+        print "Found name match.",self.color
+        return "%s%s%s"%(self.color,match.group(),ansi(COLOR['reset']))
     def wrap(self,data):
-        ''' Miten ois v2 mika lukee koko paskan kirjain kirjaimelta -> varien sailytys onnistuis '''
-        # First talking
-        quote = False
-        offtopic = False
-        dice  = False
-        cmode = False
-        output = ''
-        dbuf = ''
-        cbuf = ''
-        color = [ansi(COLOR['white'])]
-        print data
-      
-        for char in data:
-
-            if char == '!' and not dice:
-                dbuf = '!'
-                dice = 1
-                continue
-
-            elif dice == 1:
-                if char.isdigit():
-                    dbuf += char
-                    dice = 2
-                    continue
-                elif char == 'd':
-                    dbuf += char
-                    dice = 3
-                    continue
-                else:
-                    output += dbuf
-                    dbuf = ''
-                    dice = False
-                    
-                
-            elif dice == 2:
-                if char.isdigit():
-                    dbuf += char
-                    continue
-                elif char == 'd':
-                    dbuf += char
-                    dice = 3
-                    continue
-                else:
-                    roll = self.dice(dbuf)
-                    if roll:
-                        color.append(ansi(COLOR['gray']))
-                        output += color[-1] + '[' + roll[0] + ': '
-                        color.append(ansi(COLOR['green']))
-                        output += color[-1] + roll[1]
-                        color.pop()
-                        output += color[-1] + ']'
-                        color.pop()
-                        output += color[-1]
-                    else:
-                        output += dbuf
-                    dbuf = ''
-                    dice = False
-                    continue
-
-            elif dice == 3:
-                if char.isdigit():
-                    dbuf += char
-                    continue
-                elif char == '+' or char == '-':
-                    dbuf += char
-                    dice = 1
-                    continue
-                else:
-                    dice = False
-                    roll = self.dice(dbuf)
-                    if roll:
-                        color.append(ansi(COLOR['gray']))
-                        output += color[-1] + '[' + roll[0] + ': '
-                        color.append(ansi(COLOR['green']))
-                        output += color[-1] + roll[1]
-                        color.pop()
-                        output += color[-1] + ']'
-                        color.pop()
-                        output += color[-1]
-                    else:
-                        output += dbuf
-
-                    dbuf = ''
+        ''' this version supports full regex
+        Initial color is WHITE. When you change color, please remember to RESET
+        '''
+        
+        data = re.sub(self.re_dice,self.rf_dice,data)
+        data = re.sub(self.re_quote,self.rf_quote,data)
+        data = re.sub(self.re_off,self.rf_off,data)
+        
+        for player in players:
+            data=re.sub(player.regex,player.rf_nam,data)
+        data = "%s%s"%(ansi(COLOR['white']),data)
 
 
-            if char == '/' and not cmode:
-                cmode = 1
-                cbuf += char
-                continue
-            elif cmode == 1:
-                cmode = 2
-                cbuf += char
-                continue
-            elif cmode == 2:
-                cmode = False
-                cbuf += char
-                try: 
-                    c = commands[cbuf]
-                    if c == 'CLEAR':
-                        color.pop()
-                        output += color[-1]
-                    else:
-                        output += c
-                        color.append(c)
-                except: output += cbuf
-                cbuf = ''
-                continue
+        colorstack = []
+        for color in re.finditer(CSIregex,data):
+            x = color.group()
+            reset = '\033[000'
+            if x == reset:
+                colorstack.pop()
+                data=data.replace(reset,colorstack[-1],1)
+            else: colorstack.append(x)
 
-            if char == '"' and not quote:
-                quote = True
-                color.append(ansi(COLOR['cyan']))
-                output +=  color[-1]+ '"'
-                continue
-            elif char == '"' and quote:
-                quote = False
-                color.pop()
-                output += '"' + color[-1]
-                continue
-
-            elif char == '(' and not offtopic:
-                offtopic = True
-                color.append(ansi(COLOR['gray']))
-                output += color[-1] + "("
-                continue
-            elif char == ')' and offtopic:
-                offtopic = False
-                color.pop()
-                output += ")" + color[-1]
-                continue
-            
-                
-            else: output += char
-            #output += ' '
-        #output += dbuf
-        if len(dbuf) > 0: 
-            roll=self.dice(dbuf)
-            if roll: 
-                        color.append(ansi(COLOR['gray']))
-                        output += color[-1] + '[' + roll[0] + ': '
-                        color.append(ansi(COLOR['green']))
-                        output += color[-1] + roll[1]
-                        color.pop()
-                        output += color[-1] + ']'
-                        color.pop()
-                        output += color[-1]
-            else: output += dbuf
-        if len(cbuf) > 0: output += cbuf
-        print output
-        return output
-                
+        return data
+        
+    
+    def setname(self,name):
+        self.name = name
+        first = self.name.split(' ')[0].lower()
+        print "Setting name to:",first
+        self.regex = re.compile("(?!^)%s"%first,re.IGNORECASE)
     def tell(self,tok):
         who = tok[0].lower()
         txt = " ".join(tok[1:])
@@ -270,7 +222,7 @@ class ServeGame(LineReceiver):
         tok = data.split(' ')
         if tok[0] == 'TYPING': self.typing = True;self.announce_players()
         elif tok[0] == 'NOT_TYPING': self.typing = False;self.announce_players()
-        elif tok[0] == '/name': self.name = " ".join(tok[1:])
+        elif tok[0] == '/name': self.name = " ".join(tok[1:]);self.regex = re.compile(self.name,re.IGNORECASE)
         elif tok[0] == '/gm': self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
         elif tok[0] == '/tell': self.tell(tok[1:])
         else: 
@@ -292,7 +244,8 @@ class ServeGame(LineReceiver):
             if player.typing: nick = "*" + nick
             if player.gm:  nick = "[%s]"%nick
             pl.append(nick)
-        self.announce("D_PLAYERS %s"%(" ".join(pl)))
+        ann = "D_PLAYERS %s"%(" ".join(pl))
+        for player in players: player.write(ann)
     def dice(self,data):
         x=data
         roll = [] # Dices we still need to roll [add/subtract, dice string]

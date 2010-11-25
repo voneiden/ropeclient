@@ -128,7 +128,7 @@ class Window:
             else:
                 color = piece[:3]
                 try: color = ACOLOR[color]
-                except: print ("Unknown color")
+                except: print ("Unknown color %s"%color)
                 text  = piece[3:]
                 buf.append((color,text))
         
@@ -172,6 +172,7 @@ class Client(LineReceiver):
         #self.window.display_line("Line received!")
         data = data.decode('utf-8')
         tok = data.split(' ')
+        print tok
         if tok[0] == 'D_PLAYERS':
             players = tok[1:]
             self.window.update_players(players)
