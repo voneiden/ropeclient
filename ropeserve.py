@@ -207,7 +207,7 @@ class ServeGame(LineReceiver):
         tok = data.split(' ')
         if tok[0] == 'TYPING': self.typing = True;self.announce_players()
         elif tok[0] == 'NOT_TYPING': self.typing = False;self.announce_players()
-        elif tok[0] == '/name': self.name = " ".join(tok[1:]);self.regex = re.compile(self.name,re.IGNORECASE)
+        elif tok[0] == '/name': self.setname(" ".join(tok[1:]))#self.name = ;self.regex = re.compile(self.name,re.IGNORECASE)
         elif tok[0] == '/gm': self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
         elif tok[0] == '/tell': self.tell(tok[1:])
         else: 
