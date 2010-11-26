@@ -3,3 +3,4 @@ nick=Matti
 charname=Tailabar
 charcolor=yellow
 host=ninjabox.sytes.net
+

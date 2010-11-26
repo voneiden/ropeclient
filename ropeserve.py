@@ -73,7 +73,7 @@ class ServeGame(LineReceiver):
         self.gm     = False
         self.re_dice = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
         self.re_quote = re.compile('".*?"')
-        self.re_off   = re.compile('\(.*?\)*?')
+        self.re_off   = re.compile('\(.*?\)')
     def lineReceived(self, data):
         print("Line received!")
         self.handle(data)
@@ -215,7 +215,7 @@ class ServeGame(LineReceiver):
             elif data[0] == '!': 
                 self.announce('''(%s: %s)'''%(self.name,data))
             elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]))
-            elif data[0] == '(': self.announce('''(%s: %s'''%(self.name,data[1:]))
+            elif data[0] == '(': self.announce('''(%s: %s'''%(self.nick,data[1:]))
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
             self.announce_players()
