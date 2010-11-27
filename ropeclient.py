@@ -24,7 +24,7 @@
 
 from Tkinter import *
 from ScrolledText import ScrolledText
-import ConfigParser, logging, time
+import ConfigParser, logging, time, re
 from twisted.internet import tksupport, reactor
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
@@ -33,23 +33,6 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
                     filename='ropeclient.log')
-
-
-COLOR = {
-    'black':'001',
-    'red':'002',
-    'green':'003',
-    'yellow':'004',
-    'blue':'005',
-    'magneta':'006',
-    'cyan':'007',
-    'white':'008',
-    'gray':'009',
-    'dim gray':'010'}
-ACOLOR = {}
-for key,value in COLOR.items():
-    ACOLOR[value] = key
-
 
 
 class Window:
@@ -95,6 +78,9 @@ class Window:
         
         #for line in testbuf: self.display_line(line)
         if not self.load_config(): return "CRASH"
+
+        self.colortags = []
+        self.colorre   = re.compile('\033<.*?>')
     def stop(self):
         
         self.root.destroy()
@@ -144,11 +130,21 @@ class Window:
         self.textarea.insert(END,'\n')
         self.textarea.config(state=DISABLED)
         self.textarea.yview(END)
+
         
     def wrap(self,text):
         buf = []
-        for i,piece in enumerate(text.split('\033[')):
-            if i == 0: buf.append(('white',piece))
+        for i,piece in enumerate(text.split('\033<')):
+            
+
+            if i == 0: buf.append(('white',piece));continue
+            tok = piece.split('>')
+            color = tok[0].lower()
+            text  = ">".join(tok[1:])
+            if color not in self.colortags:
+                self.textarea.tag_config(color, foreground=color)
+            buf.append((color,text))
+            '''
             else:
                 color = piece[:3]
                 try: color = ACOLOR[color]
@@ -156,7 +152,7 @@ class Window:
                 text  = piece[3:]
                 buf.append((color,text))
         
-        
+            '''
         return buf
     def process(self,args):
         self.typing = False
@@ -196,7 +192,7 @@ class Client(LineReceiver):
         #self.window.display_line("Line received!")
         data = data.decode('utf-8')
         tok = data.split(' ')
-        print tok
+        #print tok
         if tok[0] == 'D_PLAYERS':
             players = tok[1:]
             self.window.update_players(players)

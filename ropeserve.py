@@ -36,8 +36,8 @@ linebuffer  = []
 NOECHO = '\xff\xfb\x01'
 ECHO   = '\xff\xfc\x01'
 
-CSI = '\033['
-CSIregex = re.compile('\033\[\d\d\d')
+CSI = '\033'
+CSIregex = re.compile('\033<.*?>')
 COLOR = {
     'reset':'000',
     'black':'001',
@@ -52,7 +52,8 @@ COLOR = {
     'dim gray':'010'}
 
 
-
+def colorize(color):
+    return "%s<%s>"%(CSI,color)
 
 def ansi(code):
     return CSI + code 
@@ -119,8 +120,8 @@ class ServeGame(LineReceiver):
                 self.setname(" ".join(tok[1:]))
                 
             elif tok[0] == 'SETCOLOR':
-                try: self.color = CSI + COLOR[" ".join(tok[1:])]
-                except: self.color = CSI + COLOR['gray']; self.write("Invalid color, defaulting to gray")
+                try: self.color = colorize(" ".join(tok[1:]))
+                except: self.color = colorize('gray'); self.write("Invalid color, defaulting to gray")
             
     def announce(self,data):
         global linebuffer
@@ -132,33 +133,35 @@ class ServeGame(LineReceiver):
         roll = self.dice(match.group())
         if roll:
             return "%s[%s: %s%s%s]%s"%(
-                ansi(COLOR['gray']),
+                colorize('gray'),
                 roll[0],
-                ansi(COLOR['green']),
+                colorize('green'),
                 roll[1],
-                ansi(COLOR['reset']),
-                ansi(COLOR['reset']))
+                colorize('reset'),
+                colorize('reset'))
         else: return match.group()
     def rf_quote(self,match):
         ''' Regex replace function for quotes '''
-        return "%s%s%s"%(ansi(COLOR['cyan']),match.group(),ansi(COLOR['reset']))
+        return "%s%s%s"%(colorize('cyan'),match.group(),colorize('reset'))
     def rf_off(self,match):
         ''' Regex replace function for quotes '''
-        return "%s%s%s"%(ansi(COLOR['gray']),match.group(),ansi(COLOR['reset']))
+        return "%s%s%s"%(colorize('gray'),match.group(),colorize('reset'))
     def rf_nam(self,match):
-        return "%s%s%s"%(self.color,match.group(),ansi(COLOR['reset']))
+        return "%s%s%s"%(self.color,match.group(),colorize('reset'))
+    def rf_color(self,match):
+        return "\033%s"%match.group()
     def wrap(self,data):
         ''' this version supports full regex. probably the 4th time I rewrote it
         Initial color is WHITE. When you change color, please remember to RESET
         '''
-        
+        data = re.sub("<.*?>",self.rf_color,data)
         data = re.sub(self.re_dice,self.rf_dice,data)   #Search for dice combinatinos
         data = re.sub(self.re_quote,self.rf_quote,data) #Search for text in between quotes
         data = re.sub(self.re_off,self.rf_off,data)     #Search for offtopic 
         
         for player in players:
             data=re.sub(player.regex,player.rf_nam,data)#Search for player name highlights
-        data = "%s%s"%(ansi(COLOR['white']),data)
+        data = "%s%s"%(colorize('white'),data)
 
 
         ''' Building a color stack
@@ -174,8 +177,11 @@ class ServeGame(LineReceiver):
         colorstack = []
         for color in re.finditer(CSIregex,data):
             x = color.group()
-            reset = '\033[000'
+            reset = '\033<reset>'
+            #print "match:",x
+            #print "reset:",reset
             if x == reset:
+                #print "yess"
                 colorstack.pop()
                 data=data.replace(reset,colorstack[-1],1)
             else: colorstack.append(x)
@@ -194,12 +200,12 @@ class ServeGame(LineReceiver):
         tells = []
         told = 0
         for player in players:
-            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s))"%(ansi(COLOR['magneta']),ansi(COLOR['magneta']),self.name,txt));told=1
+            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s))"%(colorize('magneta'),colorize('magneta'),self.name,txt));told=1
             elif player.nick.lower() == self.nick.lower(): pass
-            elif player.gm: player.write("%s(%s%s tells %s: %s)"%(ansi(COLOR['yellow']),ansi(COLOR['yellow']),self.name,who,txt))
+            elif player.gm: player.write("%s(%s%s tells %s: %s)"%(colorize('yellow'),colorize('yellow'),self.name,who,txt))
 
-        if told: self.write("%s(%sYou tell %s: %s)"%(ansi(COLOR['magneta']),ansi(COLOR['magneta']),who,txt))
-        else: self.write("%s(%sNobody here with that name)"%(ansi(COLOR['magneta']),ansi(COLOR['magneta'])))
+        if told: self.write("%s(%sYou tell %s: %s)"%(colorize('magneta'),colorize('magneta'),who,txt))
+        else: self.write("%s(%sNobody here with that name)"%(colorize('magneta'),colorize('magneta')))
 
     def game(self,data):
         if len(data) == 0: return
@@ -289,7 +295,7 @@ class ServeGameFactory(Factory):
     protocol = ServeGame
     def __init__(self, text=None):
         if text is None:
-            text = """Sup bro. Please use a %stelnet/mud%s client that has black background. Using a command line is a good idea too."""%(ansi(COLOR['red']),ansi(COLOR['white']))
+            text = """Sup bro. Please use a %stelnet/mud%s client that has black background. Using a command line is a good idea too."""%(colorize('red'),colorize('white'))
         self.text = text
 
 if __name__ == '__main__':
