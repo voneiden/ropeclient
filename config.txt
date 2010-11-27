@@ -2,4 +2,4 @@
 nick=Matti
 charname=Tailabar
 charcolor=yellow
-host=localhost
+host=ninjabox.sytes.net
