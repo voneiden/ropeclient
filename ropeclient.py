@@ -142,7 +142,8 @@ class Window:
             color = tok[0].lower()
             text  = ">".join(tok[1:])
             if color not in self.colortags:
-                self.textarea.tag_config(color, foreground=color)
+                try: self.textarea.tag_config(color, foreground=color)
+                except: self.textarea.tag_config(color,foreground="white")
             buf.append((color,text))
             '''
             else:

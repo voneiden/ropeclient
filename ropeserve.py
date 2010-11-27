@@ -204,8 +204,8 @@ class ServeGame(LineReceiver):
             elif player.nick.lower() == self.nick.lower(): pass
             elif player.gm: player.write("%s(%s%s tells %s: %s)"%(colorize('yellow'),colorize('yellow'),self.name,who,txt))
 
-        if told: self.write("%s(%sYou tell %s: %s)"%(colorize('magneta'),colorize('magneta'),who,txt))
-        else: self.write("%s(%sNobody here with that name)"%(colorize('magneta'),colorize('magneta')))
+        if told: self.write("%s(%sYou tell %s: %s)"%(colorize('mangeta'),colorize('mangeta'),who,txt))
+        else: self.write("%s(%sNobody here with that name)"%(colorize('mangeta'),colorize('mangeta')))
 
     def game(self,data):
         if len(data) == 0: return
