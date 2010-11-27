@@ -200,12 +200,12 @@ class ServeGame(LineReceiver):
         tells = []
         told = 0
         for player in players:
-            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s))"%(colorize('magneta'),colorize('magneta'),self.name,txt));told=1
+            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s))"%(colorize('magenta'),colorize('magenta'),self.name,txt));told=1
             elif player.nick.lower() == self.nick.lower(): pass
             elif player.gm: player.write("%s(%s%s tells %s: %s)"%(colorize('yellow'),colorize('yellow'),self.name,who,txt))
 
-        if told: self.write("%s(%sYou tell %s: %s)"%(colorize('mangeta'),colorize('mangeta'),who,txt))
-        else: self.write("%s(%sNobody here with that name)"%(colorize('mangeta'),colorize('mangeta')))
+        if told: self.write("%s(%sYou tell %s: %s)"%(colorize('magenta'),colorize('magenta'),who,txt))
+        else: self.write("%s(%sNobody here with that name)"%(colorize('magenta'),colorize('magenta')))
 
     def game(self,data):
         if len(data) == 0: return
