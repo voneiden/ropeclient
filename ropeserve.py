@@ -193,7 +193,7 @@ class ServeGame(LineReceiver):
         self.name = name
         first = self.name.split(' ')[0].lower()
         print "Setting name to:",first
-        self.regex = re.compile("(?!^)%s"%first,re.IGNORECASE)
+        self.regex = re.compile("(?<!^)(?<![(])%s"%first,re.IGNORECASE)
     def tell(self,tok):
         who = tok[0].lower()
         txt = " ".join(tok[1:])
