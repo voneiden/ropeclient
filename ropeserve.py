@@ -104,13 +104,14 @@ class ServeGame(LineReceiver):
                 self.handle = self.game
                 players.append(self)
                 
-                self.announce("(%s has joined the game!)"%self.nick)
+                
                 #pl = []
                 #for player in players: pl.append(player.nick)
                 #self.announce("D_PLAYERS %s"%(" ".join(pl))) 
                 self.announce_players()
                 for line in linebuffer[-100:]:
                     self.write(line)
+                self.announce("(%s has joined the game!)"%self.nick)
             elif tok[0] == 'SETNAME':
                 self.setname(" ".join(tok[1:]))
                 
@@ -157,7 +158,7 @@ class ServeGame(LineReceiver):
         for player in players:
             data=re.sub(player.regex,player.rf_nam,data)#Search for player name highlights
         if   style == "default": data = "%s%s"%(colorize('white'),data)
-        elif style == "describe": data = "%s%s"%(colorize('describe'))
+        elif style == "describe": data = "%s%s"%(colorize('describe'),data)
 
 
         ''' Building a color stack
@@ -217,7 +218,7 @@ class ServeGame(LineReceiver):
             elif data[0] == '!': 
                 self.announce('''(%s: %s)'''%(self.name,data))
             elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]),style="describe")
-            elif data[0] == '(': self.announce('''(%s: %s'''%(self.nick,data[1:])style="offtopic")
+            elif data[0] == '(': self.announce('''(%s: %s'''%(self.nick,data[1:]))
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
             self.announce_players()

@@ -63,7 +63,7 @@ class Window:
         self.entry.bind(sequence="<Key>", func=self.keypress)
         self.entry.focus_set()
 
-        
+        self.CONFIG = True
         self.typing = False
         '''
         self.textarea.tag_config("red", foreground="red")
@@ -78,10 +78,14 @@ class Window:
         self.textarea.tag_config("magneta", foreground="magenta")
         '''
         #for line in testbuf: self.display_line(line)
-        if not self.load_config(): return "CRASH"
+        if not self.load_config(): 
+            self.CONFIG = False
 
         self.colortags = []
         self.colorre   = re.compile('\033<.*?>')
+        
+        print "OK"
+    
     def stop(self):
         
         self.root.destroy()
@@ -105,17 +109,17 @@ class Window:
         except: self.display_line("Error in loading your config! host is not defined in section [general]");return False
 
         try:    highlight = parser.get('colors','highlight')
-        except: self.display_line("Error in loading your config! talk is not defined in section [colors]");return False
+        except: self.display_line("Error in loading your config! highlight is not defined in section [colors]");return False
         try:    talk = parser.get('colors','talk')
-        except: self.display_line("Error in loading your config! action is not defined in section [colors]");return False
+        except: self.display_line("Error in loading your config! talk is not defined in section [colors]");return False
         try:    action = parser.get('colors','action')
-        except: self.display_line("Error in loading your config! offtopic is not defined in section [colors]");return False
+        except: self.display_line("Error in loading your config! action is not defined in section [colors]");return False
         try:    offtopic = parser.get('colors','offtopic')
-        except: self.display_line("Error in loading your config! describe is not defined in section [colors]");return False
+        except: self.display_line("Error in loading your config! offtopic is not defined in section [colors]");return False
         try:    describe = parser.get('colors','describe')
-        except: self.display_line("Error in loading your config! tell is not defined in section [colors]");return False
+        except: self.display_line("Error in loading your config! describe is not defined in section [colors]");return False
         try:    tell = parser.get('colors','tell')
-        
+        except: self.display_line("Error in loading your config! tell is not defined in section [colors]");return False
         
 
 
@@ -151,7 +155,7 @@ class Window:
 
 
         # Timestamp
-        ts = ('gray',time.strftime('[%H:%M:%S] '))
+        ts = ('grey',time.strftime('[%H:%M:%S] '))
         text.insert(0,ts)
 
 
@@ -225,7 +229,7 @@ class Client(LineReceiver):
         self.window.display_line("Connected!")
         self.write("SUPERHANDSHAKE")
         self.write("SETNAME %s"%self.window.name)
-        self.write("SETCOLOR %s"%self.window.color)
+        self.write("SETCOLOR %s"%self.window.highlight)
         self.write("SETNICK %s"%self.window.nick)
         
     def lineReceived(self, data):
@@ -277,8 +281,10 @@ if __name__ == '__main__':
     
     window.display_line("Installing tksupport")
     tksupport.install(window.root)
-    window.display_line("Connecting to server..")
-    reactor.connectTCP(window.host, 49500, CFactory(window))
+    if window.CONFIG:
+        window.display_line("Connecting to server..")
+        reactor.connectTCP(window.host, 49500, CFactory(window))
+    else: window.display_line("Fix your config before you can continue connecting.")
     try: reactor.run()
     except:
         print( "ERROR ERROR ERROR")
