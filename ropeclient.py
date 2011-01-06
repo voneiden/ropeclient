@@ -173,7 +173,7 @@ class Window:
     def keypress(self,args):
         ''' Check if we've sent typing signal to server and if not, send it '''
         if args.keycode < 20: return
-        elif not self.typing: 
+        elif not self.typing and len(self.command.get()) > 0: 
             self.connection.write("TYPING")
             self.typing = True
             
