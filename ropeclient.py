@@ -65,7 +65,7 @@ class Window:
 
         
         self.typing = False
-
+        '''
         self.textarea.tag_config("red", foreground="red")
         self.textarea.tag_config("white", foreground="white")
         self.textarea.tag_config("cyan", foreground="cyan")
@@ -76,7 +76,7 @@ class Window:
         self.textarea.tag_config("green", foreground="green")
         self.textarea.tag_config("blue", foreground="blue")
         self.textarea.tag_config("magneta", foreground="magenta")
-        
+        '''
         #for line in testbuf: self.display_line(line)
         if not self.load_config(): return "CRASH"
 
@@ -124,16 +124,20 @@ class Window:
         self.name = name
         self.root.title("Ropeclient: %s"%self.name)
         self.host = host
-        self.c_highlight = highlight
-        self.c_talk      = talk
-        self.c_action    = action
-        self.c_offtopic  = offtopic
-        self.c_describe  = describe
-        self.c_tell      = tell
+        self.colors = {
+                       'talk':talk,
+                       'action':action,
+                       'offtopic':offtopic,
+                       'describe':describe,
+                       'tell':tell}
+        self.highlight = highlight
         
         self.display_line("Your nick is: %s"%self.nick)
         return True
+    
+    
     def update_players(self,players):
+        ''' Called when something changes in players '''
         self.listbox.delete(0, END)
         for player in players:
             self.listbox.insert(END, player)
@@ -169,6 +173,10 @@ class Window:
             tok = piece.split('>')
             color = tok[0].lower()
             text  = ">".join(tok[1:])
+        
+            if color in self.colors: # Personalized colors
+                color = self.colors[color]
+                
             if color not in self.colortags:
                 try: self.textarea.tag_config(color, foreground=color)
                 except: self.textarea.tag_config(color,foreground="white")
