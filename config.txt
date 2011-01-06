@@ -1,5 +1,13 @@
 [general]
 nick=Matti
-charname=Tailabar
-charcolor=yellow
+name=Tailabar
+highlight=yellow
 host=ninjabox.sytes.net
+
+[colors]
+highlight=yellow
+talk=cyan
+action=white
+offtopic=grey
+describe=white
+

@@ -88,22 +88,49 @@ class Window:
         reactor.stop()
     def returnfocus(self,args):
         self.entry.focus_set()
+        
+        
     def load_config(self):
+        ''' This function loads the config.txt  '''
         parser = ConfigParser.SafeConfigParser()
         try: parser.readfp(open('config.txt','r'))
         except: self.display_line("Could not load config.txt");return False
-        try: 
-            nick  = parser.get('general','nick')
-            name = parser.get('general','charname')
-            host = parser.get('general','host')
-            color = parser.get('general','charcolor')
-        except: self.display_line("Could not find option nick in section [general]");return False
+        
+        
+        try:    nick  = parser.get('general','nick')
+        except: self.display_line("Error in loading your config! nick is not defined in section [general]");return False
+        try:    name = parser.get('general','name')
+        except: self.display_line("Error in loading your config! name is not defined in section [general]");return False
+        try:    host = parser.get('general','host')
+        except: self.display_line("Error in loading your config! host is not defined in section [general]");return False
+
+        try:    highlight = parser.get('colors','highlight')
+        except: self.display_line("Error in loading your config! talk is not defined in section [colors]");return False
+        try:    talk = parser.get('colors','talk')
+        except: self.display_line("Error in loading your config! action is not defined in section [colors]");return False
+        try:    action = parser.get('colors','action')
+        except: self.display_line("Error in loading your config! offtopic is not defined in section [colors]");return False
+        try:    offtopic = parser.get('colors','offtopic')
+        except: self.display_line("Error in loading your config! describe is not defined in section [colors]");return False
+        try:    describe = parser.get('colors','describe')
+        except: self.display_line("Error in loading your config! tell is not defined in section [colors]");return False
+        try:    tell = parser.get('colors','tell')
+        
+        
+
+
 
         self.nick = nick
         self.name = name
         self.root.title("Ropeclient: %s"%self.name)
         self.host = host
-        self.color = color
+        self.c_highlight = highlight
+        self.c_talk      = talk
+        self.c_action    = action
+        self.c_offtopic  = offtopic
+        self.c_describe  = describe
+        self.c_tell      = tell
+        
         self.display_line("Your nick is: %s"%self.nick)
         return True
     def update_players(self,players):
