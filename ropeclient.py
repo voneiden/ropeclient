@@ -59,6 +59,7 @@ class Window:
                              state=NORMAL, insertbackground="white")
         self.entry.pack(side=BOTTOM,anchor="w",fill=X, expand = NO)
         self.entry.bind(sequence="<Return>", func=self.process)
+        self.entry.bind(sequence="<BackSpace>",func=self.backspace)
         self.entry.bind(sequence="<Key>", func=self.keypress)
         self.entry.focus_set()
 
@@ -145,16 +146,8 @@ class Window:
                 try: self.textarea.tag_config(color, foreground=color)
                 except: self.textarea.tag_config(color,foreground="white")
             buf.append((color,text))
-            '''
-            else:
-                color = piece[:3]
-                try: color = ACOLOR[color]
-                except: print ("Unknown color %s"%color)
-                text  = piece[3:]
-                buf.append((color,text))
-        
-            '''
         return buf
+    
     def process(self,args):
         self.typing = False
         data=unicode(self.command.get())
@@ -167,12 +160,23 @@ class Window:
             self.display_line("!!!!Something went wrong. I might crash!!!")
             print ("ERRORROREORE")
             raise
-    def keypress(self,args):
-        #print args.keycode
+
+    def backspace(self,args):
+        ''' This function captures the backspace and if there's
+            only one character left in input it means the player
+            removed everything, so send a not typing signal to server '''
         l = len(self.command.get())
-        if l == 1 and args.keycode == 8 and self.typing: self.connection.write("NOT_TYPING"); self.typing = False
-        elif args.keycode < 20: return
-        elif not self.typing and l > 0: self.connection.write("TYPING"); self.typing = True
+        if l == 1 and self.typing:
+            self.connection.write("NOT_TYPING")
+            self.typing = False
+            
+    def keypress(self,args):
+        ''' Check if we've sent typing signal to server and if not, send it '''
+        if args.keycode < 20: return
+        elif not self.typing: 
+            self.connection.write("TYPING")
+            self.typing = True
+            
     def loop(self):
         self.root.mainloop()
 
