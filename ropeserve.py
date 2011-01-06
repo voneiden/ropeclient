@@ -58,12 +58,7 @@ def colorize(color):
 def ansi(code):
     return CSI + code 
 
-commands = {
-'/re':'%s'%ansi(COLOR['red']),
-'/gr':'%s'%ansi(COLOR['green']),
-'/bl':'%s'%ansi(COLOR['blue']),
-'/ye':'%s'%ansi(COLOR['yellow']),
-'/cl':'CLEAR'}
+
 
 class ServeGame(LineReceiver):
     def connectionMade(self):
@@ -123,9 +118,9 @@ class ServeGame(LineReceiver):
                 try: self.color = colorize(" ".join(tok[1:]))
                 except: self.color = colorize('gray'); self.write("Invalid color, defaulting to gray")
             
-    def announce(self,data):
+    def announce(self,data,style="default"):
         global linebuffer
-        text = self.wrap(data)
+        text = self.wrap(data,style=style)
         linebuffer.append( text)
         for player in players: player.write(text)
     def rf_dice(self,match):
@@ -142,26 +137,27 @@ class ServeGame(LineReceiver):
         else: return match.group()
     def rf_quote(self,match):
         ''' Regex replace function for quotes '''
-        return "%s%s%s"%(colorize('cyan'),match.group(),colorize('reset'))
+        return "%s%s%s"%(colorize('talk'),match.group(),colorize('reset'))
     def rf_off(self,match):
         ''' Regex replace function for quotes '''
-        return "%s%s%s"%(colorize('gray'),match.group(),colorize('reset'))
+        return "%s%s%s"%(colorize('offtopic'),match.group(),colorize('reset'))
     def rf_nam(self,match):
         return "%s%s%s"%(self.color,match.group(),colorize('reset'))
     def rf_color(self,match):
         return "\033%s"%match.group()
-    def wrap(self,data):
+    def wrap(self,data,style):
         ''' this version supports full regex. probably the 4th time I rewrote it
         Initial color is WHITE. When you change color, please remember to RESET
         '''
-        data = re.sub("<.*?>",self.rf_color,data)
+        data = re.sub("<.*?>",self.rf_color,data)       #Search for color requests
         data = re.sub(self.re_dice,self.rf_dice,data)   #Search for dice combinatinos
         data = re.sub(self.re_quote,self.rf_quote,data) #Search for text in between quotes
         data = re.sub(self.re_off,self.rf_off,data)     #Search for offtopic 
         
         for player in players:
             data=re.sub(player.regex,player.rf_nam,data)#Search for player name highlights
-        data = "%s%s"%(colorize('white'),data)
+        if   style == "default": data = "%s%s"%(colorize('white'),data)
+        elif style == "describe": data = "%s%s"%(colorize('describe'))
 
 
         ''' Building a color stack
@@ -211,17 +207,17 @@ class ServeGame(LineReceiver):
         if len(data) == 0: return
         data = data.decode('utf-8')
         tok = data.split(' ')
-        if tok[0] == 'TYPING': self.typing = True;self.announce_players()
+        if tok[0]   == 'TYPING': self.typing = True;self.announce_players()
         elif tok[0] == 'NOT_TYPING': self.typing = False;self.announce_players()
         elif tok[0] == '/name': self.setname(" ".join(tok[1:]))#self.name = ;self.regex = re.compile(self.name,re.IGNORECASE)
         elif tok[0] == '/gm': self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
         elif tok[0] == '/tell': self.tell(tok[1:]);self.typing = False;self.announce_players()
         else: 
-            if data[0] == '*': self.announce('''%s %s'''%(self.name,data[1:]))
+            if data[0] == '*': self.announce('''%s %s'''%(self.name,data[1:]),style="action")
             elif data[0] == '!': 
                 self.announce('''(%s: %s)'''%(self.name,data))
-            elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]))
-            elif data[0] == '(': self.announce('''(%s: %s'''%(self.nick,data[1:]))
+            elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]),style="describe")
+            elif data[0] == '(': self.announce('''(%s: %s'''%(self.nick,data[1:])style="offtopic")
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
             self.announce_players()
