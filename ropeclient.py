@@ -19,7 +19,7 @@
     Also, this program features very messy code, don't hurt your head
     trying to decypher it.
 
-    Copyright 2010 Matti Eiden <snaipperi()gmail.com>
+    Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
 
 from Tkinter import *
