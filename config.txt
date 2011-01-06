@@ -2,12 +2,12 @@
 nick=Matti
 name=Tailabar
 highlight=yellow
-host=localhost
+host=ninjabox.sytes.net
 
 [colors]
 highlight=yellow
-talk=red
+talk=cyan
 action=white
 offtopic=grey
-describe=green
+describe=white
 tell=magenta
