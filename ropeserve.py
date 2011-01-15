@@ -301,16 +301,29 @@ class World:
         self.players  = {}
         
     def connect(self,player):
-        player = player.lower()
+        nick = player.nick.lower()
+        if self.players.has_key(nick):
+            print "Dual connect, disconnecting the old player."
+            self.players[nick].write("You have logged in elsewhere, disconnecting.")
+            self.players[nick].transport.loseConnection()
+        self.players[nick] = player
+        print "Connect:",nick,self.players
         
-    def join(self,player,channel):
+    def disconnect(self,player):
+        nick = player.nick.lower()
+        if self.players.has_key(nick):
+            del self.players[nick]
+        print "Disconnect:",nick,self.players
+    '''
+    def join(self,avatar,channel):
         channel = channel.lower()
-        player  = player.lower()
+        avatar  = avatar.lower()
         
         if self.channels.has_key(channel):
             self.channels[channel.append(player)
         else:
             self.channels[channel] = [player]
+        print "Join:",player
             
     def part(part,player,channel):
         channel = channel.lower()
@@ -321,7 +334,7 @@ class World:
                 return True
             else: return False
         else: return False
-
+    '''
 if __name__ == '__main__':
     world = World()
     reactor.listenTCP(49500, ServeGameFactory(world))
