@@ -235,10 +235,10 @@ class Client(LineReceiver):
     def lineReceived(self, data):
         #self.window.display_line("Line received!")
         data = data.decode('utf-8')
-        tok = data.split(' ')
+        #tok = data.split(' ')
         #print tok
-        if tok[0] == 'D_PLAYERS':
-            players = tok[1:]
+        if data[0:2] == u'\xff\xa0':
+            players = data[2:].split(' ')
             self.window.update_players(players)
         else: self.window.display_line(data)
     

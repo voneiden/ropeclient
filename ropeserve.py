@@ -21,7 +21,13 @@
 
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
+''' 
+NOTES
 
+Playerlist shall be sent as unicode("\xffxa0player list") 
+
+
+'''
 
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
@@ -229,7 +235,7 @@ class ServeGame(LineReceiver):
             if player.typing: nick = "*" + nick
             if player.gm:  nick = "[%s]"%nick
             pl.append(nick)
-        ann = "D_PLAYERS %s"%(" ".join(pl))
+        ann = u"\xff\xa0%s"%(" ".join(pl))
         for player in players: player.write(ann)
 
 
