@@ -159,7 +159,7 @@ class ServeGame(LineReceiver):
             data=re.sub(player.regex,player.rf_nam,data)#Search for player name highlights
         if   style == "default": data = "%s%s"%(colorize('white'),data)
         elif style == "describe": data = "%s%s"%(colorize('describe'),data)
-
+        elif style == "action":   data = "%s%s"%(colorize('action'),data)
 
         ''' Building a color stack
 
@@ -170,17 +170,15 @@ class ServeGame(LineReceiver):
             the appropriate color to reset to from the
             color stack. It's pretty cool.
         '''
-
         colorstack = []
         for color in re.finditer(CSIregex,data):
             x = color.group()
             reset = '\033<reset>'
-            #print "match:",x
-            #print "reset:",reset
             if x == reset:
-                #print "yess"
-                colorstack.pop()
-                data=data.replace(reset,colorstack[-1],1)
+                try: 
+                    colorstack.pop()
+                    data=data.replace(reset,colorstack[-1],1)
+                except: data=data.replace(reset,'\033<red>',1);print "Wrap(): Too many resets by %s?"%self.nick
             else: colorstack.append(x)
 
         return data

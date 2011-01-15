@@ -2,7 +2,7 @@
 nick=Matti
 name=Tailabar
 highlight=yellow
-host=ninjabox.sytes.net
+host=localhost
 
 [colors]
 highlight=yellow
