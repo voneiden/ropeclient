@@ -100,10 +100,29 @@ class ServeGame(LineReceiver):
         elif tok[0] == 'NOT_TYPING': self.typing = False
 
         if self.state == 0:
-            print ("Got data",data)
-            if data != "SUPERHANDSHAKE": self.transport.loseConnection()
-            self.state = 1
-        else:
+            tok = data.split(' ')
+            if len(tok) != 2 and tok[0] == "SUPERHANDSHAKE":
+                self.write("""You are using an old version of ropeclient. Please grab
+                           a new copy from http://eiden.fi/ropeclient""")
+                self.state = -1
+                return
+            elif len(tok) == 2:
+                self.write("""Welcome to ropeclient
+                           _ _            _   
+ _ __ ___  _ __   ___  ___| (_) ___ _ __ | |_ 
+| '__/ _ \| '_ \ / _ \/ __| | |/ _ \ '_ \| __|
+| | | (_) | |_) |  __/ (__| | |  __/ | | | |_ 
+|_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|
+          |_|                                 
+""")
+                if tok[1] == "2":
+                    self.state = 1
+                else:
+                    self.write("""It seems you are using a different version than the server.
+                              Grab the newest copy from http://eiden.fi/ropeclient""")
+                    self.state = -1
+            else: self.transport.loseConnection()
+        elif self.state > 0:
             tok = data.split(' ')
             if tok[0] == 'SETNICK':
                 self.nick = tok[1]

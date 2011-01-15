@@ -227,7 +227,7 @@ class Client(LineReceiver):
         
     def connectionMade(self):
         self.window.display_line("Connected!")
-        self.write("SUPERHANDSHAKE")
+        self.write("SUPERHANDSHAKE 2")
         self.write("SETNAME %s"%self.window.name)
         self.write("SETCOLOR %s"%self.window.highlight)
         self.write("SETNICK %s"%self.window.nick)
