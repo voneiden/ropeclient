@@ -194,7 +194,7 @@ class Window:
         tok = data.split(' ')
         if tok[0]== '/name': self.root.title("Ropeclient: %s"%" ".join(tok[1:]))
         try:
-            self.connection.write(data.encode('utf-8'))
+            self.connection.write(data)
         except:
             self.display_line("!!!!Something went wrong. I might crash!!!")
             print ("ERRORROREORE")
@@ -206,14 +206,14 @@ class Window:
             removed everything, so send a not typing signal to server '''
         l = len(self.command.get())
         if l == 1 and self.typing:
-            self.connection.write("NOT_TYPING")
+            self.connection.write(u"\xff\x00")
             self.typing = False
             
     def keypress(self,args):
         ''' Check if we've sent typing signal to server and if not, send it '''
         if args.keycode < 20: return
         elif not self.typing and len(self.command.get()) > 0: 
-            self.connection.write("TYPING")
+            self.connection.write(u"\xff\x01")
             self.typing = True
             
     def loop(self):
@@ -246,7 +246,9 @@ class Client(LineReceiver):
         pass
 
     def write(self,data):
-        self.transport.write(data + '\r\n')
+        data = data+'\r\n'
+        data = data.encode('utf-8')
+        self.transport.write(data)
         
 class CFactory(ReconnectingClientFactory):
     def __init__(self,window):
