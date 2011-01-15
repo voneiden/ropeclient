@@ -289,12 +289,40 @@ class ServeGame(LineReceiver):
         return data[1:],str(tot)
 
 class ServeGameFactory(Factory):
-    protocol = ServeGame
-    def __init__(self, text=None):
-        if text is None:
-            text = """Sup bro. Please use a %stelnet/mud%s client that has black background. Using a command line is a good idea too."""%(colorize('red'),colorize('white'))
-        self.text = text
+    #protocol = ServeGame
+    def __init__(self,world):
+        self.protocol = ServeGame
+        self.world    = world
+        Factory.__init__(self)
+
+class World:
+    def __init__(self):
+        self.channels = {'spawn':[]}
+        self.players  = {}
+        
+    def connect(self,player):
+        player = player.lower()
+        
+    def join(self,player,channel):
+        channel = channel.lower()
+        player  = player.lower()
+        
+        if self.channels.has_key(channel):
+            self.channels[channel.append(player)
+        else:
+            self.channels[channel] = [player]
+            
+    def part(part,player,channel):
+        channel = channel.lower()
+        player = player.lower()
+        if self.channels.has_key(channel):
+            if player in self.channels[channel]:
+                self.channels[channel].remove(player)
+                return True
+            else: return False
+        else: return False
 
 if __name__ == '__main__':
-    reactor.listenTCP(49500, ServeGameFactory())
+    world = World()
+    reactor.listenTCP(49500, ServeGameFactory(world))
     reactor.run()
