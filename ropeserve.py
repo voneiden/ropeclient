@@ -126,16 +126,9 @@ class ServeGame(LineReceiver):
         for player in players: player.write(text)
     def rf_dice(self,match):
         ''' Regex replace function for dice rolls '''
-        roll = self.dice(match.group())
-        if roll:
-            return "%s[%s: %s%s%s]%s"%(
-                colorize('gray'),
-                roll[0],
-                colorize('green'),
-                roll[1],
-                colorize('reset'),
-                colorize('reset'))
-        else: return match.group()
+        roll = self.dicer(match.group())
+        if roll: return roll
+        else:    return match.group()
     def rf_quote(self,match):
         ''' Regex replace function for quotes '''
         return "%s%s%s"%(colorize('talk'),match.group(),colorize('reset'))
@@ -150,8 +143,8 @@ class ServeGame(LineReceiver):
         ''' this version supports full regex. probably the 4th time I rewrote it
         Initial color is WHITE. When you change color, please remember to RESET
         '''
-        data = re.sub("<.*?>",self.rf_color,data)       #Search for color requests
         data = re.sub(self.re_dice,self.rf_dice,data)   #Search for dice combinatinos
+        data = re.sub("<.*?>",self.rf_color,data)       #Search for color requests
         data = re.sub(self.re_quote,self.rf_quote,data) #Search for text in between quotes
         data = re.sub(self.re_off,self.rf_off,data)     #Search for offtopic 
         
@@ -230,61 +223,46 @@ class ServeGame(LineReceiver):
         ann = "D_PLAYERS %s"%(" ".join(pl))
         for player in players: player.write(ann)
 
+    def dicer(self,data):
+        dicex = re.compile('[\+-]?\d*d?\d+')
+        total = 0
+        output = []
+        for obj in re.finditer(dicex,data):
+            obj = obj.group()
+            if   obj[0] == '+': add = True;  obj = obj[1:]
+            elif obj[0] == '-': add = False; obj = obj[1:]
+            else:               add = True;  obj = obj
+            if 'd' not in obj:
+                color = "<blue>"#colorize('blue')
+                if add: output.append("<grey>+%s<reset>"%obj); total += int(obj)
+                else:   output.append("<grey>-%s<reset>"%obj); total -= int(obj)
+            else:
+                tok = obj.split('d')
+                result = self.roll(tok[0],tok[1])
+                if not result: return "<grey>[<red>Dice value too high<reset>]<reset>"
+                result,exploded = result
+                if exploded: color = '<gold>'
+                else:        color = '<SeaGreen>'
+                if add: output.append("%s+%s<reset>"%(color,obj)); total += result
+                else:   output.append("%s-%s<reset>"%(color,obj)); total -= result
+        return "<grey>[%s: <green>%i<reset>]<reset>"%("".join(output),total)
 
-
-
+    def roll(self,rolls,sides):
+        if len(rolls) == 0: rolls = 1
+        rolls = int(rolls)
+        sides = int(sides)
         
-    def dice(self,data):
-        ''' This is an old dice function I wrote long time ago
-            It takes dice data, sums and differences. It works
-            very well, however it looks quite complex now. Again,
-            could look neater if done with regex, but I'm happy
-            the way it works now.
-        '''
-        x=data
-        roll = [] # Dices we still need to roll [add/subtract, dice string]
-        rolled = [] # Dices we have rolled: [add/subtract, dice string, result]
-
-        y = x[1:].split('+') # Ignore the ! in the beginning, split the shit from + signs
-        for tok in y:        # for every PLUS..
-            z=tok.split('-') # Split the splitted shit from - signs
-            for i,obj in enumerate(z):          # For every MINUS after a PLUS
-                if len(obj) == 0: continue      # skip empty shit (for ex: !-d6 looks like [EMPTY,d6]
-                if i == 0: roll.append([1,obj]) # if it's the first it's a PLUS
-                else: roll.append([-1,obj])     # all the rest is MINUS
-        while len(roll) > 0:       # While we have something to roll, do it.
-            a,d = roll.pop(0)      # Pop the first out from the queue list
-            if 'd' in d:           # If there is a "d", it's a dice (ex. 2d6)
-                tok = d.split('d') # So lets split the shit (xdy)
-                try: x=int(tok[0]) # Just in case it's soemthing like "d6", we assume x to be one (1d6)
-                except: x = 1      # Yep.
-                if 1 > x or x > 10: rolled.append([a,">%s<"%d,0]); continue # If the number of dices to roll is too big
-                try: y = int(tok[1])                                        # Check that the y is a number
-                except: rolled.append([a,"?%s?"%d,0]); continue             # if it's fucked up, screw that.
-                if 2 > y or  y > 200: rolled.append([a,">%s<"%d,0]); continue # check that it's not a crazy value
-                for i in xrange(x):                     # Do the dice rolling loop
-                    r=random.randint(1,y)               # random!
-                    if r == y: roll.append((a,'d%i'%y)) # it's exploding!
-                    rolled.append([a,'d%i'%y,r])        # done rolling 
-            else:                                                           # Guess it's not a dice (no "d")
-                try:                                                        # Lets try
-                    i = int(d)                                              # Maybe it's a number
-                    rolled.append([a,d,i])                                  # No errors, cool!
-                except: rolled.append([a,"error!%s!error"%d,0]); continue   # Nope, it's something weird.
-        
-        tot = 0                                             # Total result
-        output = []                                         # Info string
-        for obj in rolled:                                  # for everything in the rolled list
-            if obj[0] == 1:                                 # if it's 1, it means it's ADD. else SUBTRACT
-                tot += obj[2]                               # So add the result to total
-                output.append("+[%s:%i]"%(obj[1],obj[2]))   # and write info to 
-            else:                                           # its SUBTRAACT
-                tot -= obj[2]                               # minus it
-                output.append("-[%s:-%i]"%(obj[1],obj[2]))  # write it
-        if tot == 0: return                                 # dont bother to send if there are no results   
-        #msg.Chat.SendMessage("%s rolls: %i (%s)"%(msg.FromDisplayName,tot,"".join(output))) #combine and send it
-        #return "[(%s) = %s]"%(str(tot), data[1:])#"".join(output))
-        return data[1:],str(tot)
+        if not 0 < rolls <= 20: return False
+        if not 0 < rolls <= 100: return False
+        exploding = True
+        exploded  = False
+        total = 0
+        rolls = range(rolls)
+        for i in rolls:
+            result = random.randint(1,sides)
+            if result == sides and exploding: rolls.append(1); exploded = True
+            total += result
+        return (total,exploded)
 
 class ServeGameFactory(Factory):
     protocol = ServeGame
