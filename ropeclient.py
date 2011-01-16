@@ -135,7 +135,8 @@ class Window:
         
         self.listbox.delete(0, END)
         for player in self.playerlist:
-            self.listbox.insert(END, player)
+            if player[1]: self.listbox.insert(END, "*%s"%player[0])
+            else:         self.listbox.insert(END, "%s"%player[0])
             
     def playerTyping(self,id,status):
         for player in self.playerlist:

@@ -213,7 +213,7 @@ class ServeGame(LineReceiver):
         tells = []
         told = 0
         for player in players:
-            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s))"%(colorize('tell'),colorize('tell'),self.name,txt));told=1
+            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s)"%(colorize('tell'),colorize('tell'),self.name,txt));told=1
             elif player.nick.lower() == self.nick.lower(): continue
             elif player.gm: player.write("%s(%s%s tells %s: %s)"%(colorize('yellow'),colorize('yellow'),self.name,who,txt))
 
@@ -250,6 +250,14 @@ class ServeGame(LineReceiver):
             pl.append(nick)
         ann = u"\xff\xa0%s"%(" ".join(pl))
         for player in players: player.write(ann)
+        
+    def announce_typing(self):
+        for player in players:
+            #if player == self: continue
+            if self.typing: data = u'\xff\x01%s'%self.nick
+            else:           data = u'\xff\x00%s'%self.nick
+            player.write(data)
+            
 
 
     def dicer(self,data):
