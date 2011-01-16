@@ -233,7 +233,8 @@ class ServeGame(LineReceiver):
         elif tok[0] == '/gm': self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
         elif tok[0] == '/tell': self.tell(tok[1:]);self.typing = False;self.announce_players()
         else: 
-            if data[0] == '*': self.announce('''%s %s'''%(self.name,data[1:]),style="action")
+            if   data[0] == '*':      self.announce('''%s %s'''%(self.name,data[1:].strip()),style="action")
+            elif data[0:3] == '/me':  self.announce('''%s %s'''%(self.name,data[3:].strip()),style="action")
             elif data[0] == '!': 
                 self.announce('''(%s: %s)'''%(self.name,data))
             elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]),style="describe")
