@@ -223,6 +223,8 @@ class ServeGame(LineReceiver):
     def game(self,data):
         if len(data) == 0: return
         data = data.decode('utf-8')
+        data = data.replace('\n',' ')
+        data = data.replace('\r', '')
         tok = data.split(' ')
         if len(data) == 2:
             if   data == u'\xff\x00': self.typing = False; self.announce_typing(); return
@@ -230,15 +232,18 @@ class ServeGame(LineReceiver):
         #if tok[0]   == 'TYPING': self.typing = True;self.announce_players()
         #elif tok[0] == 'NOT_TYPING': self.typing = False;self.announce_players()
         if tok[0] == '/name': self.setname(" ".join(tok[1:]))#self.name = ;self.regex = re.compile(self.name,re.IGNORECASE)
-        elif tok[0] == '/gm': self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
+        elif tok[0] == '/gm': pass#self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
         elif tok[0] == '/tell': self.tell(tok[1:]);self.typing = False;self.announce_players()
         else: 
             if   data[0] == '*':      self.announce('''%s %s'''%(self.name,data[1:].strip()),style="action")
             elif data[0:3] == '/me':  self.announce('''%s %s'''%(self.name,data[3:].strip()),style="action")
+            elif data[0] == '/': pass
             elif data[0] == '!': 
                 self.announce('''(%s: %s)'''%(self.name,data))
             elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]),style="describe")
-            elif data[0] == '(': self.announce('''(%s: %s'''%(self.nick,data[1:]))
+            elif data[0] == '(': 
+                if data[-1] != ')': data += ')' # People tend to forget to add the last )
+                self.announce('''(%s: %s'''%(self.nick,data[1:]))
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
             self.announce_players()
