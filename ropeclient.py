@@ -50,6 +50,7 @@ class Window:
                                      state=DISABLED, background="black",foreground="white")
         self.textarea.pack(side=LEFT,fill=BOTH, expand = YES)
         self.textarea.bind(sequence="<FocusIn>", func=self.returnfocus)
+        
         self.listbox = Listbox(self.mainframe,width=12,background="black",foreground="white")
         self.listbox.pack(side=LEFT,fill=BOTH,expand=NO)
         self.command = StringVar()
@@ -61,6 +62,10 @@ class Window:
         self.entry.bind(sequence="<Return>", func=self.process)
         self.entry.bind(sequence="<BackSpace>",func=self.backspace)
         self.entry.bind(sequence="<Key>", func=self.keypress)
+        self.entry.bind("<MouseWheel>", self.mouse_wheel)
+        self.entry.bind("<Button-4>",   self.mouse_wheel)
+        self.entry.bind("<Button-5>",   self.mouse_wheel)
+        
         self.entry.focus_set()
 
         self.CONFIG = True
@@ -75,6 +80,7 @@ class Window:
         self.playerlist = []
         
         print "OK"
+        print dir(self.textarea)
     
     def stop(self):
         
@@ -83,6 +89,13 @@ class Window:
     def returnfocus(self,args):
         self.entry.focus_set()
         
+    def mouse_wheel(self,event):
+        print "Event num",event.num
+        print "Event delta",event.delta
+        if event.num == 5 or event.delta < 0:
+            self.textarea.yview_scroll(event.delta,"pixels")
+        elif event.num == 4 or event.delta > 0:
+            self.textarea.yview_scroll(event.delta,"pixels")
         
     def load_config(self):
         ''' This function loads the config.txt  '''
