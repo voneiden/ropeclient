@@ -234,8 +234,8 @@ class ServeGame(LineReceiver):
         data = data.decode('utf-8')
         tok = data.split(' ')
         if len(data) == 2:
-            if   data == u'\xff\x00': self.typing = False; self.announce_players(); return
-            elif data == u'\xff\x01': self.typing = True; self.announce_players(); return
+            if   data == u'\xff\x00': self.typing = False; self.announce_typing(); return
+            elif data == u'\xff\x01': self.typing = True;  self.announce_typing(); return
         #if tok[0]   == 'TYPING': self.typing = True;self.announce_players()
         #elif tok[0] == 'NOT_TYPING': self.typing = False;self.announce_players()
         if tok[0] == '/name': self.setname(" ".join(tok[1:]))#self.name = ;self.regex = re.compile(self.name,re.IGNORECASE)
@@ -261,7 +261,13 @@ class ServeGame(LineReceiver):
         for player in players: player.write(ann)
 
 
-
+    def announce_typing(self):
+        for player in players:
+            #if player == self: continue
+            if self.typing: data = u'\xff\x01%s'%self.nick
+            else:           data = u'\xff\x00%s'%self.nick
+            player.write(data)
+            
 
         
     def dice(self,data):

@@ -130,15 +130,17 @@ class Window:
         return True
     
     
-    def update_players(self,players):
+    def update_players(self):
         ''' Called when something changes in players '''
-        self.playerlist = players
+        
         self.listbox.delete(0, END)
-        for player in players:
+        for player in self.playerlist:
             self.listbox.insert(END, player)
             
-    def playerStatusType(self,player,status):
-        
+    def playerTyping(self,id,status):
+        for player in self.playerlist:
+            if player[0] == id: player[1] = status
+        self.update_players()
     
     def display_line(self,text):
         text = self.wrap(text)
@@ -233,7 +235,14 @@ class Client(LineReceiver):
         #print tok
         if data[0:2] == u'\xff\xa0':
             players = data[2:].split(' ')
-            self.window.update_players(players)
+            self.window.playerlist = []
+            for player in players:
+                self.window.playerlist.append([player,False,False])
+            self.window.update_players()
+        elif data[0:2] == u'\xff\x01':
+            self.window.playerTyping(data[2:],True)
+        elif data[0:2] == u'\xff\x00':
+            self.window.playerTyping(data[2:],False)
         else: self.window.display_line(data)
     
     def connectionLost(self,reason):
