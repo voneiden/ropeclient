@@ -65,24 +65,14 @@ class Window:
 
         self.CONFIG = True
         self.typing = False
-        '''
-        self.textarea.tag_config("red", foreground="red")
-        self.textarea.tag_config("white", foreground="white")
-        self.textarea.tag_config("cyan", foreground="cyan")
-        self.textarea.tag_config("gray", foreground="gray")
-        self.textarea.tag_config("red", foreground="red")
-        self.textarea.tag_config("dim gray", foreground="dim gray")
-        self.textarea.tag_config("yellow", foreground="yellow")
-        self.textarea.tag_config("green", foreground="green")
-        self.textarea.tag_config("blue", foreground="blue")
-        self.textarea.tag_config("magneta", foreground="magenta")
-        '''
-        #for line in testbuf: self.display_line(line)
+ 
         if not self.load_config(): 
             self.CONFIG = False
 
         self.colortags = []
         self.colorre   = re.compile('\033<.*?>')
+        
+        self.playerlist = []
         
         print "OK"
     
@@ -142,9 +132,13 @@ class Window:
     
     def update_players(self,players):
         ''' Called when something changes in players '''
+        self.playerlist = players
         self.listbox.delete(0, END)
         for player in players:
             self.listbox.insert(END, player)
+            
+    def playerStatusType(self,player,status):
+        
     
     def display_line(self,text):
         text = self.wrap(text)
