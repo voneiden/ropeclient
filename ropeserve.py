@@ -24,8 +24,12 @@
 ''' 
 NOTES
 
-Playerlist shall be sent as unicode("\xffxa0player list") 
 
+Protocol notes
+\xff\xa0 Server  -> client: String of player names seperated by space
+\xff\x00 Client <-> server: Client is not typing [string: player name]
+\xff\x01 Client <-> server: Client is typing [string: player name]
+\xff\x02 Client <-> server: Message [string:owner] [string:type] [float:timestamp] [string:contents]
 
 '''
 

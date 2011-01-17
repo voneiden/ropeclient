@@ -176,6 +176,7 @@ class Window:
         self.textarea.insert(END,'\n')
         self.textarea.config(state=DISABLED)
         self.textarea.yview(END)
+        # Todo, don't scroll if player is scrolling
 
         
     def wrap(self,text):
