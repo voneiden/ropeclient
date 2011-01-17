@@ -296,7 +296,7 @@ class ServeGame(LineReceiver):
         sides = int(sides)
         
         if not 0 < rolls <= 20: return False
-        if not 0 < rolls <= 100: return False
+        if not 1 < sides <= 100: return False
         exploding = True
         exploded  = False
         total = 0
