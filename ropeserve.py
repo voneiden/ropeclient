@@ -29,7 +29,13 @@ Protocol notes
 \xff\xa0 Server  -> client: String of player names seperated by space
 \xff\x00 Client <-> server: Client is not typing [string: player name]
 \xff\x01 Client <-> server: Client is typing [string: player name]
-\xff\x02 Client <-> server: Message [string:owner] [string:type] [float:timestamp] [string:contents]
+\xff\x02 Client  -> server: Message [string:contents]
+\xff\x02 Server <-  client: Message [string:owner] [string:type] [float:timestamp] [string:contents]
+
+1 - offtopic
+2 - talk
+3 - emote
+4 - describe
 
 '''
 
@@ -72,14 +78,30 @@ def ansi(code):
 
 class ServeGame(LineReceiver):
     def connectionMade(self):
-        self.handle = self.login
-        self.state = 0
-        self.color = ''
-        self.typing = False
-        self.gm     = False
-        self.re_dice = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
+        self.handle   = self.login
+        self.state    = 0
+        self.color    = ''
+        self.typing   = False
+        self.gm       = False
+        self.re_dice  = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
         self.re_quote = re.compile('".*?"')
         self.re_off   = re.compile('\(.*?\)')
+        
+        
+        self.commands = {
+        'say':self.gameSay,
+        'emote':self.gameEmote,
+        '/me':self.gameEmote,
+        'tell':self.gameTell,
+        'look':self.gameLook}
+        
+        
+        self.triggers = {
+        '.':self.gameSay,
+        '*':self.gameEmote,
+        '#':self.gameDescribe,
+        '(':self.gameOfftopic}
+        
     def lineReceived(self, data):
         print("Line received!")
         self.handle(data)
@@ -99,10 +121,6 @@ class ServeGame(LineReceiver):
 
     def login(self,data):
         tok = data.split(' ')
-        self.typing = False
-        if tok[0] == 'TYPING': self.typing = True
-        elif tok[0] == 'NOT_TYPING': self.typing = False
-
         if self.state == 0:
             tok = data.split(' ')
             if len(tok) != 2 and tok[0] == "SUPERHANDSHAKE":
@@ -224,9 +242,71 @@ class ServeGame(LineReceiver):
         if told: self.write("%s(%sYou tell %s: %s)"%(colorize('tell'),colorize('tell'),who,txt))
         else: self.write("%s(%sNobody here with that name)"%(colorize('tell'),colorize('tell')))
 
-    def game(self,data):
-        if len(data) == 0: return
-        data = data.decode('utf-8')
+    def game(self,recv):
+        # First we validate the data #
+        if len(recv) < 3: return
+        try: recv = recv.decode('utf-8')
+        except: 
+            print "Received non-unicode data from the client, ignoring."
+            return
+        
+        # Second we read the packet type #
+        packetid = recv[:2]
+        if   packetid == u'\xff\x00': self.gameTyping(False)
+        elif packetid == u'\xff\x01': self.gameTyping(True)
+        elif packetid == u'\xff\x02': self.gameMessage(recv[2:])
+        else: 
+            print "Received unknown packet from",self.nick
+            print "This:",recv
+            
+    def gameTyping(self,state):
+        self.typing = state
+        if self.typing: data = u'\xff\x01%s'%self.nick
+        else:           data = u'\xff\x00%s'%self.nick
+        for player in players:  player.write(data)
+        
+    def gameMessage(self,messageContent):
+        '''
+        messageParams   = recv.split(' ')
+        messageOwner    = messageParams[0]
+        messageType     = messageParams[1]
+        messageTimestamp= messageParams[2]
+        messageContent  = " ".join(messageParams[3:])
+        '''
+        if len(messageContent) < 1: print "Message too short";return
+        messageParams = messageContent.split(' ')
+        messageCommand = messageParams[0].lower()
+        messageTrigger = messageCommand[0]
+        
+        if   self.commands.has_key(messageCommand): self.commands[messageCommand](messageContent[len(messageCommand):])
+        elif self.triggers.has_key(messageTrigger): self.triggers[messageTrigger](meessageContent[1:])
+    def sendMessage(self,messageContent):
+        messageOwner = self.nick
+        messageTime  = str(time.time())
+        message
+        
+    def gameSay(self,messageContent):
+        messageParams = messageContent.split(' ')
+        if messageParams.lower() == 'to' and len(messageParams) > 2:
+            messageTo = messageParams[1]
+            if players.has_key(messageTo.lower()):
+                pass #TODO: Finish this 
+    def gameEmote(self,messageContent):
+        pass
+    def gameTell(self,messageContent):
+        pass
+    def gameDescribe(self,messageContent):
+        pass
+    def gameLook(self,messageContent):
+        pass
+    
+    
+        '''
+        if   messageHeader    == 'say': self.gameSay(" ".join(messageParams[1:]))
+        elif messageHeader[0] == '.'  : self.gameSay(messageContent[1:])
+        elif messageHeader    == '/me': self.gameEmote
+             messageHeader    == 'emote': self.game
+        
         data = data.replace('\n',' ')
         data = data.replace('\r', '')
         tok = data.split(' ')
@@ -251,6 +331,7 @@ class ServeGame(LineReceiver):
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
             self.announce_players()
+        '''
     def announce_players(self):
         pl = []
         for player in players: 
@@ -261,13 +342,7 @@ class ServeGame(LineReceiver):
         ann = u"\xff\xa0%s"%(" ".join(pl))
         for player in players: player.write(ann)
         
-    def announce_typing(self):
-        for player in players:
-            #if player == self: continue
-            if self.typing: data = u'\xff\x01%s'%self.nick
-            else:           data = u'\xff\x00%s'%self.nick
-            player.write(data)
-            
+
 
 
     def dicer(self,data):
