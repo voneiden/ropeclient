@@ -1,7 +1,6 @@
 [general]
 nick=Matti
 name=Tailabar
-highlight=yellow
 host=localhost
 
 [colors]

@@ -21,7 +21,17 @@
 
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
+''' 
+NOTES
 
+
+Protocol notes
+\xff\xa0 Server  -> client: String of player names seperated by space
+\xff\x00 Client <-> server: Client is not typing [string: player name]
+\xff\x01 Client <-> server: Client is typing [string: player name]
+\xff\x02 Client <-> server: Message [string:owner] [string:type] [float:timestamp] [string:contents]
+
+'''
 
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
@@ -94,10 +104,29 @@ class ServeGame(LineReceiver):
         elif tok[0] == 'NOT_TYPING': self.typing = False
 
         if self.state == 0:
-            print ("Got data",data)
-            if data != "SUPERHANDSHAKE": self.transport.loseConnection()
-            self.state = 1
-        else:
+            tok = data.split(' ')
+            if len(tok) != 2 and tok[0] == "SUPERHANDSHAKE":
+                self.write("""You are using an old version of ropeclient. Please grab
+                           a new copy from http://eiden.fi/ropeclient""")
+                self.state = -1
+                return
+            elif len(tok) == 2:
+                self.write("""Welcome to ropeclient
+                           _ _            _   
+ _ __ ___  _ __   ___  ___| (_) ___ _ __ | |_ 
+| '__/ _ \| '_ \ / _ \/ __| | |/ _ \ '_ \| __|
+| | | (_) | |_) |  __/ (__| | |  __/ | | | |_ 
+|_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|
+          |_|                                 
+""")
+                if tok[1] == "2":
+                    self.state = 1
+                else:
+                    self.write("""It seems you are using a different version than the server.
+                              Grab the newest copy from http://eiden.fi/ropeclient""")
+                    self.state = -1
+            else: self.transport.loseConnection()
+        elif self.state > 0:
             tok = data.split(' ')
             if tok[0] == 'SETNICK':
                 self.nick = tok[1]
@@ -188,7 +217,7 @@ class ServeGame(LineReceiver):
         tells = []
         told = 0
         for player in players:
-            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s))"%(colorize('tell'),colorize('tell'),self.name,txt));told=1
+            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s)"%(colorize('tell'),colorize('tell'),self.name,txt));told=1
             elif player.nick.lower() == self.nick.lower(): continue
             elif player.gm: player.write("%s(%s%s tells %s: %s)"%(colorize('yellow'),colorize('yellow'),self.name,who,txt))
 
@@ -198,18 +227,27 @@ class ServeGame(LineReceiver):
     def game(self,data):
         if len(data) == 0: return
         data = data.decode('utf-8')
+        data = data.replace('\n',' ')
+        data = data.replace('\r', '')
         tok = data.split(' ')
-        if tok[0]   == 'TYPING': self.typing = True;self.announce_players()
-        elif tok[0] == 'NOT_TYPING': self.typing = False;self.announce_players()
-        elif tok[0] == '/name': self.setname(" ".join(tok[1:]))#self.name = ;self.regex = re.compile(self.name,re.IGNORECASE)
-        elif tok[0] == '/gm': self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
+        if len(data) == 2:
+            if   data == u'\xff\x00': self.typing = False; self.announce_typing(); return
+            elif data == u'\xff\x01': self.typing = True;  self.announce_typing(); return
+        #if tok[0]   == 'TYPING': self.typing = True;self.announce_players()
+        #elif tok[0] == 'NOT_TYPING': self.typing = False;self.announce_players()
+        if tok[0] == '/name': self.setname(" ".join(tok[1:]))#self.name = ;self.regex = re.compile(self.name,re.IGNORECASE)
+        elif tok[0] == '/gm': pass#self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
         elif tok[0] == '/tell': self.tell(tok[1:]);self.typing = False;self.announce_players()
         else: 
-            if data[0] == '*': self.announce('''%s %s'''%(self.name,data[1:]),style="action")
+            if   data[0] == '*':      self.announce('''%s %s'''%(self.name,data[1:].strip()),style="action")
+            elif data[0:3] == '/me':  self.announce('''%s %s'''%(self.name,data[3:].strip()),style="action")
+            elif data[0] == '/': pass
             elif data[0] == '!': 
                 self.announce('''(%s: %s)'''%(self.name,data))
             elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]),style="describe")
-            elif data[0] == '(': self.announce('''(%s: %s'''%(self.nick,data[1:]))
+            elif data[0] == '(': 
+                if data[-1] != ')': data += ')' # People tend to forget to add the last )
+                self.announce('''(%s: %s'''%(self.nick,data[1:]))
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
             self.announce_players()
@@ -220,8 +258,17 @@ class ServeGame(LineReceiver):
             if player.typing: nick = "*" + nick
             if player.gm:  nick = "[%s]"%nick
             pl.append(nick)
-        ann = "D_PLAYERS %s"%(" ".join(pl))
+        ann = u"\xff\xa0%s"%(" ".join(pl))
         for player in players: player.write(ann)
+        
+    def announce_typing(self):
+        for player in players:
+            #if player == self: continue
+            if self.typing: data = u'\xff\x01%s'%self.nick
+            else:           data = u'\xff\x00%s'%self.nick
+            player.write(data)
+            
+
 
     def dicer(self,data):
         dicex = re.compile('[\+-]?\d*d?\d+')
@@ -253,7 +300,7 @@ class ServeGame(LineReceiver):
         sides = int(sides)
         
         if not 0 < rolls <= 20: return False
-        if not 0 < rolls <= 100: return False
+        if not 1 < sides <= 100: return False
         exploding = True
         exploded  = False
         total = 0

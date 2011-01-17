@@ -50,6 +50,7 @@ class Window:
                                      state=DISABLED, background="black",foreground="white")
         self.textarea.pack(side=LEFT,fill=BOTH, expand = YES)
         self.textarea.bind(sequence="<FocusIn>", func=self.returnfocus)
+        
         self.listbox = Listbox(self.mainframe,width=12,background="black",foreground="white")
         self.listbox.pack(side=LEFT,fill=BOTH,expand=NO)
         self.command = StringVar()
@@ -61,30 +62,25 @@ class Window:
         self.entry.bind(sequence="<Return>", func=self.process)
         self.entry.bind(sequence="<BackSpace>",func=self.backspace)
         self.entry.bind(sequence="<Key>", func=self.keypress)
+        self.entry.bind("<MouseWheel>", self.mouse_wheel)
+        self.entry.bind("<Button-4>",   self.mouse_wheel)
+        self.entry.bind("<Button-5>",   self.mouse_wheel)
+        
         self.entry.focus_set()
 
         self.CONFIG = True
         self.typing = False
-        '''
-        self.textarea.tag_config("red", foreground="red")
-        self.textarea.tag_config("white", foreground="white")
-        self.textarea.tag_config("cyan", foreground="cyan")
-        self.textarea.tag_config("gray", foreground="gray")
-        self.textarea.tag_config("red", foreground="red")
-        self.textarea.tag_config("dim gray", foreground="dim gray")
-        self.textarea.tag_config("yellow", foreground="yellow")
-        self.textarea.tag_config("green", foreground="green")
-        self.textarea.tag_config("blue", foreground="blue")
-        self.textarea.tag_config("magneta", foreground="magenta")
-        '''
-        #for line in testbuf: self.display_line(line)
+ 
         if not self.load_config(): 
             self.CONFIG = False
 
         self.colortags = []
         self.colorre   = re.compile('\033<.*?>')
         
+        self.playerlist = []
+        
         print "OK"
+        print dir(self.textarea)
     
     def stop(self):
         
@@ -93,6 +89,13 @@ class Window:
     def returnfocus(self,args):
         self.entry.focus_set()
         
+    def mouse_wheel(self,event):
+        print "Event num",event.num
+        print "Event delta",event.delta
+        if event.num == 5 or event.delta < 0:
+            self.textarea.yview_scroll(event.delta,"pixels")
+        elif event.num == 4 or event.delta > 0:
+            self.textarea.yview_scroll(event.delta,"pixels")
         
     def load_config(self):
         ''' This function loads the config.txt  '''
@@ -140,11 +143,18 @@ class Window:
         return True
     
     
-    def update_players(self,players):
+    def update_players(self):
         ''' Called when something changes in players '''
+        
         self.listbox.delete(0, END)
-        for player in players:
-            self.listbox.insert(END, player)
+        for player in self.playerlist:
+            if player[1]: self.listbox.insert(END, "*%s"%player[0])
+            else:         self.listbox.insert(END, "%s"%player[0])
+            
+    def playerTyping(self,id,status):
+        for player in self.playerlist:
+            if player[0] == id: player[1] = status
+        self.update_players()
     
     def display_line(self,text):
         text = self.wrap(text)
@@ -166,6 +176,7 @@ class Window:
         self.textarea.insert(END,'\n')
         self.textarea.config(state=DISABLED)
         self.textarea.yview(END)
+        # Todo, don't scroll if player is scrolling
 
         
     def wrap(self,text):
@@ -194,7 +205,7 @@ class Window:
         tok = data.split(' ')
         if tok[0]== '/name': self.root.title("Ropeclient: %s"%" ".join(tok[1:]))
         try:
-            self.connection.write(data.encode('utf-8'))
+            self.connection.write(data)
         except:
             self.display_line("!!!!Something went wrong. I might crash!!!")
             print ("ERRORROREORE")
@@ -206,14 +217,14 @@ class Window:
             removed everything, so send a not typing signal to server '''
         l = len(self.command.get())
         if l == 1 and self.typing:
-            self.connection.write("NOT_TYPING")
+            self.connection.write(u"\xff\x00")
             self.typing = False
             
     def keypress(self,args):
         ''' Check if we've sent typing signal to server and if not, send it '''
         if args.keycode < 20: return
         elif not self.typing and len(self.command.get()) > 0: 
-            self.connection.write("TYPING")
+            self.connection.write(u"\xff\x01")
             self.typing = True
             
     def loop(self):
@@ -227,7 +238,7 @@ class Client(LineReceiver):
         
     def connectionMade(self):
         self.window.display_line("Connected!")
-        self.write("SUPERHANDSHAKE")
+        self.write("SUPERHANDSHAKE 2")
         self.write("SETNAME %s"%self.window.name)
         self.write("SETCOLOR %s"%self.window.highlight)
         self.write("SETNICK %s"%self.window.nick)
@@ -235,18 +246,27 @@ class Client(LineReceiver):
     def lineReceived(self, data):
         #self.window.display_line("Line received!")
         data = data.decode('utf-8')
-        tok = data.split(' ')
+        #tok = data.split(' ')
         #print tok
-        if tok[0] == 'D_PLAYERS':
-            players = tok[1:]
-            self.window.update_players(players)
+        if data[0:2] == u'\xff\xa0':
+            players = data[2:].split(' ')
+            self.window.playerlist = []
+            for player in players:
+                self.window.playerlist.append([player,False,False])
+            self.window.update_players()
+        elif data[0:2] == u'\xff\x01':
+            self.window.playerTyping(data[2:],True)
+        elif data[0:2] == u'\xff\x00':
+            self.window.playerTyping(data[2:],False)
         else: self.window.display_line(data)
     
     def connectionLost(self,reason):
         pass
 
     def write(self,data):
-        self.transport.write(data + '\r\n')
+        data = data+'\r\n'
+        data = data.encode('utf-8')
+        self.transport.write(data)
         
 class CFactory(ReconnectingClientFactory):
     def __init__(self,window):
