@@ -102,6 +102,15 @@ class ServeGame(LineReceiver):
         '#':self.gameDescribe,
         '(':self.gameOfftopic}
         
+        self.greeting = """Welcome to ropeclient
+                           _ _            _   
+ _ __ ___  _ __   ___  ___| (_) ___ _ __ | |_ 
+| '__/ _ \| '_ \ / _ \/ __| | |/ _ \ '_ \| __|
+| | | (_) | |_) |  __/ (__| | |  __/ | | | |_ 
+|_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|
+          |_|                                 
+"""
+        
     def lineReceived(self, data):
         print("Line received!")
         self.handle(data)
@@ -129,14 +138,7 @@ class ServeGame(LineReceiver):
                 self.state = -1
                 return
             elif len(tok) == 2:
-                self.write("""Welcome to ropeclient
-                           _ _            _   
- _ __ ___  _ __   ___  ___| (_) ___ _ __ | |_ 
-| '__/ _ \| '_ \ / _ \/ __| | |/ _ \ '_ \| __|
-| | | (_) | |_) |  __/ (__| | |  __/ | | | |_ 
-|_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|
-          |_|                                 
-""")
+                self.write(self.greeting)
                 if tok[1] == "2":
                     self.state = 1
                 else:
