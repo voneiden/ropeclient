@@ -70,11 +70,12 @@ class Player(LineReceiver):
         self.id       = False
         self.pwd      = False
         self.colors   = {}
-        self.avatar   = None
+        self.avatar      = None
+        self.regexHilite = None
         self.color    = ''
         self.typing   = False
         self.gm       = False
-
+        
         
         self.protocolVersion = "3"
         
@@ -115,11 +116,7 @@ class Player(LineReceiver):
         self.handle(data)
     
     def connectionLost(self,reason):
-        if self in players:
-            players.remove(self)
-            print (self.nick,"disconnected")
-            self.announce("(%s has disconnected!)"%self.nick)
-            self.announce_players()
+        self.world.disconnectPlayer(self)
     
     def write(self,data,newline=True):
         data = data.encode('utf-8')
@@ -228,13 +225,6 @@ class Player(LineReceiver):
         for player in self.world.players.values():  player.write(data)
         
     def gameMessage(self,messageContent):
-        '''
-        messageParams   = recv.split(' ')
-        messageOwner    = messageParams[0]
-        messageType     = messageParams[1]
-        messageTimestamp= messageParams[2]
-        messageContent  = " ".join(messageParams[3:])
-        '''
         print "Game message"
         if len(messageContent) < 1: print "Message too short";return
         messageParams = messageContent.split(' ')
@@ -253,7 +243,7 @@ class Player(LineReceiver):
         self.write(u'\xff\x02%s %f %s'%(messageOwner,messageTime,messageContent))
         
     def gameSay(self,messageContent):
-        messageParams = messageContent.split(' ')
+        messageParams = messageContent.split(' ') #TTODO FIX ERROR
         if messageParams.lower() == 'to' and len(messageParams) > 2:
             messageTo = messageParams[1]
             if players.has_key(messageTo.lower()):
@@ -304,11 +294,129 @@ class Player(LineReceiver):
     def wrapHilite(self,match):
         return "%s%s<reset>"%(self.colors['highlight'],match.group())
 
+
+
+
+class PlayerFactory(Factory):
+    def __init__(self,world):
+        self.protocol = Player
+        self.world    = world
+
+class World:
+    def __init__(self):
+        self.channels = {'spawn':[]}
+        self.loadPasswords()
+        self.players = {}
+        self.history = []
+        self.regexDice  = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
+        self.regexQuote = re.compile('".*?"')
+        self.regexOff   = re.compile('\(.*?\)')
+        self.regexColor = re.compile('(?<=<).*?(?=>)')
+        self.regexColorF= re.compile('<.*?>')
+        self.regexDicex  = re.compile('[\+-]?\d*d?\d+')
+        
+        
+    def loadPasswords(self):
+        passwords = pickleLoad('passwd')
+        if passwords: self.passwords = passwords
+        else:         self.passwords = {}
+        
+    def savePasswords(self): pickleSave(self.passwords,'passwd')
+        
+    def connectPlayer(self,player):
+        if self.players.has_key(player.id):
+            print "Dual connect, disconnecting the old player."
+            self.players[player.id].write("You have logged in elsewhere, disconnecting.")
+            self.players[player.id].transport.loseConnection()
+        self.players[player.id] = player
+        self.sendPlayerlist()
+        self.sendHistory(player)
+        self.messageWorld('%s has joined the game!'%(player.nick),'Server')
+        print "Connect Player to World OK:",player.id,self.players
+        
+    def disconnectPlayer(self,player):
+        if self.players.has_key(player.id):
+            del self.players[player.id]
+        self.sendPlayerlist()
+        self.messageWorld('%s has quit the game!'%(player.nick),'Server')
+        
+    def sendPlayerlist(self):
+        pl = []
+        for player in self.players.values(): 
+            nick = player.nick
+            if player.typing:   nick = "*" + nick
+            if player.gm:       nick = "[%s]"%nick
+            if player.avatar:   nick = "%s (%s)"%(nick,"has_avatar")
+            pl.append(nick)
+        ann = u"\xff\xa0%s"%(" ".join(pl))
+        for player in self.players.values(): player.write(ann)
+    def sendHistory(self,player):
+        for line in self.history:
+            player.sendMessage("Server",line[0],line[1])
+        
+    def messageWorld(self,data,owner="Server",timestamp=False):
+        if not timestamp: timestamp = time.time()
+        data  = self.messageWrap(data,'offtopic')
+        self.history.append((time.time(),data))
+        for player in self.players.values():
+            player.sendMessage(owner,timestamp,data)
+    
+    def messageWrap(self,data,style='default'):
+        ''' this version supports full regex. probably the 4th time I rewrote it
+        Initial color is WHITE. When you change color, please remember to RESET
+        '''
+        data = re.sub(self.regexDice,self.wrapDice,data)   #Search for dice combinatinos
+        data = re.sub(self.regexQuote,self.wrapQuote,data) #Search for text in between quotes
+        data = re.sub(self.regexOff,self.wrapOff,data)     #Search for offtopic 
+        
+        for player in self.players.values():
+            if player.regexHilite: 
+                data=re.sub(player.regexHilite,player.wrapHilite,data)#Search for player name highlights
+                
+        if   style == "default":  data = "%s%s"%('<white>',data)
+        elif style == "describe": data = "%s%s"%('<describe>',data)
+        elif style == "action":   data = "%s%s"%('<action>',data)
+        elif style == "offtopic": data = "%s%s"%('<offtopic>',data)
+        else: data = "%s%s"%('<red>',data)
+        
+        ''' Building a color stack
+
+            To be able to properly color everything,
+            the final coloring must be done after
+            the regex coloring. The final coloring
+            looks for reset values, and then chooses
+            the appropriate color to reset to from the
+            color stack. It's pretty cool.
+        '''
+        colorstack = []
+        for color in re.finditer(self.regexColorF,data):
+            x = color.group()
+            reset = '<reset>'
+            if x == reset:
+                try: 
+                    colorstack.pop()
+                    data=data.replace(reset,colorstack[-1],1)
+                except: data=data.replace(reset,'<red>',1);print "Wrap(): Too many resets at",data
+            else: colorstack.append(x)
+
+        return data
+    
+    def wrapDice(self,match):
+        ''' Regex replace function for dice rolls '''
+        roll = self.dicer(match.group())
+        if roll: return roll
+        else:    return match.group()
+    def wrapQuote(self,match):
+        ''' Regex replace function for quotes '''
+        return "<talk>%s<reset>"%(match.group())
+    def wrapOff(self,match):
+        ''' Regex replace function for quotes '''
+        return "<offtopic>%s<reset>"%(match.group())
+
     def dicer(self,data):
-        dicex = re.compile('[\+-]?\d*d?\d+')
         total = 0
         output = []
-        for obj in re.finditer(dicex,data):
+        for obj in re.finditer(self.regexDicex,data):
             obj = obj.group()
             if   obj[0] == '+': add = True;  obj = obj[1:]
             elif obj[0] == '-': add = False; obj = obj[1:]
@@ -344,120 +452,6 @@ class Player(LineReceiver):
             if result == sides and exploding: rolls.append(1); exploded = True
             total += result
         return (total,exploded)
-
-
-class PlayerFactory(Factory):
-    def __init__(self,world):
-        self.protocol = Player
-        self.world    = world
-
-class World:
-    def __init__(self):
-        self.channels = {'spawn':[]}
-        self.loadPasswords()
-        self.players = {}
-        self.history = []
-        self.regexDice  = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
-        self.regexQuote = re.compile('".*?"')
-        self.regexOff   = re.compile('\(.*?\)')
-        self.regexColor = re.compile('(?<=<).*?(?=>)')
-        self.regexColorF= re.compile('<.*?>')
-        
-        
-        
-    def loadPasswords(self):
-        passwords = pickleLoad('passwd')
-        if passwords: self.passwords = passwords
-        else:         self.passwords = {}
-        
-    def savePasswords(self): pickleSave(self.passwords,'passwd')
-        
-    def connectPlayer(self,player):
-        if self.players.has_key(player.id):
-            print "Dual connect, disconnecting the old player."
-            self.players[player.id].write("You have logged in elsewhere, disconnecting.")
-            self.players[player.id].transport.loseConnection()
-        self.players[player.id] = player
-        self.sendPlayerlist()
-        self.sendHistory(player)
-        self.messageWorld('%s has joined the game!'%(player.nick),'Server')
-        print "Connect Player to World OK:",player.id,self.players
-        
-    def disconnectPlayer(self,player):
-        if self.players.has_key(player.id):
-            del self.players[nick]
-        self.messageWorld('%s has quit the game!'%(player.nick),'Server')
-        
-    def sendPlayerlist(self):
-        pl = []
-        for player in self.players.values(): 
-            nick = player.nick
-            if player.typing:   nick = "*" + nick
-            if player.gm:       nick = "[%s]"%nick
-            if player.avatar:   nick = "%s (%s)"%(nick,"has_avatar")
-            pl.append(nick)
-        ann = u"\xff\xa0%s"%(" ".join(pl))
-        for player in self.players.values(): player.write(ann)
-    def sendHistory(self,player):
-        for line in self.history:
-            player.sendMessage("Server",line[0],line[1])
-        
-    def messageWorld(self,data,owner="Server",timestamp=False):
-        if not timestamp: timestamp = time.time()
-        self.history.append((time.time(),data))
-        for player in self.players.values():
-            player.sendMessage(owner,timestamp,data)
-    
-    def messageWrap(self,data,style='default'):
-        ''' this version supports full regex. probably the 4th time I rewrote it
-        Initial color is WHITE. When you change color, please remember to RESET
-        '''
-        data = re.sub(self.regexDice,self.wrapDice,data)   #Search for dice combinatinos
-        data = re.sub(self.regexQuote,self.wrapQuote,data) #Search for text in between quotes
-        data = re.sub(self.regexOff,self.wrapOff,data)     #Search for offtopic 
-        
-        for player in players:
-            data=re.sub(player.regexHilite,player.wrapHilite,data)#Search for player name highlights
-        if   style == "default":  pass #data = "%s%s"%('<white>',data)
-        elif style == "describe": data = "%s%s"%('<describe>',data)
-        elif style == "action":   data = "%s%s"%('<action>',data)
-        else: data = "%s%s"%('<red>',data)
-        
-        ''' Building a color stack
-
-            To be able to properly color everything,
-            the final coloring must be done after
-            the regex coloring. The final coloring
-            looks for reset values, and then chooses
-            the appropriate color to reset to from the
-            color stack. It's pretty cool.
-        '''
-        colorstack = []
-        for color in re.finditer(self.regexColorF,data):
-            x = color.group()
-            reset = '<reset>'
-            if x == reset:
-                try: 
-                    colorstack.pop()
-                    data=data.replace(reset,colorstack[-1],1)
-                except: data=data.replace(reset,'<red>',1);print "Wrap(): Too many resets by %s?"%self.nick
-            else: colorstack.append(x)
-
-        return data
-    
-    def wrapDice(self,match):
-        ''' Regex replace function for dice rolls '''
-        roll = self.dicer(match.group())
-        if roll: return roll
-        else:    return match.group()
-    def wrapQuote(self,match):
-        ''' Regex replace function for quotes '''
-        return "<talk>%s<reset>"%(match.group())
-    def wrapOff(self,match):
-        ''' Regex replace function for quotes '''
-        return "<offtopic>%s<reset>"%(match.group())
-
-
 if __name__ == '__main__':
     world = World()
     reactor.listenTCP(49500, PlayerFactory(world))

@@ -1,5 +1,5 @@
 [general]
-nick=Matti
+nick=Matti2
 name=Tailabar
 host=localhost
 
