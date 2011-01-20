@@ -157,7 +157,12 @@ class Window:
             if player[0] == id: player[1] = status
         self.update_players()
     
-    def display_line(self,text):
+    def display_line(self,text,timestamp=None):
+        
+        if timestamp: timestamp = time.strftime('[%H:%M:%S]', time.localtime(timestamp))
+        else: timestamp = time.strftime('[%H:%M:%S]')
+        
+        
         text = self.wrap(text)
 
         plain = []
@@ -166,7 +171,7 @@ class Window:
 
 
         # Timestamp
-        ts = ('grey',time.strftime('[%H:%M:%S] '))
+        ts = ('grey',"%s "%(timestamp))
         text.insert(0,ts)
 
 
@@ -210,7 +215,10 @@ class Window:
                 self.password = False
                 self.entry.config(show='')
                 data = u"\xff\x32" + hashlib.sha256(data).hexdigest()
-            self.connection.write(data)
+                self.connection.write(data)
+            else:
+                self.connection.write(u"\xff\x02%s"%(data))
+
         except:
             self.display_line("!!!!Something went wrong. I might crash!!!")
             print ("ERRORROREORE")
@@ -282,7 +290,15 @@ class Client(LineReceiver):
                 self.window.colors[tok[0][2:]] = tok[1]
             # Message packet
             elif data[0:2] == u'\xff\x02':
-                pass #Message
+                data = data[2:]
+                tok = data.split()
+                if len(tok) < 3: print "Corrupted message packet";return
+                messageOwner  = tok[0]
+                messageTime   = float(tok[1])
+                messageContent= " ".join(tok[2:])
+                print "Msg",messageContent
+                if messageOwner == "Server": self.window.display_line("[Server] %s"%(messageContent),messageTime)
+                else: self.window.display_line("%s"%(messageContent),messageTime)
             else: 
                 self.window.display_line(data)
     

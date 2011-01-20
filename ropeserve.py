@@ -100,6 +100,7 @@ class Player(LineReceiver):
         self.id       = False
         self.pwd      = False
         self.colors   = {}
+        self.avatar   = None
         self.color    = ''
         self.typing   = False
         self.gm       = False
@@ -193,87 +194,26 @@ class Player(LineReceiver):
                     
             elif self.nick and self.colors.has_key('highlight') and self.pwd:
                 if self.world.passwords.has_key(self.id):
-                    if self.world.passwords[self.id] == self.pwd: self.world.connectPlayer(self)
+                    if self.world.passwords[self.id] == self.pwd: 
+                        self.world.connectPlayer(self)
+                        self.handle = self.game
                     else: self.write("Invalid password");self.transport.loseConnection()
                 else:
                     self.world.passwords[self.id] = self.pwd
                     self.world.savePasswords()
                     self.world.connectPlayer(self)
+                    self.handle = self.game
             else:
                 print self.nick,self.colors.has_key('highlight'),self.pwd
                 
-                
-            '''
-            
-            
-            tok = data.split(' ')
-            if len(tok) != 2 and tok[0] == "SUPERHANDSHAKE":
-                self.write("""You are using an old version of ropeclient. Please grab
-                           a new copy from http://eiden.fi/ropeclient""")
-                self.state = -1
-                return
-            elif len(tok) == 2:
-                self.write(self.greeting)
-                if tok[1] == "2":
-                    self.state = 1
-                else:
-                    self.write("""It seems you are using a different version than the server.
-                              Grab the newest copy from http://eiden.fi/ropeclient""")
-                    self.state = -1
-            else: self.transport.loseConnection()
-        elif self.state > 0:
-            tok = data.split(' ')
-            if tok[0] == 'SETNICK':
-                self.nick = tok[1]
-                #self.handle = self.game
-                #players.append(self)
-                if self.world.players.has_key(self.nick.lower()):
-                    self.write("Hello %s, this account is owned by someone. To verify you are you, type in your password or change your nickname in config.txt"%self.nick)
-                    self.state = 2
-                    return
-                else:
-                    self.write("Hello %s, this account is not owned by anyone. Type a new password for your account. (Simple non-important password please, this connection is not encrypted.)"%self.nick)
-                    self.state = 3
-                #pl = []
-                #for player in players: pl.append(player.nick)
-                #self.announce("D_PLAYERS %s"%(" ".join(pl))) 
-<<<<<<< HEAD
-                self.announce_players()
-                for line in linebuffer[-100:]:
-                    self.write(line)
-                self.announce("(%s has joined the game!)"%self.nick)
-        
 
-            elif tok[0] == 'SETNAME':
-                self.setname(" ".join(tok[1:]))
-                
-            elif tok[0] == 'SETCOLOR':
-                try: self.color = colorize(" ".join(tok[1:]))
-                except: self.color = colorize('gray'); self.write("Invalid color, defaulting to gray")
-        '''
-            '''
-            elif self.state == 2:
-                if self.world.players[self.nick.lower()]['passwd'] != hashlib.sha256(data).hexdigest():
-                    self.write("Invalid password.")
-                    self.state = -1
-                else:
-                    self.write("You are now logged in.")
-                    self.state = 10
-                    self.handle = self.game
-                    self.world.connectPlayer(self)
-            elif self.state == 3:
-                self.world.players[self.nick.lower()] = {'nick':self.nick,'passwd':hashlib.sha256(data).hexdigest()}
-                self.write("Cool. Now reconnecting you so you can login :)")
-                self.world.savePlayers()
-                time.sleep(1)
-                self.transport.loseConnection()
-               ''' 
-            
     def announce(self,data,style="default"):
         global linebuffer
         text = self.wrap(data,style=style)
         linebuffer.append( text)
         for player in players: player.write(text)
+
+
     def rf_dice(self,match):
         ''' Regex replace function for dice rolls '''
         roll = self.dicer(match.group())
@@ -347,7 +287,7 @@ class Player(LineReceiver):
 
     def game(self,recv):
         # First we validate the data #
-        if len(recv) < 3: return
+        if len(recv) < 2: return
         try: recv = recv.decode('utf-8')
         except: 
             print "Received non-unicode data from the client, ignoring."
@@ -355,8 +295,8 @@ class Player(LineReceiver):
         
         # Second we read the packet type #
         packetid = recv[:2]
-        if   packetid == u'\xff\x00': self.gameTyping(False)
-        elif packetid == u'\xff\x01': self.gameTyping(True)
+        if   packetid == u'\xff\x00': self.gameTyping(False);print "typing false"
+        elif packetid == u'\xff\x01': self.gameTyping(True);print "typing true"
         elif packetid == u'\xff\x02': self.gameMessage(recv[2:])
         else: 
             print "Received unknown packet from",self.nick
@@ -366,7 +306,7 @@ class Player(LineReceiver):
         self.typing = state
         if self.typing: data = u'\xff\x01%s'%self.nick
         else:           data = u'\xff\x00%s'%self.nick
-        for player in players:  player.write(data)
+        for player in self.world.players.values():  player.write(data)
         
     def gameMessage(self,messageContent):
         '''
@@ -376,6 +316,7 @@ class Player(LineReceiver):
         messageTimestamp= messageParams[2]
         messageContent  = " ".join(messageParams[3:])
         '''
+        print "Game message"
         if len(messageContent) < 1: print "Message too short";return
         messageParams = messageContent.split(' ')
         messageCommand = messageParams[0].lower()
@@ -383,10 +324,19 @@ class Player(LineReceiver):
         
         if   self.commands.has_key(messageCommand): self.commands[messageCommand](messageContent[len(messageCommand):])
         elif self.triggers.has_key(messageTrigger): self.triggers[messageTrigger](meessageContent[1:])
-    def sendMessage(self,messageContent):
-        messageOwner = self.nick
+        else:
+            self.messageWorld('(%s: %s)'%(self.nick,messageContent))
+        
+        self.gameTyping(False)
+        
+    def messageWorld(self,message):
+        for player in self.world.players.values():
+            player.sendMessage('%s'%(message))
+            
+    def sendMessage(self,messageContent,messageOwner=None):
+        if not messageOwner: messageOwner = self.nick
         messageTime  = str(time.time())
-        message
+        self.write(u'\xff\x02%s %s %s'%(messageOwner,messageTime,messageContent))
         
     def gameSay(self,messageContent):
         messageParams = messageContent.split(' ')
@@ -435,16 +385,7 @@ class Player(LineReceiver):
             self.typing = False
             self.announce_players()
         """
-    def announce_players(self):
-        pl = []
-        for player in players: 
-            nick = player.nick
-            if player.typing: nick = "*" + nick
-            if player.gm:  nick = "[%s]"%nick
-            pl.append(nick)
-        ann = u"\xff\xa0%s"%(" ".join(pl))
-        for player in players: player.write(ann)
-        
+    
 
 
 
@@ -515,37 +456,30 @@ class World:
             self.players[player.id].write("You have logged in elsewhere, disconnecting.")
             self.players[player.id].transport.loseConnection()
         self.players[player.id] = player
+        self.sendPlayerlist()
+        self.messageWorld('%s has joined the game!'%(player.nick),'Server')
         print "Connect Player to World OK:",player.id,self.players
         
     def disconnectPlayer(self,player):
         if self.players.has_key(player.id):
             del self.players[nick]
-        print "Disconnect:",nick,self.players
+        self.messageWorld('%s has quit the game!'%(player.nick),'Server')
         
     def sendPlayerlist(self):
-        pass
-    
-    '''
-    def join(self,avatar,channel):
-        channel = channel.lower()
-        avatar  = avatar.lower()
+        pl = []
+        for player in self.players.values(): 
+            nick = player.nick
+            if player.typing:   nick = "*" + nick
+            if player.gm:       nick = "[%s]"%nick
+            if player.avatar:   nick = "%s (%s)"%(nick,"has_avatar")
+            pl.append(nick)
+        ann = u"\xff\xa0%s"%(" ".join(pl))
+        for player in self.players.values(): player.write(ann)
         
-        if self.channels.has_key(channel):
-            self.channels[channel.append(player)
-        else:
-            self.channels[channel] = [player]
-        print "Join:",player
-            
-    def part(part,player,channel):
-        channel = channel.lower()
-        player = player.lower()
-        if self.channels.has_key(channel):
-            if player in self.channels[channel]:
-                self.channels[channel].remove(player)
-                return True
-            else: return False
-        else: return False
-    '''
+    def messageWorld(self,data,owner):
+        for player in self.players.values():
+            player.sendMessage('[Server] %s'%(data))
+    
 if __name__ == '__main__':
     world = World()
     reactor.listenTCP(49500, PlayerFactory(world))
