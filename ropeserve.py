@@ -78,10 +78,22 @@ def colorize(color):
 def ansi(code):
     return CSI + code 
 
-
+def pickleSave(object,filename):
+    f = open(filename,'wb')
+    pickle.dump(object,f)
+    f.close()
+    return True
+def pickleLoad(filename):
+    try:
+        f = open(filename,'rb')
+        x = pickle.load(f)
+        f.close()
+        return x
+    except: return False
 
 class Player(LineReceiver):
     def connectionMade(self):
+        print "connectionMade"
         self.handle   = self.login
         self.state    = 0
         self.color    = ''
@@ -106,7 +118,7 @@ class Player(LineReceiver):
         '#':self.gameDescribe,
         '(':self.gameOfftopic}
         
-        self.greeting = """Welcome to ropeclient
+        self.loginGreeting = """Welcome to ropeclient
                            _ _            _   
  _ __ ___  _ __   ___  ___| (_) ___ _ __ | |_ 
 | '__/ _ \| '_ \ / _ \/ __| | |/ _ \ '_ \| __|
@@ -115,7 +127,12 @@ class Player(LineReceiver):
           |_|                                 
 """
         
-
+        self.loginError = self.loginGreeting + """\n\nUnfortunately it seems your ropeclient is out of date.
+        To connect to this server, please update your client from 
+           http://eiden.fi/ropeclient
+        OR http://eiden.fi/ropeclient/releases
+        OR http://github.com/voneiden/ropeclient"""
+        
         self.world = self.factory.world
 
     def lineReceived(self, data):
@@ -152,21 +169,29 @@ class Player(LineReceiver):
                 if data[:2] == u'\xff\x10':
                     tok = data.split(' ')
                     if len(tok) == 2:
-                        if tok[1] == self.protocolVersion: self.send(self.loginGreeting);self.state = 1
-                        else:                              self.send(self.loginError);self.state = -1
-                    else:                                  self.send(self.loginError);self.state = -1
-                else:                                      self.send(self.loginError);self.state = -1
+                        if tok[1] == self.protocolVersion: self.write(self.loginGreeting);self.state = 1
+                        else:                              self.write(self.loginError);self.state = -1
+                    else:                                  self.write(self.loginError);self.state = -1
+                else:                                      self.write(self.loginError);self.state = -1
             else: self.transport.loseConnection() # Not a ropeclient!
         elif self.state == 1 and len(data) > 2:
-            if   data[:2] == u'\xff\x11': self.nick = data[2:]
+            if   data[:2] == u'\xff\x11': self.nick = data[2:];self.id = self.nick.lower()
             elif data[:2] == u'\xff\x12': self.pwd  = data[2:]
             elif data[:2] == u'\xff\x13': self.highlight = data[2:]
             
             if self.nick and self.highlight and not self.pwd:
-                loginStatus = self.world.login(self)
-                if   fsasaasddfs == 0:  pass #Ask for password
-                elif loginStatus == -1: pass #New password
-                
+                if   self.world.passwords.has_key(self.id):  self.write('\xff\x13A password is required to access your account')
+                else:                                        self.write("\xff\×13New player, please type your password (your password is encrypted client side, no worries)")
+                    
+            elif self.nick and self.highlight and self.pwd:
+                if self.world.passwords.has_key(self.id):
+                    if self.world.passwords[self.id] == self.pwd: self.world.connectPlayer(self)
+                    else: self.write("Invalid password");self.transport.loseConnection()
+                else:
+                    self.world.passwords[self.id] = self.pwd
+                    self.world.savePasswords()
+                    self.world.connectPlayer(self)
+                    
                 
                 
             '''
@@ -217,7 +242,7 @@ class Player(LineReceiver):
                 try: self.color = colorize(" ".join(tok[1:]))
                 except: self.color = colorize('gray'); self.write("Invalid color, defaulting to gray")
         '''
-            
+            '''
             elif self.state == 2:
                 if self.world.players[self.nick.lower()]['passwd'] != hashlib.sha256(data).hexdigest():
                     self.write("Invalid password.")
@@ -233,7 +258,7 @@ class Player(LineReceiver):
                 self.world.savePlayers()
                 time.sleep(1)
                 self.transport.loseConnection()
-                
+               ''' 
             
     def announce(self,data,style="default"):
         global linebuffer
@@ -368,9 +393,9 @@ class Player(LineReceiver):
         pass
     def gameLook(self,messageContent):
         pass
-    
-    
-        '''
+    def gameOfftopic(self,messageContent):
+        pass
+        """
         if   messageHeader    == 'say': self.gameSay(" ".join(messageParams[1:]))
         elif messageHeader[0] == '.'  : self.gameSay(messageContent[1:])
         elif messageHeader    == '/me': self.gameEmote
@@ -400,7 +425,7 @@ class Player(LineReceiver):
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
             self.announce_players()
-        '''
+        """
     def announce_players(self):
         pl = []
         for player in players: 
@@ -465,45 +490,26 @@ class PlayerFactory(Factory):
 class World:
     def __init__(self):
         self.channels = {'spawn':[]}
-        self.loadPlayers()
+        self.loadPasswords()
+        self.players = {}
         
-    def loadPlayers(self):
-        try: 
-            passwdf = open('passwd','rb')
-            passwd  = pickle.load(passwdf)
-            passwdf.close()
-            self.players = passwd
-        except: 
-            print "Error loading players."
-            self.players  = {}
-            for player in self.players:
-                player['network'] = None
-    def savePlayers(self):
-        print "Saving players.. ",
-        f = open('passwd','wb')
-        pickle.dump(self.players,f)
-        f.close()
-        print "OK"
+    def loadPasswords(self):
+        passwords = pickleLoad('passwd')
+        if passwords: self.passwords = passwords
+        else:         self.passwords = {}
         
-        #TODO ÄÄÄÄH T
-        #TODO MAKE PASSWORD LIST SEPERATE
-        #PLAYERS NO NEED TOS AVE
-        #JUST THE PASSWORDS
-        #CHARACTERS CAN HAVE OWNER ATTRIBUTE
+    def savePasswords(self): pickleSave(self.passwords,'passwd')
         
     def connectPlayer(self,player):
-        nick = player.nick.lower()
-        if self.players[nick]['network']:
+        if self.players.has_key(player.id):
             print "Dual connect, disconnecting the old player."
-            self.players[nick]['network'].write("You have logged in elsewhere, disconnecting.")
-            self.players[nick]['network'].transport.loseConnection()
-        self.players[nick]['network'] = player
-        
-        print "Connect:",nick,self.players
+            self.players[player.id].write("You have logged in elsewhere, disconnecting.")
+            self.players[player.id].transport.loseConnection()
+        self.players[player.id] = player
+        print "Connect Player to World OK:",nick,self.players
         
     def disconnectPlayer(self,player):
-        nick = player.nick.lower()
-        if self.players.has_key(nick):
+        if self.players.has_key(player.id):
             del self.players[nick]
         print "Disconnect:",nick,self.players
         
