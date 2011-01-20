@@ -48,36 +48,6 @@ from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 import hashlib, random, re, pickle, time
 
-
-players = []
-chartoplayer = {}
-
-linebuffer  = []
-NOECHO = '\xff\xfb\x01'
-ECHO   = '\xff\xfc\x01'
-
-CSI = '\033'
-CSIregex = re.compile('\033<.*?>')
-COLOR = {
-    'reset':'000',
-    'black':'001',
-    'red':'002',
-    'green':'003',
-    'yellow':'004',
-    'blue':'005',
-    'magneta':'006',
-    'cyan':'007',
-    'white':'008',
-    'gray':'009',
-    'dim gray':'010'}
-
-
-def colorize(color):
-    return "%s<%s>"%(CSI,color)
-
-def ansi(code):
-    return CSI + code 
-
 def pickleSave(object,filename):
     f = open(filename,'wb')
     pickle.dump(object,f)
@@ -104,9 +74,7 @@ class Player(LineReceiver):
         self.color    = ''
         self.typing   = False
         self.gm       = False
-        self.re_dice  = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
-        self.re_quote = re.compile('".*?"')
-        self.re_off   = re.compile('\(.*?\)')
+
         
         self.protocolVersion = "3"
         
@@ -214,59 +182,10 @@ class Player(LineReceiver):
         for player in players: player.write(text)
 
 
-    def rf_dice(self,match):
-        ''' Regex replace function for dice rolls '''
-        roll = self.dicer(match.group())
-        if roll: return roll
-        else:    return match.group()
-    def rf_quote(self,match):
-        ''' Regex replace function for quotes '''
-        return "%s%s%s"%(colorize('talk'),match.group(),colorize('reset'))
-    def rf_off(self,match):
-        ''' Regex replace function for quotes '''
-        return "%s%s%s"%(colorize('offtopic'),match.group(),colorize('reset'))
-    def rf_nam(self,match):
-        return "%s%s%s"%(self.color,match.group(),colorize('reset'))
-    def rf_color(self,match):
-        return "\033%s"%match.group()
-    def wrap(self,data,style):
-        ''' this version supports full regex. probably the 4th time I rewrote it
-        Initial color is WHITE. When you change color, please remember to RESET
-        '''
-        data = re.sub(self.re_dice,self.rf_dice,data)   #Search for dice combinatinos
-        data = re.sub("<.*?>",self.rf_color,data)       #Search for color requests
-        data = re.sub(self.re_quote,self.rf_quote,data) #Search for text in between quotes
-        data = re.sub(self.re_off,self.rf_off,data)     #Search for offtopic 
+
+
         
-        for player in players:
-            data=re.sub(player.regex,player.rf_nam,data)#Search for player name highlights
-        if   style == "default": data = "%s%s"%(colorize('white'),data)
-        elif style == "describe": data = "%s%s"%(colorize('describe'),data)
-        elif style == "action":   data = "%s%s"%(colorize('action'),data)
-
-        ''' Building a color stack
-
-            To be able to properly color everything,
-            the final coloring must be done after
-            the regex coloring. The final coloring
-            looks for reset values, and then chooses
-            the appropriate color to reset to from the
-            color stack. It's pretty cool.
-        '''
-        colorstack = []
-        for color in re.finditer(CSIregex,data):
-            x = color.group()
-            reset = '\033<reset>'
-            if x == reset:
-                try: 
-                    colorstack.pop()
-                    data=data.replace(reset,colorstack[-1],1)
-                except: data=data.replace(reset,'\033<red>',1);print "Wrap(): Too many resets by %s?"%self.nick
-            else: colorstack.append(x)
-
-        return data
-        
-    
+    '''
     def setname(self,name):
         self.name = name
         first = self.name.split(' ')[0].lower()
@@ -284,7 +203,7 @@ class Player(LineReceiver):
 
         if told: self.write("%s(%sYou tell %s: %s)"%(colorize('tell'),colorize('tell'),who,txt))
         else: self.write("%s(%sNobody here with that name)"%(colorize('tell'),colorize('tell')))
-
+    '''
     def game(self,recv):
         # First we validate the data #
         if len(recv) < 2: return
@@ -382,7 +301,8 @@ class Player(LineReceiver):
         """
     
 
-
+    def wrapHilite(self,match):
+        return "%s%s<reset>"%(self.colors['highlight'],match.group())
 
     def dicer(self,data):
         dicex = re.compile('[\+-]?\d*d?\d+')
@@ -427,7 +347,6 @@ class Player(LineReceiver):
 
 
 class PlayerFactory(Factory):
-    #protocol = ServeGame
     def __init__(self,world):
         self.protocol = Player
         self.world    = world
@@ -438,6 +357,13 @@ class World:
         self.loadPasswords()
         self.players = {}
         self.history = []
+        self.regexDice  = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
+        self.regexQuote = re.compile('".*?"')
+        self.regexOff   = re.compile('\(.*?\)')
+        self.regexColor = re.compile('(?<=<).*?(?=>)')
+        self.regexColorF= re.compile('<.*?>')
+        
+        
         
     def loadPasswords(self):
         passwords = pickleLoad('passwd')
@@ -482,6 +408,56 @@ class World:
         for player in self.players.values():
             player.sendMessage(owner,timestamp,data)
     
+    def messageWrap(self,data,style='default'):
+        ''' this version supports full regex. probably the 4th time I rewrote it
+        Initial color is WHITE. When you change color, please remember to RESET
+        '''
+        data = re.sub(self.regexDice,self.wrapDice,data)   #Search for dice combinatinos
+        data = re.sub(self.regexQuote,self.wrapQuote,data) #Search for text in between quotes
+        data = re.sub(self.regexOff,self.wrapOff,data)     #Search for offtopic 
+        
+        for player in players:
+            data=re.sub(player.regexHilite,player.wrapHilite,data)#Search for player name highlights
+        if   style == "default":  pass #data = "%s%s"%('<white>',data)
+        elif style == "describe": data = "%s%s"%('<describe>',data)
+        elif style == "action":   data = "%s%s"%('<action>',data)
+        else: data = "%s%s"%('<red>',data)
+        
+        ''' Building a color stack
+
+            To be able to properly color everything,
+            the final coloring must be done after
+            the regex coloring. The final coloring
+            looks for reset values, and then chooses
+            the appropriate color to reset to from the
+            color stack. It's pretty cool.
+        '''
+        colorstack = []
+        for color in re.finditer(self.regexColorF,data):
+            x = color.group()
+            reset = '<reset>'
+            if x == reset:
+                try: 
+                    colorstack.pop()
+                    data=data.replace(reset,colorstack[-1],1)
+                except: data=data.replace(reset,'<red>',1);print "Wrap(): Too many resets by %s?"%self.nick
+            else: colorstack.append(x)
+
+        return data
+    
+    def wrapDice(self,match):
+        ''' Regex replace function for dice rolls '''
+        roll = self.dicer(match.group())
+        if roll: return roll
+        else:    return match.group()
+    def wrapQuote(self,match):
+        ''' Regex replace function for quotes '''
+        return "<talk>%s<reset>"%(match.group())
+    def wrapOff(self,match):
+        ''' Regex replace function for quotes '''
+        return "<offtopic>%s<reset>"%(match.group())
+
+
 if __name__ == '__main__':
     world = World()
     reactor.listenTCP(49500, PlayerFactory(world))

@@ -75,18 +75,19 @@ class Window:
             self.CONFIG = False
 
         self.colortags = []
-        self.colorre   = re.compile('\033<.*?>')
+        self.regexColor = re.compile('(?<=<).*?(?=>)')
+        self.regexColorF= re.compile('<.*?>')
         
         self.playerlist = []
         
         self.password = False
-        print "OK"
-        print dir(self.textarea)
+
+        self.setTitle()
     
     def stop(self):
-        
         self.root.destroy()
         reactor.stop()
+        
     def returnfocus(self,args):
         self.entry.focus_set()
         
@@ -100,49 +101,37 @@ class Window:
         
     def load_config(self):
         ''' This function loads the config.txt  '''
+        print "Loading config"
         parser = ConfigParser.SafeConfigParser()
         try: parser.readfp(open('config.txt','r'))
         except: self.display_line("Could not load config.txt");return False
         
-        
-        try:    nick  = parser.get('general','nick')
-        except: self.display_line("Error in loading your config! nick is not defined in section [general]");return False
-        try:    name = parser.get('general','name')
-        except: self.display_line("Error in loading your config! name is not defined in section [general]");return False
-        try:    host = parser.get('general','host')
-        except: self.display_line("Error in loading your config! host is not defined in section [general]");return False
-
-        try:    highlight = parser.get('colors','highlight')
-        except: self.display_line("Error in loading your config! highlight is not defined in section [colors]");return False
-        try:    talk = parser.get('colors','talk')
-        except: self.display_line("Error in loading your config! talk is not defined in section [colors]");return False
-        try:    action = parser.get('colors','action')
-        except: self.display_line("Error in loading your config! action is not defined in section [colors]");return False
-        try:    offtopic = parser.get('colors','offtopic')
-        except: self.display_line("Error in loading your config! offtopic is not defined in section [colors]");return False
-        try:    describe = parser.get('colors','describe')
-        except: self.display_line("Error in loading your config! describe is not defined in section [colors]");return False
-        try:    tell = parser.get('colors','tell')
-        except: self.display_line("Error in loading your config! tell is not defined in section [colors]");return False
-        
-
-
-
-        self.nick = nick
-        self.name = name
-        self.root.title("Ropeclient: %s"%self.name)
-        self.host = host
+        self.vars = {}
+        config = {'general':['nick','host'],
+                  'colors':['highlight','talk','action','offtopic','describe','tell']}
+        for block,values in config.items():
+            for option in values:
+                try:
+                    value = parser.get(block,option)
+                    self.vars[option] = value
+                except: self.display_line("config.txt error! Setting for block [%s] option %s is missing"%(block,option));return False
+    
+        self.nick = self.vars['nick']
+        self.host = self.vars['host']
         self.colors = {
-                       'talk':talk,
-                       'action':action,
-                       'offtopic':offtopic,
-                       'describe':describe,
-                       'tell':tell}
-        self.highlight = highlight
+                       'talk':self.vars['talk'],
+                       'action':self.vars['action'],
+                       'offtopic':self.vars['offtopic'],
+                       'describe':self.vars['describe'],
+                       'tell':self.vars['tell'],
+                       'highlight':self.vars['highlight']}
         
         self.display_line("Your nick is: %s"%self.nick)
+        self.display_line("Connecting to: %s"%self.host)
         return True
     
+    def setTitle(self):
+        pass
     
     def update_players(self):
         ''' Called when something changes in players '''
@@ -162,34 +151,32 @@ class Window:
         if timestamp: timestamp = time.strftime('[%H:%M:%S]', time.localtime(timestamp))
         else: timestamp = time.strftime('[%H:%M:%S]')
         
-        
         text = self.wrap(text)
 
-        plain = []
-        for piece in text: plain.append(piece[1])
-        logging.info("".join(plain))
-
-
+        #plain = []
+        #for piece in text: plain.append(piece[1])
+        #logging.info("".join(plain))
         # Timestamp
         ts = ('grey',"%s "%(timestamp))
         text.insert(0,ts)
-
-
-
+        
+        if self.textarea.yview()[1] == 1.0: scroll = True
+        else: scroll = False
+        
         self.textarea.config(state=NORMAL)
         for piece in text:
             self.textarea.insert(END, piece[1],piece[0])
         self.textarea.insert(END,'\n')
         self.textarea.config(state=DISABLED)
-        self.textarea.yview(END)
+        print self.textarea.yview()
+        
+        if scroll: self.textarea.yview(END)
         # Todo, don't scroll if player is scrolling
 
         
     def wrap(self,text):
         buf = []
-        for i,piece in enumerate(text.split('\033<')):
-            
-
+        for i,piece in enumerate(text.split('<')):
             if i == 0: buf.append(('white',piece));continue
             tok = piece.split('>')
             color = tok[0].lower()
@@ -253,10 +240,7 @@ class Client(LineReceiver):
         self.window.display_line("Connected!")
         self.write(u"\xff\x30SUPERHANDSHAKE 3")
         self.write(u"\xff\x31%s"%(self.window.nick))
-        self.write(u"\xff\x33highlight %s"%(self.window.highlight))
-        #self.write("SETNAME %s"%self.window.name)
-        #self.write("SETCOLOR %s"%self.window.highlight)
-        #self.write("SETNICK %s"%self.window.nick)
+        self.write(u"\xff\x33highlight %s"%(self.window.colors['highlight']))
         
     def lineReceived(self, data):
         data = data.decode('utf-8')
