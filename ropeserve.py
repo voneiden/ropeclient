@@ -46,7 +46,7 @@ Protocol notes
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
-import hashlib, random, re
+import hashlib, random, re, pickle, time
 
 
 players = []
@@ -115,9 +115,12 @@ class Player(LineReceiver):
           |_|                                 
 """
         
+
+        self.world = self.factory.world
+
     def lineReceived(self, data):
         #print("Line received!")
-        self.handle(data.decode('utf-8'))
+        self.handle(data)
     
     def connectionLost(self,reason):
         if self in players:
@@ -133,11 +136,17 @@ class Player(LineReceiver):
 
 
     def login(self,data):
-        tok = data.split(' ')
+        data = data.decode('utf-8')
         
+        # Ignore typing announcements
+        if len(data) >= 2:
+            if data[:2] == u'\xff\x00': return
+            elif data[:2] == u'\xff\x01': return
+            else:
+                print data[:2]
         
-        ''' Handshake state 
-            Ensure that the client is a ropeclient AND a proper version!'''
+        # Handshake state 
+        # Ensure that the client is a ropeclient AND a proper version!'''
         if self.state == 0:
             if "SUPERHANDSHAKE" in data:
                 if data[:2] == u'\xff\x10':
@@ -182,18 +191,25 @@ class Player(LineReceiver):
             tok = data.split(' ')
             if tok[0] == 'SETNICK':
                 self.nick = tok[1]
-                self.handle = self.game
-                players.append(self)
-                
-                
+                #self.handle = self.game
+                #players.append(self)
+                if self.world.players.has_key(self.nick.lower()):
+                    self.write("Hello %s, this account is owned by someone. To verify you are you, type in your password or change your nickname in config.txt"%self.nick)
+                    self.state = 2
+                    return
+                else:
+                    self.write("Hello %s, this account is not owned by anyone. Type a new password for your account. (Simple non-important password please, this connection is not encrypted.)"%self.nick)
+                    self.state = 3
                 #pl = []
                 #for player in players: pl.append(player.nick)
                 #self.announce("D_PLAYERS %s"%(" ".join(pl))) 
+<<<<<<< HEAD
                 self.announce_players()
                 for line in linebuffer[-100:]:
                     self.write(line)
                 self.announce("(%s has joined the game!)"%self.nick)
         
+
             elif tok[0] == 'SETNAME':
                 self.setname(" ".join(tok[1:]))
                 
@@ -201,6 +217,23 @@ class Player(LineReceiver):
                 try: self.color = colorize(" ".join(tok[1:]))
                 except: self.color = colorize('gray'); self.write("Invalid color, defaulting to gray")
         '''
+            
+            elif self.state == 2:
+                if self.world.players[self.nick.lower()]['passwd'] != hashlib.sha256(data).hexdigest():
+                    self.write("Invalid password.")
+                    self.state = -1
+                else:
+                    self.write("You are now logged in.")
+                    self.state = 10
+                    self.handle = self.game
+                    self.world.connectPlayer(self)
+            elif self.state == 3:
+                self.world.players[self.nick.lower()] = {'nick':self.nick,'passwd':hashlib.sha256(data).hexdigest()}
+                self.write("Cool. Now reconnecting you so you can login :)")
+                self.world.savePlayers()
+                time.sleep(1)
+                self.transport.loseConnection()
+                
             
     def announce(self,data,style="default"):
         global linebuffer
@@ -422,13 +455,83 @@ class Player(LineReceiver):
             total += result
         return (total,exploded)
 
-class PlayerFactory(Factory):
-    protocol = Player
-    def __init__(self, text=None):
-        if text is None:
-            text = """Sup bro. Please use a %stelnet/mud%s client that has black background. Using a command line is a good idea too."""%(colorize('red'),colorize('white'))
-        self.text = text
 
+class PlayerFactory(Factory):
+    #protocol = ServeGame
+    def __init__(self,world):
+        self.protocol = Player
+        self.world    = world
+
+class World:
+    def __init__(self):
+        self.channels = {'spawn':[]}
+        self.loadPlayers()
+        
+    def loadPlayers(self):
+        try: 
+            passwdf = open('passwd','rb')
+            passwd  = pickle.load(passwdf)
+            passwdf.close()
+            self.players = passwd
+        except: 
+            print "Error loading players."
+            self.players  = {}
+            for player in self.players:
+                player['network'] = None
+    def savePlayers(self):
+        print "Saving players.. ",
+        f = open('passwd','wb')
+        pickle.dump(self.players,f)
+        f.close()
+        print "OK"
+        
+        #TODO ÄÄÄÄH T
+        #TODO MAKE PASSWORD LIST SEPERATE
+        #PLAYERS NO NEED TOS AVE
+        #JUST THE PASSWORDS
+        #CHARACTERS CAN HAVE OWNER ATTRIBUTE
+        
+    def connectPlayer(self,player):
+        nick = player.nick.lower()
+        if self.players[nick]['network']:
+            print "Dual connect, disconnecting the old player."
+            self.players[nick]['network'].write("You have logged in elsewhere, disconnecting.")
+            self.players[nick]['network'].transport.loseConnection()
+        self.players[nick]['network'] = player
+        
+        print "Connect:",nick,self.players
+        
+    def disconnectPlayer(self,player):
+        nick = player.nick.lower()
+        if self.players.has_key(nick):
+            del self.players[nick]
+        print "Disconnect:",nick,self.players
+        
+    def sendPlayerlist(self):
+        pass
+    
+    '''
+    def join(self,avatar,channel):
+        channel = channel.lower()
+        avatar  = avatar.lower()
+        
+        if self.channels.has_key(channel):
+            self.channels[channel.append(player)
+        else:
+            self.channels[channel] = [player]
+        print "Join:",player
+            
+    def part(part,player,channel):
+        channel = channel.lower()
+        player = player.lower()
+        if self.channels.has_key(channel):
+            if player in self.channels[channel]:
+                self.channels[channel].remove(player)
+                return True
+            else: return False
+        else: return False
+    '''
 if __name__ == '__main__':
-    reactor.listenTCP(49500, PlayerFactory())
+    world = World()
+    reactor.listenTCP(49500, PlayerFactory(world))
     reactor.run()
