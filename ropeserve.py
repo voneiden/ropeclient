@@ -325,18 +325,13 @@ class Player(LineReceiver):
         if   self.commands.has_key(messageCommand): self.commands[messageCommand](messageContent[len(messageCommand):])
         elif self.triggers.has_key(messageTrigger): self.triggers[messageTrigger](meessageContent[1:])
         else:
-            self.messageWorld('(%s: %s)'%(self.nick,messageContent))
-        
+            self.world.messageWorld('(%s: %s)'%(self.nick,messageContent),self.id)
         self.gameTyping(False)
         
-    def messageWorld(self,message):
-        for player in self.world.players.values():
-            player.sendMessage('%s'%(message))
-            
-    def sendMessage(self,messageContent,messageOwner=None):
-        if not messageOwner: messageOwner = self.nick
-        messageTime  = str(time.time())
-        self.write(u'\xff\x02%s %s %s'%(messageOwner,messageTime,messageContent))
+
+    def sendMessage(self,messageOwner,messageTime,messageContent):
+        print "Send ->",messageOwner,messageTime,messageContent
+        self.write(u'\xff\x02%s %f %s'%(messageOwner,messageTime,messageContent))
         
     def gameSay(self,messageContent):
         messageParams = messageContent.split(' ')
@@ -442,6 +437,7 @@ class World:
         self.channels = {'spawn':[]}
         self.loadPasswords()
         self.players = {}
+        self.history = []
         
     def loadPasswords(self):
         passwords = pickleLoad('passwd')
@@ -457,6 +453,7 @@ class World:
             self.players[player.id].transport.loseConnection()
         self.players[player.id] = player
         self.sendPlayerlist()
+        self.sendHistory(player)
         self.messageWorld('%s has joined the game!'%(player.nick),'Server')
         print "Connect Player to World OK:",player.id,self.players
         
@@ -475,10 +472,15 @@ class World:
             pl.append(nick)
         ann = u"\xff\xa0%s"%(" ".join(pl))
         for player in self.players.values(): player.write(ann)
+    def sendHistory(self,player):
+        for line in self.history:
+            player.sendMessage("Server",line[0],line[1])
         
-    def messageWorld(self,data,owner):
+    def messageWorld(self,data,owner="Server",timestamp=False):
+        if not timestamp: timestamp = time.time()
+        self.history.append((time.time(),data))
         for player in self.players.values():
-            player.sendMessage('[Server] %s'%(data))
+            player.sendMessage(owner,timestamp,data)
     
 if __name__ == '__main__':
     world = World()
