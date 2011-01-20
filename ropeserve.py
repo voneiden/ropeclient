@@ -30,7 +30,11 @@ Protocol notes
 \xff\x00 Client <-> server: Client is not typing [string: player name]
 \xff\x01 Client <-> server: Client is typing [string: player name]
 \xff\x02 Client  -> server: Message [string:contents]
-\xff\x02 Server <-  client: Message [string:owner] [string:type] [float:timestamp] [string:contents]
+\xff\x02 Server <-  client: Message [string:owner] [float:timestamp] [string:contents]
+\xff\x10 Client  -> server: Handshake [string:SUPERHANDSHAKE] [int:protocol]
+\xff\x11 Client  -> server: Nickname  [string:nick]
+\xff\x12 Client  -> server: Password  [string:sha256password]
+\xff\x13 Client <-> server: Color     [string:colorid] [string:color]
 
 1 - offtopic
 2 - talk
@@ -76,7 +80,7 @@ def ansi(code):
 
 
 
-class ServeGame(LineReceiver):
+class Player(LineReceiver):
     def connectionMade(self):
         self.handle   = self.login
         self.state    = 0
@@ -112,8 +116,8 @@ class ServeGame(LineReceiver):
 """
         
     def lineReceived(self, data):
-        print("Line received!")
-        self.handle(data)
+        #print("Line received!")
+        self.handle(data.decode('utf-8'))
     
     def connectionLost(self,reason):
         if self in players:
@@ -130,7 +134,35 @@ class ServeGame(LineReceiver):
 
     def login(self,data):
         tok = data.split(' ')
+        
+        
+        ''' Handshake state 
+            Ensure that the client is a ropeclient AND a proper version!'''
         if self.state == 0:
+            if "SUPERHANDSHAKE" in data:
+                if data[:2] == u'\xff\x10':
+                    tok = data.split(' ')
+                    if len(tok) == 2:
+                        if tok[1] == self.protocolVersion: self.send(self.loginGreeting);self.state = 1
+                        else:                              self.send(self.loginError);self.state = -1
+                    else:                                  self.send(self.loginError);self.state = -1
+                else:                                      self.send(self.loginError);self.state = -1
+            else: self.transport.loseConnection() # Not a ropeclient!
+        elif self.state == 1 and len(data) > 2:
+            if   data[:2] == u'\xff\x11': self.nick = data[2:]
+            elif data[:2] == u'\xff\x12': self.pwd  = data[2:]
+            elif data[:2] == u'\xff\x13': self.highlight = data[2:]
+            
+            if self.nick and self.highlight and not self.pwd:
+                loginStatus = self.world.login(self)
+                if   fsasaasddfs == 0:  pass #Ask for password
+                elif loginStatus == -1: pass #New password
+                
+                
+                
+            '''
+            
+            
             tok = data.split(' ')
             if len(tok) != 2 and tok[0] == "SUPERHANDSHAKE":
                 self.write("""You are using an old version of ropeclient. Please grab
@@ -161,12 +193,14 @@ class ServeGame(LineReceiver):
                 for line in linebuffer[-100:]:
                     self.write(line)
                 self.announce("(%s has joined the game!)"%self.nick)
+        
             elif tok[0] == 'SETNAME':
                 self.setname(" ".join(tok[1:]))
                 
             elif tok[0] == 'SETCOLOR':
                 try: self.color = colorize(" ".join(tok[1:]))
                 except: self.color = colorize('gray'); self.write("Invalid color, defaulting to gray")
+        '''
             
     def announce(self,data,style="default"):
         global linebuffer
@@ -388,13 +422,13 @@ class ServeGame(LineReceiver):
             total += result
         return (total,exploded)
 
-class ServeGameFactory(Factory):
-    protocol = ServeGame
+class PlayerFactory(Factory):
+    protocol = Player
     def __init__(self, text=None):
         if text is None:
             text = """Sup bro. Please use a %stelnet/mud%s client that has black background. Using a command line is a good idea too."""%(colorize('red'),colorize('white'))
         self.text = text
 
 if __name__ == '__main__':
-    reactor.listenTCP(49500, ServeGameFactory())
+    reactor.listenTCP(49500, PlayerFactory())
     reactor.run()
