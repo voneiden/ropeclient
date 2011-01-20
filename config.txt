@@ -2,6 +2,7 @@
 nick=Matti2
 name=Tailabar
 host=localhost
+default-action=nothing
 
 [colors]
 highlight=yellow

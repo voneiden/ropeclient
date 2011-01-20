@@ -107,7 +107,7 @@ class Window:
         except: self.display_line("Could not load config.txt");return False
         
         self.vars = {}
-        config = {'general':['nick','host'],
+        config = {'general':['nick','host','default-action'],
                   'colors':['highlight','talk','action','offtopic','describe','tell']}
         for block,values in config.items():
             for option in values:
@@ -196,7 +196,7 @@ class Window:
         data=unicode(self.command.get())
         self.command.set("")
         tok = data.split(' ')
-        if tok[0]== '/name': self.root.title("Ropeclient: %s"%" ".join(tok[1:]))
+        #if tok[0]== '/name': self.root.title("Ropeclient: %s"%" ".join(tok[1:]))
         try:
             if self.password:
                 self.password = False
@@ -240,7 +240,9 @@ class Client(LineReceiver):
         self.window.display_line("Connected!")
         self.write(u"\xff\x30SUPERHANDSHAKE 3")
         self.write(u"\xff\x31%s"%(self.window.nick))
+        self.write(u"\xff\x34%s"%(self.window.vars['default-action']))
         self.write(u"\xff\x33highlight %s"%(self.window.colors['highlight']))
+        
         
     def lineReceived(self, data):
         data = data.decode('utf-8')

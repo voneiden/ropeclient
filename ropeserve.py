@@ -35,6 +35,7 @@ Protocol notes
 \xff\x31 Client  -> server: Nickname  [string:nick]
 \xff\x32 Client  -> server: Password  [string:sha256password]
 \xff\x33 Client <-> server: Color     [string:colorid] [string:color]
+\xff\x34 client  -> server: default-action [string:speak/offtopic/none]
 
 1 - offtopic
 2 - talk
@@ -69,6 +70,7 @@ class Player(LineReceiver):
         self.nick     = False
         self.id       = False
         self.pwd      = False
+        self.defaction= None
         self.colors   = {}
         self.avatar      = None
         self.regexHilite = None
@@ -90,6 +92,7 @@ class Player(LineReceiver):
         self.triggers = {
         '.':self.gameSay,
         '*':self.gameEmote,
+        ':':self.gameEmote,
         '#':self.gameDescribe,
         '(':self.gameOfftopic}
         
@@ -148,6 +151,12 @@ class Player(LineReceiver):
             print "Handle data",data,ord(data[0]),ord(data[1])
             if   data[:2] == u'\xff\x31': self.nick = data[2:];self.id = self.nick.lower()
             elif data[:2] == u'\xff\x32': self.pwd  = data[2:]
+            elif data[:2] == u'\xff\x34': 
+                defaction = data[2:]
+                if   defaction == 'speak': self.defaction = "speak"
+                elif defaction == 'offtopic': self.defaction = "offtopic"
+                else:self.defaction = None
+        
             elif data[:2] == u'\xff\x33': 
                 tok = data.split(' ')
                 if len(tok) != 2: print "Corrupted color packet";return
@@ -232,9 +241,11 @@ class Player(LineReceiver):
         messageTrigger = messageCommand[0]
         
         if   self.commands.has_key(messageCommand): self.commands[messageCommand](messageContent[len(messageCommand):])
-        elif self.triggers.has_key(messageTrigger): self.triggers[messageTrigger](meessageContent[1:])
+        elif self.triggers.has_key(messageTrigger): self.triggers[messageTrigger](messageContent[1:])
         else:
-            self.world.messageWorld('(%s: %s)'%(self.nick,messageContent),self.id)
+            if self.defaction == 'talk':       self.gameSay(messageContent) #TODO: change gameSay to gameTalk?
+            elif self.defaction == 'offtopic': self.gameOfftopic(messageContent)
+            else:  self.sendMessage("Server",time.time(),"Excuse me?")
         self.gameTyping(False)
         
 
@@ -244,10 +255,16 @@ class Player(LineReceiver):
         
     def gameSay(self,messageContent):
         messageParams = messageContent.split(' ') #TTODO FIX ERROR
-        if messageParams.lower() == 'to' and len(messageParams) > 2:
+        if not self.avatar:
+            self.gameOfftopic("(%s: %s)"%(self.nick,messageContent))
+            return
+        if messageParams[0].lower() == 'to' and len(messageParams) > 2:
             messageTo = messageParams[1]
-            if players.has_key(messageTo.lower()):
-                pass #TODO: Finish this 
+            #if players.has_key(messageTo.lower()):
+             #   pass #TODO: Finish this 
+        else: 
+            pass #Check for avatar.. fail if you don't have an avatar
+        
     def gameEmote(self,messageContent):
         pass
     def gameTell(self,messageContent):
@@ -257,8 +274,10 @@ class Player(LineReceiver):
     def gameLook(self,messageContent):
         pass
     def gameOfftopic(self,messageContent):
-        pass
-        """
+        if messageContent[0] != '(': messageContent = '(' + messageContent
+        if messageContent[-1] != ')': messageContent = messageContent + ')'
+        self.world.messageWorld(messageContent,self.id)
+        """z
         if   messageHeader    == 'say': self.gameSay(" ".join(messageParams[1:]))
         elif messageHeader[0] == '.'  : self.gameSay(messageContent[1:])
         elif messageHeader    == '/me': self.gameEmote
@@ -337,8 +356,8 @@ class World:
     def disconnectPlayer(self,player):
         if self.players.has_key(player.id):
             del self.players[player.id]
-        self.sendPlayerlist()
-        self.messageWorld('%s has quit the game!'%(player.nick),'Server')
+            self.sendPlayerlist()
+            self.messageWorld('%s has quit the game!'%(player.nick),'Server')
         
     def sendPlayerlist(self):
         pl = []
