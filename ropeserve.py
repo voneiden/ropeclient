@@ -31,10 +31,10 @@ Protocol notes
 \xff\x01 Client <-> server: Client is typing [string: player name]
 \xff\x02 Client  -> server: Message [string:contents]
 \xff\x02 Server <-  client: Message [string:owner] [float:timestamp] [string:contents]
-\xff\x10 Client  -> server: Handshake [string:SUPERHANDSHAKE] [int:protocol]
-\xff\x11 Client  -> server: Nickname  [string:nick]
-\xff\x12 Client  -> server: Password  [string:sha256password]
-\xff\x13 Client <-> server: Color     [string:colorid] [string:color]
+\xff\x30 Client  -> server: Handshake [string:SUPERHANDSHAKE] [int:protocol]
+\xff\x31 Client  -> server: Nickname  [string:nick]
+\xff\x32 Client  -> server: Password  [string:sha256password]
+\xff\x33 Client <-> server: Color     [string:colorid] [string:color]
 
 1 - offtopic
 2 - talk
@@ -42,7 +42,7 @@ Protocol notes
 4 - describe
 
 '''
-
+# TODO: fix color highlight according to protocol
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
@@ -96,6 +96,10 @@ class Player(LineReceiver):
         print "connectionMade"
         self.handle   = self.login
         self.state    = 0
+        self.nick     = False
+        self.id       = False
+        self.pwd      = False
+        self.colors   = {}
         self.color    = ''
         self.typing   = False
         self.gm       = False
@@ -103,6 +107,7 @@ class Player(LineReceiver):
         self.re_quote = re.compile('".*?"')
         self.re_off   = re.compile('\(.*?\)')
         
+        self.protocolVersion = "3"
         
         self.commands = {
         'say':self.gameSay,
@@ -134,7 +139,8 @@ class Player(LineReceiver):
         OR http://github.com/voneiden/ropeclient"""
         
         self.world = self.factory.world
-
+        print "end connection made"
+        
     def lineReceived(self, data):
         #print("Line received!")
         self.handle(data)
@@ -154,19 +160,17 @@ class Player(LineReceiver):
 
     def login(self,data):
         data = data.decode('utf-8')
-        
+        print "login"
         # Ignore typing announcements
         if len(data) >= 2:
-            if data[:2] == u'\xff\x00': return
+            if data[:2]   == u'\xff\x00': return
             elif data[:2] == u'\xff\x01': return
-            else:
-                print data[:2]
         
         # Handshake state 
         # Ensure that the client is a ropeclient AND a proper version!'''
         if self.state == 0:
             if "SUPERHANDSHAKE" in data:
-                if data[:2] == u'\xff\x10':
+                if data[:2] == u'\xff\x30':
                     tok = data.split(' ')
                     if len(tok) == 2:
                         if tok[1] == self.protocolVersion: self.write(self.loginGreeting);self.state = 1
@@ -175,15 +179,19 @@ class Player(LineReceiver):
                 else:                                      self.write(self.loginError);self.state = -1
             else: self.transport.loseConnection() # Not a ropeclient!
         elif self.state == 1 and len(data) > 2:
-            if   data[:2] == u'\xff\x11': self.nick = data[2:];self.id = self.nick.lower()
-            elif data[:2] == u'\xff\x12': self.pwd  = data[2:]
-            elif data[:2] == u'\xff\x13': self.highlight = data[2:]
+            print "Handle data",data,ord(data[0]),ord(data[1])
+            if   data[:2] == u'\xff\x31': self.nick = data[2:];self.id = self.nick.lower()
+            elif data[:2] == u'\xff\x32': self.pwd  = data[2:]
+            elif data[:2] == u'\xff\x33': 
+                tok = data.split(' ')
+                if len(tok) != 2: print "Corrupted color packet";return
+                self.colors[tok[0][2:]] = tok[1]
             
-            if self.nick and self.highlight and not self.pwd:
-                if   self.world.passwords.has_key(self.id):  self.write('\xff\x13A password is required to access your account')
-                else:                                        self.write("\xff\×13New player, please type your password (your password is encrypted client side, no worries)")
+            if self.nick and self.colors.has_key('highlight') and not self.pwd:
+                if   self.world.passwords.has_key(self.id):  self.write(u'\xff\x32A password is required to access your account')
+                else:                                        self.write(u'\xff\x32New player, please type your password (your password is encrypted client side, no worries)')
                     
-            elif self.nick and self.highlight and self.pwd:
+            elif self.nick and self.colors.has_key('highlight') and self.pwd:
                 if self.world.passwords.has_key(self.id):
                     if self.world.passwords[self.id] == self.pwd: self.world.connectPlayer(self)
                     else: self.write("Invalid password");self.transport.loseConnection()
@@ -191,7 +199,8 @@ class Player(LineReceiver):
                     self.world.passwords[self.id] = self.pwd
                     self.world.savePasswords()
                     self.world.connectPlayer(self)
-                    
+            else:
+                print self.nick,self.colors.has_key('highlight'),self.pwd
                 
                 
             '''
@@ -506,7 +515,7 @@ class World:
             self.players[player.id].write("You have logged in elsewhere, disconnecting.")
             self.players[player.id].transport.loseConnection()
         self.players[player.id] = player
-        print "Connect Player to World OK:",nick,self.players
+        print "Connect Player to World OK:",player.id,self.players
         
     def disconnectPlayer(self,player):
         if self.players.has_key(player.id):

@@ -24,7 +24,7 @@
 
 from Tkinter import *
 from ScrolledText import ScrolledText
-import ConfigParser, logging, time, re
+import ConfigParser, logging, time, re, hashlib
 from twisted.internet import tksupport, reactor
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
@@ -79,6 +79,7 @@ class Window:
         
         self.playerlist = []
         
+        self.password = False
         print "OK"
         print dir(self.textarea)
     
@@ -205,6 +206,10 @@ class Window:
         tok = data.split(' ')
         if tok[0]== '/name': self.root.title("Ropeclient: %s"%" ".join(tok[1:]))
         try:
+            if self.password:
+                self.password = False
+                self.entry.config(show='')
+                data = u"\xff\x32" + hashlib.sha256(data).hexdigest()
             self.connection.write(data)
         except:
             self.display_line("!!!!Something went wrong. I might crash!!!")
@@ -232,33 +237,54 @@ class Window:
 
 class Client(LineReceiver):
     def __init__(self,window):
-        self.window = window
+        self.window   = window
         #LineReceiver.__init__(self)
 
         
     def connectionMade(self):
         self.window.display_line("Connected!")
-        self.write("SUPERHANDSHAKE 2")
-        self.write("SETNAME %s"%self.window.name)
-        self.write("SETCOLOR %s"%self.window.highlight)
-        self.write("SETNICK %s"%self.window.nick)
+        self.write(u"\xff\x30SUPERHANDSHAKE 3")
+        self.write(u"\xff\x31%s"%(self.window.nick))
+        self.write(u"\xff\x33highlight %s"%(self.window.highlight))
+        #self.write("SETNAME %s"%self.window.name)
+        #self.write("SETCOLOR %s"%self.window.highlight)
+        #self.write("SETNICK %s"%self.window.nick)
         
     def lineReceived(self, data):
-        #self.window.display_line("Line received!")
         data = data.decode('utf-8')
-        #tok = data.split(' ')
-        #print tok
-        if data[0:2] == u'\xff\xa0':
-            players = data[2:].split(' ')
-            self.window.playerlist = []
-            for player in players:
-                self.window.playerlist.append([player,False,False])
-            self.window.update_players()
-        elif data[0:2] == u'\xff\x01':
-            self.window.playerTyping(data[2:],True)
-        elif data[0:2] == u'\xff\x00':
-            self.window.playerTyping(data[2:],False)
-        else: self.window.display_line(data)
+
+        if len(data) > 2:
+            
+            # Playerlist packet
+            if data[0:2] == u'\xff\xa0':
+                players = data[2:].split(' ')
+                self.window.playerlist = []
+                for player in players:
+                    self.window.playerlist.append([player,False,False])
+                self.window.update_players()
+            
+            # Typing packet
+            elif data[0:2] == u'\xff\x01':
+                self.window.playerTyping(data[2:],True)
+            
+            # Not typing packet
+            elif data[0:2] == u'\xff\x00':
+                self.window.playerTyping(data[2:],False)
+                
+            # Password request packet
+            elif data[0:2] == u'\xff\x32':
+                self.window.password = True
+                self.window.entry.config(show='*')
+                self.window.display_line(data[2:])
+            elif data[:2] == u'\xff\x33':
+                tok = data.split(' ')
+                if len(tok) != 2: print "Corrupted color packet";return
+                self.window.colors[tok[0][2:]] = tok[1]
+            # Message packet
+            elif data[0:2] == u'\xff\x02':
+                pass #Message
+            else: 
+                self.window.display_line(data)
     
     def connectionLost(self,reason):
         pass
@@ -266,6 +292,7 @@ class Client(LineReceiver):
     def write(self,data):
         data = data+'\r\n'
         data = data.encode('utf-8')
+        print "Writing",data
         self.transport.write(data)
         
 class CFactory(ReconnectingClientFactory):
