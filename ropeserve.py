@@ -84,9 +84,10 @@ class Player(LineReceiver):
         self.commands = {
         'say':self.gameSay,
         'emote':self.gameEmote,
-        '/me':self.gameEmote,
+        'me':self.gameEmote,
         'tell':self.gameTell,
-        'look':self.gameLook}
+        'look':self.gameLook,
+        'avatar':self.gameAvatar}
         
         
         self.triggers = {
@@ -239,8 +240,9 @@ class Player(LineReceiver):
         messageParams = messageContent.split(' ')
         messageCommand = messageParams[0].lower()
         messageTrigger = messageCommand[0]
-        
-        if   self.commands.has_key(messageCommand): self.commands[messageCommand](messageContent[len(messageCommand):])
+        print self.defaction
+        if self.defaction and len(messageCommand) > 1: messageCommand = messageCommand[1:]
+        if self.commands.has_key(messageCommand): self.commands[messageCommand](messageContent[len(messageCommand)+1:])
         elif self.triggers.has_key(messageTrigger): self.triggers[messageTrigger](messageContent[1:])
         else:
             if self.defaction == 'talk':       self.gameSay(messageContent) #TODO: change gameSay to gameTalk?
@@ -277,6 +279,40 @@ class Player(LineReceiver):
         if messageContent[0] != '(': messageContent = '(' + messageContent
         if messageContent[-1] != ')': messageContent = messageContent + ')'
         self.world.messageWorld(messageContent,self.id)
+    def gameAvatar(self,messageContent):
+        # This function will probably need some rewriting in the future.
+        msgBuffer = []
+        tok       = messageContent.split(' ')
+        if len(messageContent) == 0:  msgBuffer.append("Available commands: NEW, ENTER, LEAVE")
+        elif tok[0].lower() == 'new':
+            if len(tok) < 2: msgBuffer.append("Not enough parameters. AVATAR NEW [ID]. ID can be the first name of your character, for example.")
+            else: 
+                avatarID = tok[1].lower()
+                newavatar = self.world.addAvatar(self,avatarID)
+                if newavatar:msgBuffer.append("Avatar has been created succesfully. You can now AVATAR ENTER [ID] to take control of your poor little soul")
+                else: msgBuffer.append("The ID of your avatar is already in use. Please try another ID")
+        
+        elif tok[0].lower() == 'enter':
+            if len(tok) < 2: msgBuffer.append("Not enough parameters. AVATAR ENTER [ID].")
+            else:
+                avatarID = tok[1].lower()
+                if self.world.avatars.has_key(avatarID):
+                    if self.world.avatars[avatarID]['owner'] == self.id:
+                        msgBuffer.append("You are now attached.")
+                        self.avatar = avatarID
+                        avatar = self.world.avatars[avatarID]
+                        for line in avatar['history']:
+                            self.sendMessage(line[0],line[1],line[2])
+                        for line in avatar['flush']:
+                            #avatarID,messageContent,messageOwner='Server',messageTimestamp=False):
+                            self.world.messageAvatar(avatar['id'],line[2],line[0],line[1])
+                        avatar['flush'] = []
+                    else: msgBuffer.append("You are not allowed to enter this soul.")
+                else: msgBuffer.append("No such ID exists.")
+                
+        else: msgBuffer.append("Unknown command")
+        
+        self.sendMessage("Server",time.time(),"\n".join(msgBuffer))
         """z
         if   messageHeader    == 'say': self.gameSay(" ".join(messageParams[1:]))
         elif messageHeader[0] == '.'  : self.gameSay(messageContent[1:])
@@ -325,6 +361,8 @@ class World:
     def __init__(self):
         self.channels = {'spawn':[]}
         self.loadPasswords()
+        self.loadAvatars()
+        self.loadLocations()
         self.players = {}
         self.history = []
         self.regexDice  = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
@@ -341,7 +379,19 @@ class World:
         else:         self.passwords = {}
         
     def savePasswords(self): pickleSave(self.passwords,'passwd')
-        
+    
+    def loadAvatars(self):
+        avatars = pickleLoad('avatars')
+        if avatars: self.avatars = avatars
+        else:          self.avatars = {}
+    def saveAvatars(self): pickleSave(self.avatars,'avatars')
+    
+    def loadLocations(self):
+        locations = pickleLoad('locations')
+        if locations: self.locations = locations
+        else:          self.locations = {}
+    def saveLocations(self): pickleSave(self.locations,'locations') 
+    
     def connectPlayer(self,player):
         if self.players.has_key(player.id):
             print "Dual connect, disconnecting the old player."
@@ -351,6 +401,7 @@ class World:
         self.sendPlayerlist()
         self.sendHistory(player)
         self.messageWorld('%s has joined the game!'%(player.nick),'Server')
+        self.displayAvatars(player)
         print "Connect Player to World OK:",player.id,self.players
         
     def disconnectPlayer(self,player):
@@ -358,6 +409,17 @@ class World:
             del self.players[player.id]
             self.sendPlayerlist()
             self.messageWorld('%s has quit the game!'%(player.nick),'Server')
+        
+    def displayAvatars(self,player):
+        avatars = []
+        for avatar in self.avatars.values():
+            if avatar['owner'] == player.id: avatars.append(avatar)
+        if len(avatars) == 0: buf = ["You have no avatars. To create a new avatar, use the AVATAR command for more information."]
+        else: 
+            buf = ["-- Your avatars -- "]
+            for avatar in avatars: buf.append(avatar['name'])
+        player.sendMessage("Server",time.time(),"\n".join(buf))
+        
         
     def sendPlayerlist(self):
         pl = []
@@ -379,11 +441,75 @@ class World:
         self.history.append((time.time(),data))
         for player in self.players.values():
             player.sendMessage(owner,timestamp,data)
+            
+    def messageLocation(self,locationID,messageContent,messageOwner='Server',messageTimestamp=False):
+        print "messageLocation -->",locationID
+        if not messageTimestamp: messageTimestamp = time.time()
+        if not self.locations.has_key(locationID): return False
+        location = self.locations[locationID]
+        
+        for avatar in location['avatars']: self.messageAvatar(avatar,messageContent,messageOwner,messageTimestamp)
+        
+    def messageAvatar(self,avatarID,messageContent,messageOwner='Server',messageTimestamp=False):
+        print "messageAvatar -->",avatarID
+        print "debug, list of players:",self.players
+        
+        if not messageTimestamp: messageTimestamp = time.time()
+        if not self.avatars.has_key(avatarID): return False
+        avatar = self.avatars[avatarID]
+        
+        if self.players.has_key(avatar['owner']) and self.players[avatar['owner']].avatar == avatar['id']:
+            player = self.players[avatar['owner']]
+            player.sendMessage(messageOwner,messageTimestamp,messageContent)
+            avatar['history'].append((messageOwner,messageTimestamp,messageContent))
+        else:
+            avatar['flush'].append((messageOwner,messageTimestamp,messageContent))
+            
+        
+    def addAvatar(self,player,avatarID):
+        print "addAvatar",avatarID
+        if self.avatars.has_key(avatarID): print "addAvatar: invalid avatar ID";return False
+        else:
+            self.avatars[avatarID] = {
+                                'owner':player.id,
+                                'id':avatarID,
+                                'name':avatarID,
+                                'location':'spawn',
+                                'history':[],
+                                'flush':[],
+                                'description':"No description"}
+            self.moveAvatar(avatarID,'spawn')
+            return True
+    def moveAvatar(self,avatarID,location):
+        # This function moves an avatar to a new location
+        # First we check that the target location exists, and 
+        # if it doesn't, we create it.
+        
+        print "moveAvatar()"
+        location = location.lower()
+        if not self.avatars.has_key(avatarID): print "moveAvatar: invalid avatar id",avatarID,self.avatars;return False
+        avatar = self.avatars[avatarID]
+        if not self.locations.has_key(location):
+            self.locations[location] = {'id':'location',
+                                        'avatars':[],
+                                        'title':'No title',
+                                        'description':'No description'}
+        
+        # We remove the character from the old location
+        old_location = avatar['location']
+        if self.locations.has_key(old_location):
+            if avatarID in self.locations[old_location]['avatars']:
+                self.locations[old_location]['avatars'].remove(avatarID)
+        
+        # And add the character to a new location
+        avatar['location'] = location
+        self.locations[location]['avatars'].append(avatarID)
+        
+        self.messageLocation(location,'%s has arrived from %s.'%(avatar['name'],self.locations[old_location]['title']))
+        
+        
     
     def messageWrap(self,data,style='default'):
-        ''' this version supports full regex. probably the 4th time I rewrote it
-        Initial color is WHITE. When you change color, please remember to RESET
-        '''
         data = re.sub(self.regexDice,self.wrapDice,data)   #Search for dice combinatinos
         data = re.sub(self.regexQuote,self.wrapQuote,data) #Search for text in between quotes
         data = re.sub(self.regexOff,self.wrapOff,data)     #Search for offtopic 
@@ -398,15 +524,9 @@ class World:
         elif style == "offtopic": data = "%s%s"%('<offtopic>',data)
         else: data = "%s%s"%('<red>',data)
         
-        ''' Building a color stack
-
-            To be able to properly color everything,
-            the final coloring must be done after
-            the regex coloring. The final coloring
-            looks for reset values, and then chooses
-            the appropriate color to reset to from the
-            color stack. It's pretty cool.
-        '''
+        # Colorstack is the heart of the whole thing.
+        # I didn't figure any other way to do it nicely.
+        # Ha ahaha.
         colorstack = []
         for color in re.finditer(self.regexColorF,data):
             x = color.group()
@@ -471,6 +591,9 @@ class World:
             if result == sides and exploding: rolls.append(1); exploded = True
             total += result
         return (total,exploded)
+
+        
+
 if __name__ == '__main__':
     world = World()
     reactor.listenTCP(49500, PlayerFactory(world))

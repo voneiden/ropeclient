@@ -278,7 +278,7 @@ class Client(LineReceiver):
             elif data[0:2] == u'\xff\x02':
                 data = data[2:]
                 tok = data.split()
-                if len(tok) < 3: print "Corrupted message packet";return
+                if len(tok) < 3: print "Corrupted message packet",data;return
                 messageOwner  = tok[0]
                 messageTime   = float(tok[1])
                 messageContent= " ".join(tok[2:])
