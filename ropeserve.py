@@ -108,16 +108,15 @@ class Player(LineReceiver):
         '#':self.gameDescribe,
         '(':self.gameOfftopic}
         
-        self.loginGreeting = """Welcome to ropeclient
+        self.loginGreeting = u"""Welcome to ropeclient
                            _ _            _   
  _ __ ___  _ __   ___  ___| (_) ___ _ __ | |_ 
 | '__/ _ \| '_ \ / _ \/ __| | |/ _ \ '_ \| __|
 | | | (_) | |_) |  __/ (__| | |  __/ | | | |_ 
 |_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|
-          |_|                                 
-"""
+          |_|                                 """
         
-        self.loginError = self.loginGreeting + """\n\nUnfortunately it seems your ropeclient is out of date.
+        self.loginError = self.loginGreeting + u"""\n\nUnfortunately it seems your ropeclient is out of date.
         To connect to this server, please update your client from 
            http://eiden.fi/ropeclient
         OR http://eiden.fi/ropeclient/releases
@@ -134,14 +133,12 @@ class Player(LineReceiver):
         self.world.disconnectPlayer(self)
     
     def write(self,data,newline=True):
-        data = data.encode('utf-8')
-        if newline: self.transport.write(data+'\r\n')
-        else: self.transport.write(data)
-
+        if newline: data = ("%s\r\n"%data).encode('utf-8')
+        self.transport.write(data)
 
     def login(self,data):
         data = data.decode('utf-8')
-        tok  = data.split()
+        tok  = data.split( )
         hdr  = tok[0]
         print "login"
         # Ignore typing announcements
@@ -153,7 +150,7 @@ class Player(LineReceiver):
             if "SUPERHANDSHAKE" in data:
                 print "handshake",data
                 if hdr == u'hsk' and len(tok) == 3:
-                    if tok[2] == self.protocolVersion: self.write(self.loginGreeting);self.state = 1
+                    if tok[2] == self.protocolVersion: self.sendMessage("Server",time.time(),self.loginGreeting);self.state = 1
                     else:                              self.write(self.loginError);self.state = -1
                 else:                                  self.write(self.loginError);self.state = -1
             else: self.transport.loseConnection() # Not a ropeclient! Lets drop them for now.
@@ -224,7 +221,7 @@ class Player(LineReceiver):
         except: 
             print "Received non-unicode data from the client, ignoring."
             return
-        tok = recv.split()
+        tok = recv.split(' ')
         
         # Second we read the packet type #
         packetid = tok[0]
@@ -262,6 +259,7 @@ class Player(LineReceiver):
     def sendMessage(self,messageOwner,messageTime,messageContent):
         print "Send ->",messageOwner,messageTime,messageContent
         self.write(u'msg %s %f %s'%(messageOwner,messageTime,messageContent))
+        #print "newlines here? %s"%messageContent
         
     def gameSay(self,messageContent):
         messageParams = messageContent.split(' ') #TTODO FIX ERROR
@@ -308,6 +306,7 @@ class Player(LineReceiver):
         elif hdr == 'leave': msgBuffer = self.gameAvatarLeave(tok[1:])
         elif hdr == 'del':   msgBuffer = self.gameAvatarDel(tok[1:])
         else:                msgBuffer = ["Unknown command"]
+        print "BANG"
         self.sendMessage("Server",time.time(),"\n".join(msgBuffer))
           
     def gameAvatarNew(self,params):
@@ -443,12 +442,12 @@ class World:
         avatars = []
         for avatar in self.avatars.values():
             if avatar['owner'] == player.id: avatars.append(avatar)
-        if len(avatars) == 0: buf = ["You have no avatars. To create a new avatar, use the AVATAR command for more information."]
+        if len(avatars) == 0: buf = ["<red>You have no avatars. To create a new avatar, use the AVATAR command for more information."]
         else: 
             buf = ["-- Your avatars -- "]
             for avatar in avatars: buf.append(avatar['name'])
-        if doReturn: return "\n".join(buf)
-        else: player.sendMessage("Server",time.time(),"\n".join(buf))
+        if doReturn: return u"\n".join(buf)
+        else: player.sendMessage("Server",time.time(),u"\n".join(buf))
         
         
     def sendPlayerlist(self):

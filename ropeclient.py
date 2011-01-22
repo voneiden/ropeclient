@@ -246,8 +246,9 @@ class Client(LineReceiver):
         
     def lineReceived(self, data):
         data = data.decode('utf-8')
+        #print "lineReceived",data
         if len(data) < 2: return
-        tok = data.split()
+        tok = data.split(' ')
         hdr = tok[0]
         
         # Playerlist packet
@@ -281,7 +282,7 @@ class Client(LineReceiver):
             messageOwner  = tok[1]
             messageTime   = float(tok[2])
             messageContent= " ".join(tok[3:])
-            print "Msg",messageContent
+            #print "Msg",messageContent
             if messageOwner == "Server": self.window.display_line("[Server] %s"%(messageContent),messageTime)
             else: self.window.display_line("%s"%(messageContent),messageTime)
         else: 
