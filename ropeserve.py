@@ -37,6 +37,17 @@ Protocol notes
 \xff\x33 Client <-> server: Color     [string:colorid] [string:color]
 \xff\x34 client  -> server: default-action [string:speak/offtopic/none]
 
+Plaintext protocol?
+lop = list of players
+pit = player is typing
+pnt = player not typing
+msg = message
+pwd = password
+clr = color
+nck = nick
+hsk = handshake
+dfa = default action
+
 1 - offtopic
 2 - talk
 3 - emote
@@ -130,42 +141,37 @@ class Player(LineReceiver):
 
     def login(self,data):
         data = data.decode('utf-8')
+        tok  = data.split()
+        hdr  = tok[0]
         print "login"
         # Ignore typing announcements
-        if len(data) >= 2:
-            if data[:2]   == u'\xff\x00': return
-            elif data[:2] == u'\xff\x01': return
+        if hdr == 'pnt' or hdr == 'pit': return
         
         # Handshake state 
         # Ensure that the client is a ropeclient AND a proper version!'''
         if self.state == 0:
             if "SUPERHANDSHAKE" in data:
-                if data[:2] == u'\xff\x30':
-                    tok = data.split(' ')
-                    if len(tok) == 2:
-                        if tok[1] == self.protocolVersion: self.write(self.loginGreeting);self.state = 1
-                        else:                              self.write(self.loginError);self.state = -1
-                    else:                                  self.write(self.loginError);self.state = -1
-                else:                                      self.write(self.loginError);self.state = -1
-            else: self.transport.loseConnection() # Not a ropeclient!
+                print "handshake",data
+                if hdr == u'hsk' and len(tok) == 3:
+                    if tok[2] == self.protocolVersion: self.write(self.loginGreeting);self.state = 1
+                    else:                              self.write(self.loginError);self.state = -1
+                else:                                  self.write(self.loginError);self.state = -1
+            else: self.transport.loseConnection() # Not a ropeclient! Lets drop them for now.
+        
         elif self.state == 1 and len(data) > 2:
             print "Handle data",data,ord(data[0]),ord(data[1])
-            if   data[:2] == u'\xff\x31': self.nick = data[2:];self.id = self.nick.lower()
-            elif data[:2] == u'\xff\x32': self.pwd  = data[2:]
-            elif data[:2] == u'\xff\x34': 
-                defaction = data[2:]
+            if   hdr == 'nck' and len(tok) == 2: self.nick = tok[1];self.id = self.nick.lower()
+            elif hdr == 'pwd' and len(tok) == 2: self.pwd  = tok[1]
+            elif hdr == 'dfa' and len(tok) == 2: 
+                defaction = tok[1]
                 if   defaction == 'speak': self.defaction = "speak"
                 elif defaction == 'offtopic': self.defaction = "offtopic"
                 else:self.defaction = None
-        
-            elif data[:2] == u'\xff\x33': 
-                tok = data.split(' ')
-                if len(tok) != 2: print "Corrupted color packet";return
-                self.colors[tok[0][2:]] = tok[1]
+            elif hdr == 'clr' and len(tok) == 3: self.colors[tok[1]] = tok[2]
             
             if self.nick and self.colors.has_key('highlight') and not self.pwd:
-                if   self.world.passwords.has_key(self.id):  self.write(u'\xff\x32A password is required to access your account')
-                else:                                        self.write(u'\xff\x32New player, please type your password (your password is encrypted client side, no worries)')
+                if   self.world.passwords.has_key(self.id):  self.write(u'pwd A password is required to access your account')
+                else:                                        self.write(u'pwd New player, please type your password (your password is encrypted client side, no worries)')
                     
             elif self.nick and self.colors.has_key('highlight') and self.pwd:
                 if self.world.passwords.has_key(self.id):
@@ -218,26 +224,28 @@ class Player(LineReceiver):
         except: 
             print "Received non-unicode data from the client, ignoring."
             return
+        tok = recv.split()
         
         # Second we read the packet type #
-        packetid = recv[:2]
-        if   packetid == u'\xff\x00': self.gameTyping(False);print "typing false"
-        elif packetid == u'\xff\x01': self.gameTyping(True);print "typing true"
-        elif packetid == u'\xff\x02': self.gameMessage(recv[2:])
+        packetid = tok[0]
+        if   packetid == u'pnt':                  self.gameTyping(False);print "typing false"
+        elif packetid == u'pit':                  self.gameTyping(True); print "typing true"
+        elif packetid == u'msg' and len(tok) > 1: self.gameMessage(tok[1:])
         else: 
             print "Received unknown packet from",self.nick
             print "This:",recv
             
     def gameTyping(self,state):
         self.typing = state
-        if self.typing: data = u'\xff\x01%s'%self.nick
-        else:           data = u'\xff\x00%s'%self.nick
+        if self.typing: data = u'pit %s'%self.nick
+        else:           data = u'pnt %s'%self.nick
         for player in self.world.players.values():  player.write(data)
         
-    def gameMessage(self,messageContent):
+    def gameMessage(self,messageParams):
         print "Game message"
-        if len(messageContent) < 1: print "Message too short";return
-        messageParams = messageContent.split(' ')
+        if len(messageParams) < 1: print "Message too short";return
+        #messageParams = messageContent.split(' ')
+        messageContent = " ".join(messageParams)
         messageCommand = messageParams[0].lower()
         messageTrigger = messageCommand[0]
         print self.defaction
@@ -253,7 +261,7 @@ class Player(LineReceiver):
 
     def sendMessage(self,messageOwner,messageTime,messageContent):
         print "Send ->",messageOwner,messageTime,messageContent
-        self.write(u'\xff\x02%s %f %s'%(messageOwner,messageTime,messageContent))
+        self.write(u'msg %s %f %s'%(messageOwner,messageTime,messageContent))
         
     def gameSay(self,messageContent):
         messageParams = messageContent.split(' ') #TTODO FIX ERROR
@@ -279,40 +287,49 @@ class Player(LineReceiver):
         if messageContent[0] != '(': messageContent = '(' + messageContent
         if messageContent[-1] != ')': messageContent = messageContent + ')'
         self.world.messageWorld(messageContent,self.id)
+    
     def gameAvatar(self,messageContent):
-        # This function will probably need some rewriting in the future.
-        msgBuffer = []
         tok       = messageContent.split(' ')
-        if len(messageContent) == 0:  msgBuffer.append("Available commands: NEW, ENTER, LEAVE")
-        elif tok[0].lower() == 'new':
-            if len(tok) < 2: msgBuffer.append("Not enough parameters. AVATAR NEW [ID]. ID can be the first name of your character, for example.")
-            else: 
-                avatarID = tok[1].lower()
-                newavatar = self.world.addAvatar(self,avatarID)
-                if newavatar:msgBuffer.append("Avatar has been created succesfully. You can now AVATAR ENTER [ID] to take control of your poor little soul")
-                else: msgBuffer.append("The ID of your avatar is already in use. Please try another ID")
+        hdr       = tok[0].lower()
         
-        elif tok[0].lower() == 'enter':
-            if len(tok) < 2: msgBuffer.append("Not enough parameters. AVATAR ENTER [ID].")
-            else:
-                avatarID = tok[1].lower()
-                if self.world.avatars.has_key(avatarID):
-                    if self.world.avatars[avatarID]['owner'] == self.id:
-                        msgBuffer.append("You are now attached.")
-                        self.avatar = avatarID
-                        avatar = self.world.avatars[avatarID]
-                        for line in avatar['history']:
-                            self.sendMessage(line[0],line[1],line[2])
-                        for line in avatar['flush']:
-                            #avatarID,messageContent,messageOwner='Server',messageTimestamp=False):
-                            self.world.messageAvatar(avatar['id'],line[2],line[0],line[1])
-                        avatar['flush'] = []
-                    else: msgBuffer.append("You are not allowed to enter this soul.")
-                else: msgBuffer.append("No such ID exists.")
-                
-        else: msgBuffer.append("Unknown command")
-        
+        if len(messageContent) == 0:  msgBuffer = ["Available commands: ADD, ENTER, LEAVE, DEL"]
+        elif hdr == 'add':   msgBuffer = self.gameAvatarNew(tok[1:])
+        elif hdr == 'enter': msgBuffer = self.gameAvatarEnter(tok[1:])
+        elif hdr == 'leave': msgBuffer = self.gameAvatarLeave(tok[1:])
+        elif hdr == 'del':   msgBuffer = self.gameAvatarDel(tok[1:])
+        else:                msgBuffer = ["Unknown command"]
         self.sendMessage("Server",time.time(),"\n".join(msgBuffer))
+          
+    def gameAvatarNew(self,params):
+        if len(params) == 0: return ["Not enough parameters. Please specify a unique ID for your avatar.",
+                                     "Example: avatar add superwarrior"]
+        avatarID = params[0].lower()
+        addavatar= self.world.addAvatar(self,avatarID)
+        if addavatar: return ["Avatar has been created succesfully. You can now use the command 'avatar enter %s' to possess your avatar."%avatarID]
+        else:         return ["The ID you specified is already in use. Please try something else."]
+    
+    def gameAvatarEnter(self,params):
+        if len(params) == 0: return ["Not enough parameters. Please specify a unique ID for your avatar.",
+                                     "Example: avatar enter superwarrior"]
+        avatarID = params[0].lower()
+        if not self.world.avatars.has_key(avatarID):             return ["Avatar %s not found."%avatarID]
+        if not self.world.avatars[avatarID]['owner'] == self.id: return ["You may not enter this soul."]
+        self.avatar = avatarID
+        avatar = self.world.avatars[avatarID]
+        for line in avatar['history']: self.sendMessage(line[0],line[1],line[2])
+        for line in avatar['flush']:   self.world.messageAvatar(avatar['id'],line[2],line[0],line[1])
+        return ["You are now attached to %s."%avatarID]
+    
+    def gameAvatarLeave(self,params):
+        return ["not implemented"]
+    def gameAvatarDel(self,params):
+        return ["not implemented"]
+    
+
+        
+        
+        
+
         """z
         if   messageHeader    == 'say': self.gameSay(" ".join(messageParams[1:]))
         elif messageHeader[0] == '.'  : self.gameSay(messageContent[1:])
@@ -429,7 +446,7 @@ class World:
             if player.gm:       nick = "[%s]"%nick
             if player.avatar:   nick = "%s (%s)"%(nick,"has_avatar")
             pl.append(nick)
-        ann = u"\xff\xa0%s"%(" ".join(pl))
+        ann = u"lop %s"%(" ".join(pl))
         for player in self.players.values(): player.write(ann)
     def sendHistory(self,player):
         for line in self.history:

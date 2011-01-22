@@ -201,10 +201,10 @@ class Window:
             if self.password:
                 self.password = False
                 self.entry.config(show='')
-                data = u"\xff\x32" + hashlib.sha256(data).hexdigest()
+                data = "pwd %s"%(hashlib.sha256(data).hexdigest())
                 self.connection.write(data)
             else:
-                self.connection.write(u"\xff\x02%s"%(data))
+                self.connection.write(u"msg %s"%(data))
 
         except:
             self.display_line("!!!!Something went wrong. I might crash!!!")
@@ -217,14 +217,14 @@ class Window:
             removed everything, so send a not typing signal to server '''
         l = len(self.command.get())
         if l == 1 and self.typing:
-            self.connection.write(u"\xff\x00")
+            self.connection.write("pnt")
             self.typing = False
             
     def keypress(self,args):
         ''' Check if we've sent typing signal to server and if not, send it '''
         if args.keycode < 20: return
         elif not self.typing and len(self.command.get()) > 0: 
-            self.connection.write(u"\xff\x01")
+            self.connection.write("pit")
             self.typing = True
             
     def loop(self):
@@ -238,55 +238,54 @@ class Client(LineReceiver):
         
     def connectionMade(self):
         self.window.display_line("Connected!")
-        self.write(u"\xff\x30SUPERHANDSHAKE 3")
-        self.write(u"\xff\x31%s"%(self.window.nick))
-        self.write(u"\xff\x34%s"%(self.window.vars['default-action']))
-        self.write(u"\xff\x33highlight %s"%(self.window.colors['highlight']))
+        self.write("hsk SUPERHANDSHAKE 3")
+        self.write("nck %s"%(self.window.nick))
+        self.write("dfa %s"%(self.window.vars['default-action']))
+        self.write("clr highlight %s"%(self.window.colors['highlight']))
         
         
     def lineReceived(self, data):
         data = data.decode('utf-8')
-
-        if len(data) > 2:
+        if len(data) < 2: return
+        tok = data.split()
+        hdr = tok[0]
+        
+        # Playerlist packet
+        if hdr == 'lop' and len(tok) > 1:
+            players = tok[1:]
+            self.window.playerlist = []
+            for player in players:
+                self.window.playerlist.append([player,False,False])
+            self.window.update_players()
+        
+        # Typing packet
+        elif hdr == 'pit' and len(tok) > 1:
+            self.window.playerTyping(tok[1],True)
+        
+        # Not typing packet
+        elif hdr == 'pnt':
+            self.window.playerTyping(tok[1],False)
             
-            # Playerlist packet
-            if data[0:2] == u'\xff\xa0':
-                players = data[2:].split(' ')
-                self.window.playerlist = []
-                for player in players:
-                    self.window.playerlist.append([player,False,False])
-                self.window.update_players()
+        # Password request packet
+        elif hdr == u'pwd' and len(tok) > 1:
+            self.window.password = True
+            self.window.entry.config(show='*')
+            self.window.display_line(" ".join(tok[1:]))
+        
+        # Color packet
+        elif hdr == 'clr' and len(tok) > 2:
+            self.window.colors[tok[1]] = tok[2]
             
-            # Typing packet
-            elif data[0:2] == u'\xff\x01':
-                self.window.playerTyping(data[2:],True)
-            
-            # Not typing packet
-            elif data[0:2] == u'\xff\x00':
-                self.window.playerTyping(data[2:],False)
-                
-            # Password request packet
-            elif data[0:2] == u'\xff\x32':
-                self.window.password = True
-                self.window.entry.config(show='*')
-                self.window.display_line(data[2:])
-            elif data[:2] == u'\xff\x33':
-                tok = data.split(' ')
-                if len(tok) != 2: print "Corrupted color packet";return
-                self.window.colors[tok[0][2:]] = tok[1]
-            # Message packet
-            elif data[0:2] == u'\xff\x02':
-                data = data[2:]
-                tok = data.split()
-                if len(tok) < 3: print "Corrupted message packet",data;return
-                messageOwner  = tok[0]
-                messageTime   = float(tok[1])
-                messageContent= " ".join(tok[2:])
-                print "Msg",messageContent
-                if messageOwner == "Server": self.window.display_line("[Server] %s"%(messageContent),messageTime)
-                else: self.window.display_line("%s"%(messageContent),messageTime)
-            else: 
-                self.window.display_line(data)
+        # Message packet
+        elif hdr == 'msg' and len(tok) > 3:
+            messageOwner  = tok[1]
+            messageTime   = float(tok[2])
+            messageContent= " ".join(tok[3:])
+            print "Msg",messageContent
+            if messageOwner == "Server": self.window.display_line("[Server] %s"%(messageContent),messageTime)
+            else: self.window.display_line("%s"%(messageContent),messageTime)
+        else: 
+            self.window.display_line("Corrupted packet %s"%data)
     
     def connectionLost(self,reason):
         pass
