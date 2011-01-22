@@ -282,8 +282,18 @@ class Player(LineReceiver):
     def gameDescribe(self,messageContent):
         pass
     def gameLook(self,messageContent):
-        pass
+        if len(messageContent) == 0:
+            if self.avatar:
+                location    = self.world.avatars[self.avatar]['location']
+                title       = self.world.locations[location]['title']
+                description = self.world.locations[location]['description']
+                avatars     = self.world.locations[location]['avatars']
+                self.sendMessage("Server",time.time(),"%s"%(title))
+                self.sendMessage("Server",time.time(),"%s"%(description))
+                self.sendMessage("Server",time.time(),"Here are: %s"%(", ".join(avatars)))
+                
     def gameOfftopic(self,messageContent):
+        # Todo, global and local offtopic?
         if messageContent[0] != '(': messageContent = '(' + messageContent
         if messageContent[-1] != ')': messageContent = messageContent + ')'
         self.world.messageWorld(messageContent,self.id)
@@ -292,7 +302,7 @@ class Player(LineReceiver):
         tok       = messageContent.split(' ')
         hdr       = tok[0].lower()
         
-        if len(messageContent) == 0:  msgBuffer = ["Available commands: ADD, ENTER, LEAVE, DEL"]
+        if len(messageContent) == 0:  msgBuffer = [self.world.displayAvatars(self,True),"Available commands: ADD, ENTER, LEAVE, DEL"]
         elif hdr == 'add':   msgBuffer = self.gameAvatarNew(tok[1:])
         elif hdr == 'enter': msgBuffer = self.gameAvatarEnter(tok[1:])
         elif hdr == 'leave': msgBuffer = self.gameAvatarLeave(tok[1:])
@@ -318,6 +328,8 @@ class Player(LineReceiver):
         avatar = self.world.avatars[avatarID]
         for line in avatar['history']: self.sendMessage(line[0],line[1],line[2])
         for line in avatar['flush']:   self.world.messageAvatar(avatar['id'],line[2],line[0],line[1])
+        self.gameLook('')
+        
         return ["You are now attached to %s."%avatarID]
     
     def gameAvatarLeave(self,params):
@@ -427,7 +439,7 @@ class World:
             self.sendPlayerlist()
             self.messageWorld('%s has quit the game!'%(player.nick),'Server')
         
-    def displayAvatars(self,player):
+    def displayAvatars(self,player,doReturn=False):
         avatars = []
         for avatar in self.avatars.values():
             if avatar['owner'] == player.id: avatars.append(avatar)
@@ -435,7 +447,8 @@ class World:
         else: 
             buf = ["-- Your avatars -- "]
             for avatar in avatars: buf.append(avatar['name'])
-        player.sendMessage("Server",time.time(),"\n".join(buf))
+        if doReturn: return "\n".join(buf)
+        else: player.sendMessage("Server",time.time(),"\n".join(buf))
         
         
     def sendPlayerlist(self):
