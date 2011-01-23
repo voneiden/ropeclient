@@ -6,26 +6,51 @@ updates on how to use. The homepage http://www.eiden.fi/ropeclient is
 slightly outdated, but contains some win32 builds. 
 
 2.0 Installation
-Ropeclient depends on python 2.x, Tkinter and Twisted. 
+Ropeclient runs on any nix system that has python 2.x and the following 
+dependencies installed:
+- Tkinter          Ships with python.
+- Twisted          http://twistedmatrix.com/trac/
+-- zope.interfaces http://pypi.python.org/pypi/zope.interface#download
+
+The win32 builds ship with all the dependencies and python included in 
+one convinient (usage wise.. not size wise) package.
 
 3.0 Contact
-I can be contacted through github for now. Contributors are welcome, 
-however the main goal is to keep the core simple. Things that I have 
-thought of are multiple chat rooms like in IRC, so the GM can split the 
-group into seperate parts, however this I haven't bothered to think too 
-much yet. Also thought of some crude Telnet support for users who do not 
-wish to use the client for whatever reasons they might have.
+Primary means of contact either through Github or the mailing list 
+ropeclient@googlegroups.com. To subscribe to the mailing list, send an 
+email to ropeclient+subscribe@googlegroups.com. The mailing list may be 
+used for anykind of ropeclient related discussion, from ideas to issues.
+
 
 4.0 Protocol specification
-The protocol is still young, and I will probably stabilize it in the 
-near future. Currently the communication goes as follows:
+The protocol is constantly changing. All major versions are incompatible 
+with each others protocol wise. For the time being I have settled with a 
+line based protocol, where each message between client and server is 
+terminated by a CRLF. Currently an example of the protocol goes roughly 
+like follows..
 
-1) Client connects to server
-2) Client sends string "SUPERHANDSHAKE". Anything else sent to the 
-server causes a disconnect.
-3) Client sends 3 variables, SETNAME, SETCOLOR and SETNICK
-4) Client is now logged in and added to the game world. Any subsequent 
-communication is strings only. The client needs to parse colors. The 
-colors are currently always in format
-\033<color>. If a color is not supported, it's the clients 
-responsibility to deal with it (obviously will not work with telnet)
+4.1 Connecting to server after connection established.
+1) Client  -> Server "hsk SUPERHANDSHAKE [int:protocolVersion]\r\n"
+2) Server  -> Client "[string:greeting]"
+2) Client  -> Server "nck [string:username\r\n"
+3) Client  -> Server "clr highlight [string:color]\r\n"
+4) Server  -> Client "pwd [string:passwordRequestGreeting]\r\n"
+5) Client  -> Server "pwd [string(sha256hexdigest):password]\r\n"
+
+4.2 Post login communication
+
+Client  -> Server "pit" (player is typing)
+Client  -> Server "pnt" (player not typing)
+Client <-  Server "pit [string:playerID]"
+Client <-  Server "pnt [string:playerID]"
+Client <-  Server "lop [playerID1 playerID2 playerIDn]" (list of players)
+Client  -> Server "msg [string:content]"
+Client <-  Server "msg [string:owner] [float:timestamp] [strint:content]
+
+4.3 Other protocols
+
+Plans exist for other protocols. Main targets will be IRC and telnet. 
+This will of course cause some limitations in coloring etc.. So it must 
+be thought of still.
+
+
