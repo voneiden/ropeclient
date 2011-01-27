@@ -58,7 +58,7 @@ dfa = default action
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
-import hashlib, random, re, pickle, time
+import hashlib, random, re, pickle, time, os
 
 def pickleSave(object,filename):
     f = open(filename,'wb')
@@ -73,6 +73,139 @@ def pickleLoad(filename):
         return x
     except: return False
 
+
+class Data:
+    def __init__(self,filename): 
+        self.filename = filename
+        
+
+    def unlink(self):
+        return ""
+    
+    def link(self,static):
+        self.static = static
+    
+    def save(self):
+        f = open(self.filename,'wb')
+        pickle.dump(self.unlink(),f)
+        f.close()
+        return True
+    
+    def load(self):
+        try:
+            f = open(self.filename,'rb')
+            x = pickle.load(f)
+            f.close()
+        except: return False
+        return x
+
+class World:
+    def __init__(self):
+        self.locations = {}
+        self.accounts   = {}
+        self.avatars   = {}
+        
+        self.load()
+        self.link()
+        
+        #print "Creating default spawn"
+        #spawn = Location('spawn')
+        #self.locations['spawn'] = spawn
+        #self.saveAll()
+        print "Loaded %i locations"%len(self.locations)
+        print self.locations
+    def load(self):
+        for directory in ['locations','accounts','avatars']:
+            if not os.access(directory,os.F_OK): os.mkdir(directory)
+        
+        for locationID in os.listdir('locations'):
+            location = Location(locationID)
+            if not location.load(): del location; print "Failed to read location file",locationID;continue
+            self.locations[location.id] = location
+        
+        for accountID in os.listdir('accounts'):
+            account = Account(accountID)
+            if not account.load(): del account; print "Failed to read account file",accountID;continue
+            self.accounts[account.id] = account
+            
+        for avatarID in os.listdir('avatars'):
+            avatar = Avatar(avatarID)
+            if not avatar.load(): del avatar; print "Failed to read avatar file",avatarID;continue
+            self.avatars[avatar.id] = avatar
+            
+    def link(self):
+        for location in self.locations.values(): location.link()
+        for account  in self.accounts.values():  account.link()
+        for avatar   in self.avatars.values():   avatar.link()
+        
+    def saveAll(self):
+        for location in self.locations.values(): location.save()
+        for account  in self.accounts.values():  account.save()
+        for avatar   in self.avatars.values():   avatar.save()
+
+class Location(Data):
+    def __init__(self,filename):
+        Data.__init__(self,"locations/%s"%filename)
+        self.id = filename
+    def load(self):
+        print "Location: Load"
+        static = Data.load(self)
+        if not static: return False
+        try:
+            self.id = static['id']
+        except: print "Exception at load";return False
+        return True
+        
+    def link(self):
+        pass
+        
+    def unlink(self):
+        print "Location: unlink"
+        static = {'id':self.id}
+        return static
+    
+class Account(Data):
+    def __init__(self,filename):
+        Data.__init__(self,"accounts/%s"%filename)
+        self.id = filename
+        
+    def load(self):
+        print "Account: Load"
+        static = Data.load(self)
+        if not static: return False
+        try:
+            self.id = static['id']
+        except: print "Exception at load";return False
+        return True
+        
+    def link(self):
+        pass
+        
+    def unlink(self):
+        static = {'id':self.id}
+    
+
+class Avatar(Data):
+    def __init__(self,filename):
+        Data.__init__(self,"avatars/%s"%filename)
+        self.id = filename
+        
+    def load(self):
+        print "Avatar: Load"
+        static = Data.load(self)
+        if not static: return False
+        try:
+            self.id = static['id']
+        except: print "Exception at load";return False
+        return True
+        
+    def link(self):
+        pass
+        
+    def unlink(self):
+        static = {'id':self.id}
+    
+    
 class Player(LineReceiver):
     def connectionMade(self):
         print "connectionMade"
@@ -385,7 +518,7 @@ class PlayerFactory(Factory):
         self.protocol = Player
         self.world    = world
 
-class World:
+class World2:
     def __init__(self):
         self.channels = {'spawn':[]}
         self.loadPasswords()
