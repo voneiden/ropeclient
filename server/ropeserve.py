@@ -55,6 +55,7 @@ dfa = default action
 
 '''
 # TODO: fix color highlight according to protocol
+# TODO: password salt
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
@@ -77,10 +78,10 @@ def pickleLoad(filename):
 class Data:
     def __init__(self,filename): 
         self.filename = filename
-        
+        self.static   = {}
 
     def unlink(self):
-        return ""
+        return {}
     
     def link(self,static):
         self.static = static
@@ -104,6 +105,7 @@ class World:
         self.locations = {}
         self.accounts   = {}
         self.avatars   = {}
+        self.players   = {}
         
         self.load()
         self.link()
@@ -119,17 +121,17 @@ class World:
             if not os.access(directory,os.F_OK): os.mkdir(directory)
         
         for locationID in os.listdir('locations'):
-            location = Location(locationID)
+            location = Location(self,locationID)
             if not location.load(): del location; print "Failed to read location file",locationID;continue
             self.locations[location.id] = location
         
         for accountID in os.listdir('accounts'):
-            account = Account(accountID)
+            account = Account(self,accountID)
             if not account.load(): del account; print "Failed to read account file",accountID;continue
             self.accounts[account.id] = account
             
         for avatarID in os.listdir('avatars'):
-            avatar = Avatar(avatarID)
+            avatar = Avatar(self,avatarID)
             if not avatar.load(): del avatar; print "Failed to read avatar file",avatarID;continue
             self.avatars[avatar.id] = avatar
             
@@ -142,11 +144,29 @@ class World:
         for location in self.locations.values(): location.save()
         for account  in self.accounts.values():  account.save()
         for avatar   in self.avatars.values():   avatar.save()
-
+        
+        
+    def connectPlayer(self,player):
+        if not self.accounts.has_key(player.id):
+            player.write("Something went really wrong, report this.")
+            player.transport.loseConnection()
+        
+        player.write("Linking your account..")
+        self.players[player.id] = player
+        player.account = self.accounts[player.id]
+        self.accounts[player.id].player = player
+        player.account.displayAvatars()
+        
+    def disconnectPlayer(self,player):
+        print "World (disconnectPlayer)"
+        pass
+    
 class Location(Data):
-    def __init__(self,filename):
+    def __init__(self,world,filename):
         Data.__init__(self,"locations/%s"%filename)
         self.id = filename
+        self.world = world
+        
     def load(self):
         print "Location: Load"
         static = Data.load(self)
@@ -165,9 +185,13 @@ class Location(Data):
         return static
     
 class Account(Data):
-    def __init__(self,filename):
+    def __init__(self,world,filename):
         Data.__init__(self,"accounts/%s"%filename)
-        self.id = filename
+        self.id      = filename
+        self.avatars = {}
+        self.world = world
+        self.player = None
+        self.password = "Undefined"
         
     def load(self):
         print "Account: Load"
@@ -176,19 +200,38 @@ class Account(Data):
         try:
             self.id = static['id']
         except: print "Exception at load";return False
+        self.static = static
         return True
         
     def link(self):
-        pass
+        print "Account (link)"
+        if self.static.has_key('avatars'):
+            for avatar in self.static['avatars']:
+                if self.world.avatars.has_key(avatar):
+                    self.avatars[avatar] = self.world.avatars[avatar]
+                else:
+                    print "Account (link): Error - could not find referenced character"
+        if self.static.has_key('password'): self.password = self.static['password']
         
     def unlink(self):
-        static = {'id':self.id}
+        static = {'id':self.id,
+                  'avatars':self.avatars.keys(),
+                  'password':self.password}
+                
+        return static
+                
+    def displayAvatars(self):
+        if not self.player: return
+        if len(self.avatars.keys()) == 0:
+            self.player.write("Hurr duur no chars")
+            
     
 
 class Avatar(Data):
-    def __init__(self,filename):
+    def __init__(self,world,filename):
         Data.__init__(self,"avatars/%s"%filename)
         self.id = filename
+        self.world = world
         
     def load(self):
         print "Avatar: Load"
@@ -241,25 +284,16 @@ class Player(LineReceiver):
         '#':self.gameDescribe,
         '(':self.gameOfftopic}
         
-        self.loginGreeting = u"""Welcome to ropeclient
-                           _ _            _   
- _ __ ___  _ __   ___  ___| (_) ___ _ __ | |_ 
-| '__/ _ \| '_ \ / _ \/ __| | |/ _ \ '_ \| __|
-| | | (_) | |_) |  __/ (__| | |  __/ | | | |_ 
-|_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|
-          |_|                                 """
+        self.loginGreeting = open('strings/login_motd.txt','r').read()
+        self.loginError = self.loginGreeting + open('strings/login_motd.txt','r').read()
         
-        self.loginError = self.loginGreeting + u"""\n\nUnfortunately it seems your ropeclient is out of date.
-        To connect to this server, please update your client from 
-           http://eiden.fi/ropeclient
-        OR http://eiden.fi/ropeclient/releases
-        OR http://github.com/voneiden/ropeclient"""
         
         self.world = self.factory.world
         print "end connection made"
         
     def lineReceived(self, data):
         #print("Line received!")
+        data = data.decode('utf-8')
         self.handle(data)
     
     def connectionLost(self,reason):
@@ -270,7 +304,6 @@ class Player(LineReceiver):
         self.transport.write(data)
 
     def login(self,data):
-        data = data.decode('utf-8')
         tok  = data.split( )
         hdr  = tok[0]
         print "login"
@@ -300,18 +333,22 @@ class Player(LineReceiver):
             elif hdr == 'clr' and len(tok) == 3: self.colors[tok[1]] = tok[2]
             
             if self.nick and self.colors.has_key('highlight') and not self.pwd:
-                if   self.world.passwords.has_key(self.id):  self.write(u'pwd A password is required to access your account')
+                if   self.world.accounts.has_key(self.id):  self.write(u'pwd A password is required to access your account')
                 else:                                        self.write(u'pwd New player, please type your password (your password is encrypted client side, no worries)')
                     
             elif self.nick and self.colors.has_key('highlight') and self.pwd:
-                if self.world.passwords.has_key(self.id):
-                    if self.world.passwords[self.id] == self.pwd: 
+                if self.world.accounts.has_key(self.id):
+                    print self.world.accounts[self.id].password
+                    print self.pwd
+                    if self.world.accounts[self.id].password == self.pwd: 
                         self.world.connectPlayer(self)
                         self.handle = self.game
                     else: self.write("Invalid password");self.transport.loseConnection()
                 else:
-                    self.world.passwords[self.id] = self.pwd
-                    self.world.savePasswords()
+                    self.world.accounts[self.id] = Account(self.world,self.id)
+                    self.world.accounts[self.id].password = self.pwd
+                    # do a save
+                    self.world.saveAll()
                     self.world.connectPlayer(self)
                     self.handle = self.game
             else:
