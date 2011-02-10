@@ -163,7 +163,9 @@ class World:
             self.players[player.account].transport.loseConnection()
         self.players[player.account] = player
         self.sendPlayers()
-        self.sendAnnounce('%s has joined the game!'%(player.nick))
+        self.sendAnnounce(self.players.values(),'%s has joined the game!'%(player.nick))
+        if len(player.account.avatars) == 0:
+            self.sendAnnounce([player],"It seems that you haven't created any avatar yet. Please do so now by typing a first name or ID for your character")
             
     def disconnectPlayer(self,player):
         if player.account in self.players.keys():
@@ -182,16 +184,21 @@ class World:
         ann = u"lop %s"%(" ".join(pl))
         for player in self.players.values(): player.write(ann)
         
-    def sendAnnounce(self,message,owner="Server",timestamp=False,save=False):
+    def sendAnnounce(self,to,message,owner="Server",timestamp=False,save=False):
         print "announcing",message
         if not timestamp: timestamp = time.time()
         data  = self.messageWrap(message,'offtopic')
         #self.history.append((time.time(),data))
         if save: pass # TODO
-        for player in self.players.values():
+        for player in to:
             player.sendMessage(owner,timestamp,data)
             
- 
+    def avatarPossess(self,player,avatar):
+        avatar.player = player
+        player.avatar = avatar
+        self.sendAnnounce([player],"You have possessed %s."%avatar.name)
+
+        
     def messageWrap(self,data,style='default'):
         data = re.sub(self.regexDice,self.wrapDice,data)   #Search for dice combinatinos
         data = re.sub(self.regexQuote,self.wrapQuote,data) #Search for text in between quotes
@@ -285,14 +292,23 @@ class Account:
     
 class Avatar:
     def __init__(self,name,account,location):
-        self.name = name
+        self.name = name.lower()
         self.account = account
         self.account.avatars.append(self)
         self.location.addAvatar(self)
         self.messages = []
+        self.player = None
+        
+    def __getstate__(self):
+        d = self.__dict__.copy() 
+        del d['player']
+        return d
         
     def tell(self,message):
         self.messages.append(message.i)
+        
+    def move(self,location):
+        self.location.sendAnnounce('%s has left.'%self.name)
         
 class Location:
     def __init__(self,name,title):
@@ -305,8 +321,9 @@ class Location:
     def delAvatar(self,avatar):
         if avatar in self.avatars: self.avatars.remove(avatar)
         
-    def announce(self,content):
-        pass
+    def sendAnnounce(self,content):
+        pass #properly tell avatars etc etc.
+    
 
 
 
@@ -316,7 +333,7 @@ class Player(LineReceiver):
         self.handle   = self.login
         self.state    = 0
         self.nick     = False
-        self.account       = False
+        self.account  = False
         self.pwd      = False
         self.defaction= None
         self.colors   = {}
@@ -325,7 +342,7 @@ class Player(LineReceiver):
         self.color    = ''
         self.typing   = False
         self.gm       = False
-        
+        self.getname  = False
         
         self.protocolVersion = "3"
         
@@ -363,7 +380,7 @@ class Player(LineReceiver):
     def write(self,data,newline=True):
         if newline: data = ("%s\r\n"%data).encode('utf-8')
         self.transport.write(data)
-
+        
     def login(self,data):
         tok  = data.split( )
         hdr  = tok[0]
@@ -402,12 +419,14 @@ class Player(LineReceiver):
                     print self.world.accounts[self.account].pwd
                     print self.pwd
                     if self.world.accounts[self.account].pwd == self.pwd: 
+                        self.account = self.world.accounts[self.account]
                         self.world.connectPlayer(self)
                         self.handle = self.game
                     else: self.write("Invalid password");self.transport.loseConnection()
                 else:
                     self.world.accounts[self.account] = Account(self.world,self.account,self.pwd)
                     # do a save
+                    self.account = self.world.accounts[self.account]
                     self.world.saveAll()
                     self.world.connectPlayer(self)
                     self.handle = self.game
@@ -422,7 +441,7 @@ class Player(LineReceiver):
         for player in players: player.write(text)
 
 
-
+    
 
         
     '''
@@ -476,6 +495,14 @@ class Player(LineReceiver):
         messageCommand = messageParams[0].lower()
         messageTrigger = messageCommand[0]
         print self.defaction
+        
+        if self.getname:
+            avatar = Avatar(messageParams[0],self.account,self.world.locations['spawn'])
+            self.account.avatars.append(avatar)
+            self.world.avatarPossess(player,avatar)
+            self.getname = False
+            return
+        
         if self.defaction and len(messageCommand) > 1: messageCommand = messageCommand[1:]
         if self.commands.has_key(messageCommand): self.commands[messageCommand](messageContent[len(messageCommand)+1:])
         elif self.triggers.has_key(messageTrigger): self.triggers[messageTrigger](messageContent[1:])
