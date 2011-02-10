@@ -56,49 +56,146 @@ dfa = default action
 '''
 # TODO: fix color highlight according to protocol
 # TODO: password salt
+
+
+''' thinking about modifications
+
+world
+- keeps track of messages
+- maintains a message counter
+
+
+
+- history format: text file?
+- account format: pickle?
+-- account should contain: password, avatars
+
+
+'''
+
+
+
+
+
+
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 import hashlib, random, re, pickle, time, os
 
-def pickleSave(object,filename):
-    f = open(filename,'wb')
-    pickle.dump(object,f)
-    f.close()
-    return True
-def pickleLoad(filename):
-    try:
-        f = open(filename,'rb')
-        x = pickle.load(f)
-        f.close()
-        return x
-    except: return False
 
-
-class Data:
-    def __init__(self,filename): 
-        self.filename = filename
-        self.static   = {}
-
-    def unlink(self):
-        return {}
+class Game:
+    def __init__(self):
+        print "Intializing game"
+        messages = self.pickleLoad('./messages.data')
+        world    = self.pickleLoad('./world.data')
+        
+        if not messages: messages = Messages()
+        if not world:    world = World()
     
-    def link(self,static):
-        self.static = static
-    
-    def save(self):
-        f = open(self.filename,'wb')
-        pickle.dump(self.unlink(),f)
-        f.close()
-        return True
-    
-    def load(self):
+        self.world = world
+        self.messages = messages
+        self.world.messages = messages
+        self.world.players  = {}
+        print "Game initialized"
+    def pickleLoad(self,filename):
         try:
-            f = open(self.filename,'rb')
+            f = open(filename,'rb')
             x = pickle.load(f)
             f.close()
+            return x
         except: return False
-        return x
+    
+class Messages(dict):
+    def __init__(self):
+        self.counter = 1
+    def save(self):
+        self.pickleSave(self,'messages.data')
+    def pickleSave(self,object,filename):
+        f = open(filename,'wb')
+        pickle.dump(object,f)
+        f.close()
+        return True
+    def addMessage(self,content):
+        self.counter += 1
+        self[self.counter] = content
+
+
+class World:
+    def __init__(self):
+        self.messages = None
+        self.accounts = {}
+        self.locations= {}
+        self.avatars  = {}
+        self.players  = {}
+        
+        self.locations['spawn'] = Location('spawn','Spawn')
+        print "World: init completed!"
+        
+    def pickleSave(self,object,filename):
+        f = open(filename,'wb')
+        pickle.dump(object,f)
+        f.close()
+        return True
+ 
+    def saveAll(self):
+        print "World:saveData: saving data"
+        self.pickleSave(self,'./world.data')
+
+    def __getstate__(self):
+        d = self.__dict__.copy() 
+        del d['messages']
+        del d['players']
+        return d
+    
+    def connectPlayer(self,player):
+        if player.account in self.players.keys(): 
+            self.players[player.account].transport.loseConnection()
+        self.players[player.account] = player
+        
+            
+    def disconnectPlayer(self,player):
+        if player.account in self.players.keys():
+            if self.players[player.account] == player:
+                self.players[player.account].transport.loseConnection()
+                del self.players[player.account]
+                
+    
+class Account:
+    def __init__(self,world,name,pwd):
+        self.world=world
+        self.name    = name.lower()
+        self.pwd     = pwd
+        self.avatars = []
+    
+class Avatar:
+    def __init__(self,name,account,location):
+        self.name = name
+        self.account = account
+        self.account.avatars.append(self)
+        self.location.addAvatar(self)
+        self.messages = []
+        
+    def tell(self,message):
+        self.messages.append(message.i)
+        
+class Location:
+    def __init__(self,name,title):
+        self.avatars = []
+        self.name = name.lower()
+        self.title = title
+        
+    def addAvatar(self,avatar):
+        if avatar not in self.avatars: self.avatars.append(avatar)
+    def delAvatar(self,avatar):
+        if avatar in self.avatars: self.avatars.remove(avatar)
+        
+    def announce(self,content):
+        pass
+
+
+
+'''
 
 class World:
     def __init__(self):
@@ -248,14 +345,14 @@ class Avatar(Data):
     def unlink(self):
         static = {'id':self.id}
     
-    
+'''
 class Player(LineReceiver):
     def connectionMade(self):
         print "connectionMade"
         self.handle   = self.login
         self.state    = 0
         self.nick     = False
-        self.id       = False
+        self.account       = False
         self.pwd      = False
         self.defaction= None
         self.colors   = {}
@@ -323,7 +420,7 @@ class Player(LineReceiver):
         
         elif self.state == 1 and len(data) > 2:
             print "Handle data",data,ord(data[0]),ord(data[1])
-            if   hdr == 'nck' and len(tok) == 2: self.nick = tok[1];self.id = self.nick.lower()
+            if   hdr == 'nck' and len(tok) == 2: self.nick = tok[1];self.account = self.nick.lower()
             elif hdr == 'pwd' and len(tok) == 2: self.pwd  = tok[1]
             elif hdr == 'dfa' and len(tok) == 2: 
                 defaction = tok[1]
@@ -333,20 +430,19 @@ class Player(LineReceiver):
             elif hdr == 'clr' and len(tok) == 3: self.colors[tok[1]] = tok[2]
             
             if self.nick and self.colors.has_key('highlight') and not self.pwd:
-                if   self.world.accounts.has_key(self.id):  self.write(u'pwd A password is required to access your account')
+                if   self.world.accounts.has_key(self.account):  self.write(u'pwd A password is required to access your account')
                 else:                                        self.write(u'pwd New player, please type your password (your password is encrypted client side, no worries)')
                     
             elif self.nick and self.colors.has_key('highlight') and self.pwd:
-                if self.world.accounts.has_key(self.id):
-                    print self.world.accounts[self.id].password
+                if self.world.accounts.has_key(self.account):
+                    print self.world.accounts[self.account].pwd
                     print self.pwd
-                    if self.world.accounts[self.id].password == self.pwd: 
+                    if self.world.accounts[self.account].pwd == self.pwd: 
                         self.world.connectPlayer(self)
                         self.handle = self.game
                     else: self.write("Invalid password");self.transport.loseConnection()
                 else:
-                    self.world.accounts[self.id] = Account(self.world,self.id)
-                    self.world.accounts[self.id].password = self.pwd
+                    self.world.accounts[self.account] = Account(self.world,self.account,self.pwd)
                     # do a save
                     self.world.saveAll()
                     self.world.connectPlayer(self)
@@ -551,9 +647,9 @@ class Player(LineReceiver):
 
 
 class PlayerFactory(Factory):
-    def __init__(self,world):
+    def __init__(self,game):
         self.protocol = Player
-        self.world    = world
+        self.world    = game.world
 
 class World2:
     def __init__(self):
@@ -794,6 +890,6 @@ class World2:
         
 
 if __name__ == '__main__':
-    world = World()
-    reactor.listenTCP(49500, PlayerFactory(world))
+    game = Game()
+    reactor.listenTCP(49500, PlayerFactory(game))
     reactor.run()
