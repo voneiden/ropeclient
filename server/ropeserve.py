@@ -97,6 +97,13 @@ class Game:
         self.messages = messages
         self.world.messages = messages
         self.world.players  = {}
+        
+        self.world.regexDice  = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
+        self.world.regexQuote = re.compile('".*?"')
+        self.world.regexOff   = re.compile('\(.*?\)')
+        self.world.regexColor = re.compile('(?<=<).*?(?=>)')
+        self.world.regexColorF= re.compile('<.*?>')
+        self.world.regexDicex  = re.compile('[\+-]?\d*d?\d+')
         print "Game initialized"
     def pickleLoad(self,filename):
         try:
@@ -129,6 +136,9 @@ class World:
         self.avatars  = {}
         self.players  = {}
         
+        
+        
+        
         self.locations['spawn'] = Location('spawn','Spawn')
         print "World: init completed!"
         
@@ -152,7 +162,8 @@ class World:
         if player.account in self.players.keys(): 
             self.players[player.account].transport.loseConnection()
         self.players[player.account] = player
-        
+        self.sendPlayers()
+        self.sendAnnounce('%s has joined the game!'%(player.nick))
             
     def disconnectPlayer(self,player):
         if player.account in self.players.keys():
@@ -160,7 +171,111 @@ class World:
                 self.players[player.account].transport.loseConnection()
                 del self.players[player.account]
                 
+    def sendPlayers(self):
+        pl = []
+        for player in self.players.values(): 
+            nick = player.nick
+            if player.typing:   nick = "*" + nick
+            if player.gm:       nick = "[%s]"%nick
+            if player.avatar:   nick = "%s (%s)"%(nick,"has_avatar")
+            pl.append(nick)
+        ann = u"lop %s"%(" ".join(pl))
+        for player in self.players.values(): player.write(ann)
+        
+    def sendAnnounce(self,message,owner="Server",timestamp=False,save=False):
+        print "announcing",message
+        if not timestamp: timestamp = time.time()
+        data  = self.messageWrap(message,'offtopic')
+        #self.history.append((time.time(),data))
+        if save: pass # TODO
+        for player in self.players.values():
+            player.sendMessage(owner,timestamp,data)
+            
+ 
+    def messageWrap(self,data,style='default'):
+        data = re.sub(self.regexDice,self.wrapDice,data)   #Search for dice combinatinos
+        data = re.sub(self.regexQuote,self.wrapQuote,data) #Search for text in between quotes
+        data = re.sub(self.regexOff,self.wrapOff,data)     #Search for offtopic 
+        
+        for player in self.players.values():
+            if player.regexHilite: 
+                data=re.sub(player.regexHilite,player.wrapHilite,data)#Search for player name highlights
+                
+        if   style == "default":  data = "%s%s"%('<white>',data)
+        elif style == "describe": data = "%s%s"%('<describe>',data)
+        elif style == "action":   data = "%s%s"%('<action>',data)
+        elif style == "offtopic": data = "%s%s"%('<offtopic>',data)
+        else: data = "%s%s"%('<red>',data)
+        
+        # Colorstack is the heart of the whole thing.
+        # I didn't figure any other way to do it nicely.
+        # Ha ahaha.
+        colorstack = []
+        for color in re.finditer(self.regexColorF,data):
+            x = color.group()
+            reset = '<reset>'
+            if x == reset:
+                try: 
+                    colorstack.pop()
+                    data=data.replace(reset,colorstack[-1],1)
+                except: data=data.replace(reset,'<red>',1);print "Wrap(): Too many resets at",data
+            else: colorstack.append(x)
+
+        return data
     
+    def wrapDice(self,match):
+        ''' Regex replace function for dice rolls '''
+        roll = self.dicer(match.group())
+        if roll: return roll
+        else:    return match.group()
+    def wrapQuote(self,match):
+        ''' Regex replace function for quotes '''
+        return "<talk>%s<reset>"%(match.group())
+    def wrapOff(self,match):
+        ''' Regex replace function for quotes '''
+        return "<offtopic>%s<reset>"%(match.group())
+
+    def dicer(self,data):
+        total = 0
+        output = []
+        for obj in re.finditer(self.regexDicex,data):
+            obj = obj.group()
+            if   obj[0] == '+': add = True;  obj = obj[1:]
+            elif obj[0] == '-': add = False; obj = obj[1:]
+            else:               add = True;  obj = obj
+            if 'd' not in obj:
+                color = "<blue>"#colorize('blue')
+                if add: output.append("<grey>+%s<reset>"%obj); total += int(obj)
+                else:   output.append("<grey>-%s<reset>"%obj); total -= int(obj)
+            else:
+                tok = obj.split('d')
+                result = self.roll(tok[0],tok[1])
+                if not result: return "<grey>[<red>Dice value too high<reset>]<reset>"
+                result,exploded = result
+                if exploded: color = '<gold>'
+                else:        color = '<SeaGreen>'
+                if add: output.append("%s+%s<reset>"%(color,obj)); total += result
+                else:   output.append("%s-%s<reset>"%(color,obj)); total -= result
+        return "<grey>[%s: <green>%i<reset>]<reset>"%("".join(output),total)
+
+    def roll(self,rolls,sides):
+        if len(rolls) == 0: rolls = 1
+        rolls = int(rolls)
+        sides = int(sides)
+        
+        if not 0 < rolls <= 20: return False
+        if not 1 < sides <= 100: return False
+        exploding = True
+        exploded  = False
+        total = 0
+        rolls = range(rolls)
+        for i in rolls:
+            result = random.randint(1,sides)
+            if result == sides and exploding: rolls.append(1); exploded = True
+            total += result
+        return (total,exploded)
+
+            
 class Account:
     def __init__(self,world,name,pwd):
         self.world=world
@@ -409,7 +524,7 @@ class Player(LineReceiver):
         # Todo, global and local offtopic?
         if messageContent[0] != '(': messageContent = '(' + messageContent
         if messageContent[-1] != ')': messageContent = messageContent + ')'
-        self.world.messageWorld(messageContent,self.id)
+        self.world.sendAnnounce(messageContent,self.account,False,True)
     
     def gameAvatar(self,messageContent):
         tok       = messageContent.split(' ')
@@ -508,12 +623,7 @@ class World2:
         self.loadLocations()
         self.players = {}
         self.history = []
-        self.regexDice  = re.compile("(?:\!\d*d\d*(?:\+|\-)*)(?:(?:(?:\d*d\d*)|\d*)(?:\+|\-)*)*",re.IGNORECASE)
-        self.regexQuote = re.compile('".*?"')
-        self.regexOff   = re.compile('\(.*?\)')
-        self.regexColor = re.compile('(?<=<).*?(?=>)')
-        self.regexColorF= re.compile('<.*?>')
-        self.regexDicex  = re.compile('[\+-]?\d*d?\d+')
+        
         
         
     def loadPasswords(self):
@@ -652,90 +762,7 @@ class World2:
         self.messageLocation(location,'%s has arrived from %s.'%(avatar['name'],self.locations[old_location]['title']))
         
         
-    
-    def messageWrap(self,data,style='default'):
-        data = re.sub(self.regexDice,self.wrapDice,data)   #Search for dice combinatinos
-        data = re.sub(self.regexQuote,self.wrapQuote,data) #Search for text in between quotes
-        data = re.sub(self.regexOff,self.wrapOff,data)     #Search for offtopic 
-        
-        for player in self.players.values():
-            if player.regexHilite: 
-                data=re.sub(player.regexHilite,player.wrapHilite,data)#Search for player name highlights
-                
-        if   style == "default":  data = "%s%s"%('<white>',data)
-        elif style == "describe": data = "%s%s"%('<describe>',data)
-        elif style == "action":   data = "%s%s"%('<action>',data)
-        elif style == "offtopic": data = "%s%s"%('<offtopic>',data)
-        else: data = "%s%s"%('<red>',data)
-        
-        # Colorstack is the heart of the whole thing.
-        # I didn't figure any other way to do it nicely.
-        # Ha ahaha.
-        colorstack = []
-        for color in re.finditer(self.regexColorF,data):
-            x = color.group()
-            reset = '<reset>'
-            if x == reset:
-                try: 
-                    colorstack.pop()
-                    data=data.replace(reset,colorstack[-1],1)
-                except: data=data.replace(reset,'<red>',1);print "Wrap(): Too many resets at",data
-            else: colorstack.append(x)
-
-        return data
-    
-    def wrapDice(self,match):
-        ''' Regex replace function for dice rolls '''
-        roll = self.dicer(match.group())
-        if roll: return roll
-        else:    return match.group()
-    def wrapQuote(self,match):
-        ''' Regex replace function for quotes '''
-        return "<talk>%s<reset>"%(match.group())
-    def wrapOff(self,match):
-        ''' Regex replace function for quotes '''
-        return "<offtopic>%s<reset>"%(match.group())
-
-    def dicer(self,data):
-        total = 0
-        output = []
-        for obj in re.finditer(self.regexDicex,data):
-            obj = obj.group()
-            if   obj[0] == '+': add = True;  obj = obj[1:]
-            elif obj[0] == '-': add = False; obj = obj[1:]
-            else:               add = True;  obj = obj
-            if 'd' not in obj:
-                color = "<blue>"#colorize('blue')
-                if add: output.append("<grey>+%s<reset>"%obj); total += int(obj)
-                else:   output.append("<grey>-%s<reset>"%obj); total -= int(obj)
-            else:
-                tok = obj.split('d')
-                result = self.roll(tok[0],tok[1])
-                if not result: return "<grey>[<red>Dice value too high<reset>]<reset>"
-                result,exploded = result
-                if exploded: color = '<gold>'
-                else:        color = '<SeaGreen>'
-                if add: output.append("%s+%s<reset>"%(color,obj)); total += result
-                else:   output.append("%s-%s<reset>"%(color,obj)); total -= result
-        return "<grey>[%s: <green>%i<reset>]<reset>"%("".join(output),total)
-
-    def roll(self,rolls,sides):
-        if len(rolls) == 0: rolls = 1
-        rolls = int(rolls)
-        sides = int(sides)
-        
-        if not 0 < rolls <= 20: return False
-        if not 1 < sides <= 100: return False
-        exploding = True
-        exploded  = False
-        total = 0
-        rolls = range(rolls)
-        for i in rolls:
-            result = random.randint(1,sides)
-            if result == sides and exploding: rolls.append(1); exploded = True
-            total += result
-        return (total,exploded)
-
+   
         
 
 if __name__ == '__main__':
