@@ -65,7 +65,8 @@ class Window:
         self.entry.bind("<MouseWheel>", self.mouse_wheel)
         self.entry.bind("<Button-4>",   self.mouse_wheel)
         self.entry.bind("<Button-5>",   self.mouse_wheel)
-        
+        self.entry.bind(sequence="<Up>", func=self.browseHistory)
+        self.entry.bind(sequence="<Down>", func=self.browseHistory)
         self.entry.focus_set()
 
         self.CONFIG = True
@@ -83,10 +84,39 @@ class Window:
         self.password = False
 
         self.setTitle()
+        
+        self.lHistory = []
+        self.cHistory = ''
+        #for i in xrange(10): self.lHistory.append('')
+        self.iHistory = 0
     
     def stop(self):
         self.root.destroy()
         reactor.stop()
+        sys.exit(1)
+    
+    
+    def addHistory(self,line):
+        print "addHistory"
+        self.lHistory.append(line)
+        if len(self.lHistory) > 10: self.lHistory.pop(0)
+        
+    
+    def browseHistory(self,event):
+        print "keyupdown!!",event,event.keycode
+        if self.iHistory == 0: 
+            self.cHistory = self.command.get()
+        if event.keycode == 38: 
+            self.iHistory += 1
+            self.iHistory %= 10
+        elif event.keycode == 40:
+            self.iHistory -= 1
+            self.iHistory %= 10
+        if self.iHistory > len(self.lHistory): self.iHistory = len(self.lHistory)
+        print "iHistory",self.iHistory
+        if self.iHistory == 0: self.command.set(self.cHistory)
+        else:
+            self.command.set(self.lHistory[-self.iHistory][1])
         
     def returnfocus(self,args):
         self.entry.focus_set()
@@ -117,6 +147,7 @@ class Window:
                 except: self.display_line("config.txt error! Setting for block [%s] option %s is missing"%(block,option));return False
     
         self.nick = self.vars['nick']
+        self.id   = self.nick.lower()
         self.host = self.vars['host']
         self.colors = {
                        'talk':self.vars['talk'],
@@ -146,33 +177,67 @@ class Window:
             if player[0] == id: player[1] = status
         self.update_players()
     
-    def display_line(self,text,timestamp=None):
-        
-        if timestamp: timestamp = time.strftime('[%H:%M:%S]', time.localtime(timestamp))
-        else: timestamp = time.strftime('[%H:%M:%S]')
-        
-        text = self.wrap(text)
-
-        #plain = []
-        #for piece in text: plain.append(piece[1])
-        #logging.info("".join(plain))
-        # Timestamp
-        ts = ('grey',"%s "%(timestamp))
-        text.insert(0,ts)
-        
+    def display_line(self,text,timestamp=None,owner=None):
+        if not timestamp: timestamp = time.time()
         if self.textarea.yview()[1] == 1.0: scroll = True
         else: scroll = False
+        if owner:
+            tag   = timestamp
+            self.textarea.tag_config(tag)
         
         self.textarea.config(state=NORMAL)
-        for piece in text:
-            self.textarea.insert(END, piece[1],piece[0])
+        asciitime = time.strftime('[%H:%M:%S]', time.localtime(float(timestamp)))
+        #if owner: self.textarea.mark_set(start, END);self.textarea.mark_gravity(start,LEFT
+        text = self.wrap(text)
+        ts = ('grey',"%s "%(asciitime))
+        text.insert(0,ts)
+        if owner:
+            print "TAGA",tag
+            for piece in text:
+                self.textarea.insert(END, piece[1],(piece[0],tag))
+        else:
+            for piece in text:
+                self.textarea.insert(END, piece[1],piece[0])
+        #if owner: self.textarea.mark_set(end, END);self.textarea.mark_gravity(end,LEFT)
         self.textarea.insert(END,'\n')
-        self.textarea.config(state=DISABLED)
-        print self.textarea.yview()
+ 
         
+        
+        print self.textarea.yview()
         if scroll: self.textarea.yview(END)
-        # Todo, don't scroll if player is scrolling
+        '''
+        if owner:
+            print "Checking tag.."
+            a,b= self.textarea.tag_ranges(tag)
+            print dir(a)
+            self.textarea.delete(a,b)
+        '''  
+        self.textarea.config(state=DISABLED)
 
+    def edit_line(self,text,timestamp):
+        print "Got edit",text #Edit needs to check if the mark exists!
+        tag = "%s"%timestamp
+        print "TAGE",tag
+        self.textarea.config(state=NORMAL)
+        asciitime = time.strftime('[%H:%M:%S]*', time.localtime(float(timestamp)))
+        a,b= self.textarea.tag_ranges(tag) #<- this will fail TODO TODO TODOValueError
+        self.textarea.delete(a,b)
+        text = self.wrap(text)
+        ts = ('grey',"%s "%(asciitime))
+        text.insert(0,ts)
+        text.reverse()
+        for piece in text:
+            self.textarea.insert(a, piece[1],(piece[0],tag))
+        #text = self.wrap(text)
+        #ts = ('grey',"%s "%(asciitime))
+        #text.insert(0,ts)
+        #for piece in text:
+        #    self.textarea.insert(END, piece[1],piece[0])
+        #self.textarea.insert(END,'\n')
+        
+ 
+        
+        self.textarea.config(state=DISABLED)
         
     def wrap(self,text):
         buf = []
@@ -203,6 +268,12 @@ class Window:
                 self.entry.config(show='')
                 data = "pwd %s"%(hashlib.sha256(data+'saltyropeclient').hexdigest())
                 self.connection.write(data)
+                
+            elif self.iHistory:
+                print "EDI"
+                self.connection.write(u"edi %s %s"%(self.lHistory[-self.iHistory][0],data))
+                self.lHistory[-self.iHistory][1] = data
+                self.iHistory = 0
             else:
                 self.connection.write(u"msg %s"%(data))
 
@@ -280,12 +351,20 @@ class Client(LineReceiver):
         # Message packet
         elif hdr == 'msg' and len(tok) > 3:
             messageOwner  = tok[1]
-            messageTime   = float(tok[2])
+            messageTime   = tok[2]
             messageContent= " ".join(tok[3:])
             #print "Msg",messageContent
             if messageOwner == "Server": self.window.display_line("[Server] %s"%(messageContent),messageTime)
-            else: self.window.display_line("%s"%(messageContent),messageTime)
-        else: 
+            else: 
+                if messageOwner == self.window.id: self.window.addHistory([messageTime,messageContent])
+                self.window.display_line("%s"%(messageContent),messageTime,messageOwner)
+        
+        elif hdr == 'edi' and len(tok) > 2:
+            timestamp = tok[1]
+            content   = " ".join(tok[2:])
+            self.window.edit_line(content,timestamp)
+        
+        else:
             self.window.display_line("Corrupted packet %s"%data)
     
     def connectionLost(self,reason):

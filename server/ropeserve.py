@@ -42,12 +42,12 @@ lop = list of players
 pit = player is typing
 pnt = player not typing
 msg = message
+edi = edit message [edi timestamp message]
 pwd = password
 clr = color
 nck = nick
 hsk = handshake
 dfa = default action
-
 1 - offtopic
 2 - talk
 3 - emote
@@ -325,7 +325,7 @@ class Avatar:
         
     def __getstate__(self):
         d = self.__dict__.copy() 
-        del d['player']
+        d['player'] =None
         return d
         
     def actionHear(self,timestamp):
@@ -550,6 +550,7 @@ class Player(LineReceiver):
         if   packetid == u'pnt':                  self.handleTyping(False);print "Player:handleGame: typing false"
         elif packetid == u'pit':                  self.handleTyping(True); print "Player:handleGame: typing true"
         elif packetid == u'msg' and len(tok) > 1: self.handleMessage(tok[1:])
+        elif packetid == u'edi' and len(tok) > 1: self.handleEdit(tok[1:])
         else: 
             print "Player:handleGame: Received unknown packet from",self.nick
             print "Player:handleGame: This:",recv
@@ -560,6 +561,11 @@ class Player(LineReceiver):
         else:           data = u'pnt %s'%self.nick
         for player in self.world.players.values():  player.write(data)
         
+    def handleEdit(self,messageParams):
+        print "Player:handleEdit"
+        for player in self.world.players.values():
+            player.write(u"edi %s"%(" ".join(messageParams)))
+            
     def handleMessage(self,messageParams):
         print "Player:handleMessage"
         if len(messageParams) < 1: print "Player:handleMessage: Message too short";return
@@ -590,7 +596,7 @@ class Player(LineReceiver):
             The message is ---wrapped--- and processed here before sending '''
         if not timestamp: timestamp = self.world.timestamp()
         if not owner: owner='Server'
-        print "Send ->",timestamp,content
+        print "Send ->",owner,timestamp,content
         self.write(u'msg %s %f %s'%(owner,timestamp,content))
         
     def gameSay(self,messageContent):
