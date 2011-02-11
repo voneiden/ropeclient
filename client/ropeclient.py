@@ -201,7 +201,7 @@ class Window:
             if self.password:
                 self.password = False
                 self.entry.config(show='')
-                data = "pwd %s"%(hashlib.sha256(data).hexdigest())
+                data = "pwd %s"%(hashlib.sha256(data+'saltyropeclient').hexdigest())
                 self.connection.write(data)
             else:
                 self.connection.write(u"msg %s"%(data))

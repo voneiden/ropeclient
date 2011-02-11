@@ -104,6 +104,8 @@ class Game:
         self.world.regexColor = re.compile('(?<=<).*?(?=>)')
         self.world.regexColorF= re.compile('<.*?>')
         self.world.regexDicex  = re.compile('[\+-]?\d*d?\d+')
+        
+        self.world.timestamps = []
         print "Game initialized"
     def pickleLoad(self,filename):
         try:
@@ -163,16 +165,23 @@ class World:
             self.players[player.account].transport.loseConnection()
         self.players[player.account] = player
         self.sendPlayers()
-        self.sendAnnounce(self.players.values(),'%s has joined the game!'%(player.nick))
+        self.sendAnnounce('%s has joined the game!'%(player.nick))
         if len(player.account.avatars) == 0:
-            self.sendAnnounce([player],"It seems that you haven't created any avatar yet. Please do so now by typing a first name or ID for your character")
+            player.sendMessage("It seems that you haven't created any avatar yet. Please do so now by typing a first name or ID for your character")
+            player.getname = True
+        elif len(player.account.avatars) == 1:
+            player.account.avatars[0].attach(player)
             
     def disconnectPlayer(self,player):
+        if player.avatar:
+            player.avatar.detach()
+            
         if player.account in self.players.keys():
             if self.players[player.account] == player:
                 self.players[player.account].transport.loseConnection()
                 del self.players[player.account]
-                
+        
+            
     def sendPlayers(self):
         pl = []
         for player in self.players.values(): 
@@ -184,19 +193,14 @@ class World:
         ann = u"lop %s"%(" ".join(pl))
         for player in self.players.values(): player.write(ann)
         
-    def sendAnnounce(self,to,message,owner="Server",timestamp=False,save=False):
-        print "announcing",message
-        if not timestamp: timestamp = time.time()
-        data  = self.messageWrap(message,'offtopic')
-        #self.history.append((time.time(),data))
+    def sendAnnounce(self,message,save=False):
+        ''' Send a public message to all players. This is generally either an offtopic or server announcement'''
+        print "World:sendAnnounce: announcing",message
         if save: pass # TODO
-        for player in to:
-            player.sendMessage(owner,timestamp,data)
+        for player in self.players.values():
+            player.sendMessage(message)
             
-    def avatarPossess(self,player,avatar):
-        avatar.player = player
-        player.avatar = avatar
-        self.sendAnnounce([player],"You have possessed %s."%avatar.name)
+    
 
         
     def messageWrap(self,data,style='default'):
@@ -282,7 +286,14 @@ class World:
             total += result
         return (total,exploded)
 
-            
+    def timestamp(self):
+        ''' this function should generate a unique timestamp '''
+        timestamp = time.time()
+        while timestamp in self.timestamps:
+            timestamp += 0.00001
+        self.timestamps.append(timestamp)
+        return timestamp
+    
 class Account:
     def __init__(self,world,name,pwd):
         self.world=world
@@ -292,9 +303,11 @@ class Account:
     
 class Avatar:
     def __init__(self,name,account,location):
-        self.name = name.lower()
+        self.id   = name.lower()
+        self.name = name
         self.account = account
         self.account.avatars.append(self)
+        self.location = location
         self.location.addAvatar(self)
         self.messages = []
         self.player = None
@@ -308,21 +321,38 @@ class Avatar:
         self.messages.append(message.i)
         
     def move(self,location):
-        self.location.sendAnnounce('%s has left.'%self.name)
+        if self.location: self.sendAnnounce('%s has left.'%self.name)
         
+    
+    def attach(self,player):
+        if player.avatar:
+            player.avatar.detach()
+        player.avatar  = self
+        self.player    = player
+        player.sendMessage("You are now attached to %s"%self.name)
+        
+    def detach(self):
+        if self.player:
+            self.player.sendMessage("You have detached from the body of %s."%self.name)
+            self.player.avatar = None
+            self.player = None
+            
 class Location:
-    def __init__(self,name,title):
+    def __init__(self,world,name,title):
+        self.world = world
         self.avatars = []
         self.name = name.lower()
         self.title = title
         
     def addAvatar(self,avatar):
         if avatar not in self.avatars: self.avatars.append(avatar)
+        self.sendAnnounce("%s has arrived."%(avatar.name))
     def delAvatar(self,avatar):
         if avatar in self.avatars: self.avatars.remove(avatar)
         
     def sendAnnounce(self,content):
-        pass #properly tell avatars etc etc.
+        for avatar in self.avatars:
+            avatar.tell(content,self.world.timestamp
     
 
 
@@ -330,7 +360,7 @@ class Location:
 class Player(LineReceiver):
     def connectionMade(self):
         print "connectionMade"
-        self.handle   = self.login
+        self.handle   = self.handleLogin
         self.state    = 0
         self.nick     = False
         self.account  = False
@@ -351,8 +381,8 @@ class Player(LineReceiver):
         'emote':self.gameEmote,
         'me':self.gameEmote,
         'tell':self.gameTell,
-        'look':self.gameLook,
-        'avatar':self.gameAvatar}
+        'look':self.gameLook}
+        #'avatar':self.gameAvatar}
         
         
         self.triggers = {
@@ -381,10 +411,10 @@ class Player(LineReceiver):
         if newline: data = ("%s\r\n"%data).encode('utf-8')
         self.transport.write(data)
         
-    def login(self,data):
+    def handleLogin(self,data):
         tok  = data.split( )
         hdr  = tok[0]
-        print "login"
+        print "Player:handleLogin"
         # Ignore typing announcements
         if hdr == 'pnt' or hdr == 'pit': return
         
@@ -394,7 +424,7 @@ class Player(LineReceiver):
             if "SUPERHANDSHAKE" in data:
                 print "handshake",data
                 if hdr == u'hsk' and len(tok) == 3:
-                    if tok[2] == self.protocolVersion: self.sendMessage("Server",time.time(),self.loginGreeting);self.state = 1
+                    if tok[2] == self.protocolVersion: self.sendMessage(self.loginGreeting);self.state = 1
                     else:                              self.write(self.loginError);self.state = -1
                 else:                                  self.write(self.loginError);self.state = -1
             else: self.transport.loseConnection() # Not a ropeclient! Lets drop them for now.
@@ -421,7 +451,7 @@ class Player(LineReceiver):
                     if self.world.accounts[self.account].pwd == self.pwd: 
                         self.account = self.world.accounts[self.account]
                         self.world.connectPlayer(self)
-                        self.handle = self.game
+                        self.handle = self.handleGame
                     else: self.write("Invalid password");self.transport.loseConnection()
                 else:
                     self.world.accounts[self.account] = Account(self.world,self.account,self.pwd)
@@ -429,17 +459,17 @@ class Player(LineReceiver):
                     self.account = self.world.accounts[self.account]
                     self.world.saveAll()
                     self.world.connectPlayer(self)
-                    self.handle = self.game
+                    self.handle = self.handleGame
             else:
                 print self.nick,self.colors.has_key('highlight'),self.pwd
                 
-
+    '''
     def announce(self,data,style="default"):
         global linebuffer
         text = self.wrap(data,style=style)
         linebuffer.append( text)
         for player in players: player.write(text)
-
+    '''
 
     
 
@@ -463,44 +493,44 @@ class Player(LineReceiver):
         if told: self.write("%s(%sYou tell %s: %s)"%(colorize('tell'),colorize('tell'),who,txt))
         else: self.write("%s(%sNobody here with that name)"%(colorize('tell'),colorize('tell')))
     '''
-    def game(self,recv):
+    def handleGame(self,recv):
         # First we validate the data #
         if len(recv) < 2: return
         try: recv = recv.decode('utf-8')
         except: 
-            print "Received non-unicode data from the client, ignoring."
+            print "Player:handleGame: Received non-unicode data from the client, ignoring."
             return
         tok = recv.split(' ')
         
         # Second we read the packet type #
         packetid = tok[0]
-        if   packetid == u'pnt':                  self.gameTyping(False);print "typing false"
-        elif packetid == u'pit':                  self.gameTyping(True); print "typing true"
-        elif packetid == u'msg' and len(tok) > 1: self.gameMessage(tok[1:])
+        if   packetid == u'pnt':                  self.handleTyping(False);print "Player:handleGame: typing false"
+        elif packetid == u'pit':                  self.handleTyping(True); print "Player:handleGame: typing true"
+        elif packetid == u'msg' and len(tok) > 1: self.handleMessage(tok[1:])
         else: 
-            print "Received unknown packet from",self.nick
-            print "This:",recv
+            print "Player:handleGame: Received unknown packet from",self.nick
+            print "Player:handleGame: This:",recv
             
-    def gameTyping(self,state):
+    def handleTyping(self,state):
         self.typing = state
         if self.typing: data = u'pit %s'%self.nick
         else:           data = u'pnt %s'%self.nick
         for player in self.world.players.values():  player.write(data)
         
-    def gameMessage(self,messageParams):
-        print "Game message"
-        if len(messageParams) < 1: print "Message too short";return
+    def handleMessage(self,messageParams):
+        print "Player:handleMessage"
+        if len(messageParams) < 1: print "Player:handleMessage: Message too short";return
         #messageParams = messageContent.split(' ')
         messageContent = " ".join(messageParams)
         messageCommand = messageParams[0].lower()
         messageTrigger = messageCommand[0]
         print self.defaction
         
-        if self.getname:
+        if self.getname: # this can be expanded later
             avatar = Avatar(messageParams[0],self.account,self.world.locations['spawn'])
             self.account.avatars.append(avatar)
-            self.world.avatarPossess(player,avatar)
-            self.getname = False
+            avatar.attach(self)
+            self.getname = False #Todo save world"
             return
         
         if self.defaction and len(messageCommand) > 1: messageCommand = messageCommand[1:]
@@ -509,14 +539,18 @@ class Player(LineReceiver):
         else:
             if self.defaction == 'talk':       self.gameSay(messageContent) #TODO: change gameSay to gameTalk?
             elif self.defaction == 'offtopic': self.gameOfftopic(messageContent)
-            else:  self.sendMessage("Server",time.time(),"Excuse me?")
-        self.gameTyping(False)
+            else:  self.sendMessage("Excuse me?")
+        self.handleTyping(False)
         
 
-    def sendMessage(self,messageOwner,messageTime,messageContent):
-        print "Send ->",messageOwner,messageTime,messageContent
-        self.write(u'msg %s %f %s'%(messageOwner,messageTime,messageContent))
-        #print "newlines here? %s"%messageContent
+    def sendMessage(self,content,owner=False,timestamp=False):
+        ''' Sends the message to the client. 
+            The message is wrapped and processed here before sending '''
+        content = self.world.messageWrap(content)
+        if not timestamp: timestamp = self.world.timestamp()
+        if not owner: owner='Server'
+        print "Send ->",timestamp,content
+        self.write(u'msg %s %f %s'%(owner,timestamp,content))
         
     def gameSay(self,messageContent):
         messageParams = messageContent.split(' ') #TTODO FIX ERROR
@@ -536,7 +570,10 @@ class Player(LineReceiver):
         pass
     def gameDescribe(self,messageContent):
         pass
+    
     def gameLook(self,messageContent):
+        pass
+    '''
         if len(messageContent) == 0:
             if self.avatar:
                 location    = self.world.avatars[self.avatar]['location']
@@ -546,13 +583,14 @@ class Player(LineReceiver):
                 self.sendMessage("Server",time.time(),"%s"%(title))
                 self.sendMessage("Server",time.time(),"%s"%(description))
                 self.sendMessage("Server",time.time(),"Here are: %s"%(", ".join(avatars)))
-                
+    '''
     def gameOfftopic(self,messageContent):
         # Todo, global and local offtopic?
         if messageContent[0] != '(': messageContent = '(' + messageContent
         if messageContent[-1] != ')': messageContent = messageContent + ')'
         self.world.sendAnnounce(messageContent,self.account,False,True)
     
+    '''
     def gameAvatar(self,messageContent):
         tok       = messageContent.split(' ')
         hdr       = tok[0].lower()
@@ -592,13 +630,13 @@ class Player(LineReceiver):
         return ["not implemented"]
     def gameAvatarDel(self,params):
         return ["not implemented"]
-    
+    '''
 
         
         
         
 
-        """z
+    """z
         if   messageHeader    == 'say': self.gameSay(" ".join(messageParams[1:]))
         elif messageHeader[0] == '.'  : self.gameSay(messageContent[1:])
         elif messageHeader    == '/me': self.gameEmote
@@ -628,7 +666,7 @@ class Player(LineReceiver):
             else: self.announce('''%s says, "%s"'''%(self.name,data))
             self.typing = False
             self.announce_players()
-        """
+    """
     
 
     def wrapHilite(self,match):
@@ -689,7 +727,7 @@ class World2:
             del self.players[player.id]
             self.sendPlayerlist()
             self.messageWorld('%s has quit the game!'%(player.nick),'Server')
-        
+
     def displayAvatars(self,player,doReturn=False):
         avatars = []
         for avatar in self.avatars.values():
