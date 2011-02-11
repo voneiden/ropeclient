@@ -200,12 +200,12 @@ class World:
         ann = u"lop %s"%(" ".join(pl))
         for player in self.players.values(): player.write(ann)
         
-    def sendAnnounce(self,message,save=False):
+    def sendAnnounce(self,message,save=False,owner=False):
         ''' Send a public message to all players. This is generally either an offtopic or server announcement'''
         print "World:sendAnnounce: announcing",message
         if save: pass # TODO
         for player in self.players.values():
-            player.sendMessage(message)
+            player.sendMessage(message,owner)
             
     
 
@@ -615,11 +615,14 @@ class Player(LineReceiver):
         #    pass #Check for avatar.. fail if you don't have an avatar
         
     def gameEmote(self,messageContent):
-        pass
+        if self.avatar:
+            self.avatar.location.sendAnnounce("%s %s"%(self.avatar.name,messageContent),self.account.name)
+            
     def gameTell(self,messageContent):
         pass
     def gameDescribe(self,messageContent):
-        pass
+        if self.avatar:
+            self.avatar.location.sendAnnounce("(%s) %s"%(self.avatar.name,messageContent),self.account.name)
     
     def gameLook(self,messageContent):
         pass
@@ -636,9 +639,9 @@ class Player(LineReceiver):
     '''
     def gameOfftopic(self,messageContent):
         # Todo, global and local offtopic?
-        if messageContent[0] != '(': messageContent = '(' + messageContent
+        if messageContent[0] != '(': messageContent = '(%s: '%self.account.name + messageContent
         if messageContent[-1] != ')': messageContent = messageContent + ')'
-        self.world.sendAnnounce(messageContent,self.account.name)
+        self.world.sendAnnounce(messageContent,True,self.account.name)
     
     '''
     def gameAvatar(self,messageContent):
@@ -730,153 +733,7 @@ class PlayerFactory(Factory):
         self.protocol = Player
         self.world    = game.world
 
-class World2:
-    def __init__(self):
-        self.channels = {'spawn':[]}
-        self.loadPasswords()
-        self.loadAvatars()
-        self.loadLocations()
-        self.players = {}
-        self.history = []
-        
-        
-        
-    def loadPasswords(self):
-        passwords = pickleLoad('passwd')
-        if passwords: self.passwords = passwords
-        else:         self.passwords = {}
-        
-    def savePasswords(self): pickleSave(self.passwords,'passwd')
-    
-    def loadAvatars(self):
-        avatars = pickleLoad('avatars')
-        if avatars: self.avatars = avatars
-        else:          self.avatars = {}
-    def saveAvatars(self): pickleSave(self.avatars,'avatars')
-    
-    def loadLocations(self):
-        locations = pickleLoad('locations')
-        if locations: self.locations = locations
-        else:          self.locations = {}
-    def saveLocations(self): pickleSave(self.locations,'locations') 
-    
-    def connectPlayer(self,player):
-        if self.players.has_key(player.id):
-            print "Dual connect, disconnecting the old player."
-            self.players[player.id].write("You have logged in elsewhere, disconnecting.")
-            self.players[player.id].transport.loseConnection()
-        self.players[player.id] = player
-        self.sendPlayerlist()
-        self.sendHistory(player)
-        self.messageWorld('%s has joined the game!'%(player.nick),'Server')
-        self.displayAvatars(player)
-        print "Connect Player to World OK:",player.id,self.players
-        
-    def disconnectPlayer(self,player):
-        if self.players.has_key(player.id):
-            del self.players[player.id]
-            self.sendPlayerlist()
-            self.messageWorld('%s has quit the game!'%(player.nick),'Server')
 
-    def displayAvatars(self,player,doReturn=False):
-        avatars = []
-        for avatar in self.avatars.values():
-            if avatar['owner'] == player.id: avatars.append(avatar)
-        if len(avatars) == 0: buf = ["<red>You have no avatars. To create a new avatar, use the AVATAR command for more information."]
-        else: 
-            buf = ["-- Your avatars -- "]
-            for avatar in avatars: buf.append(avatar['name'])
-        if doReturn: return u"\n".join(buf)
-        else: player.sendMessage("Server",time.time(),u"\n".join(buf))
-        
-        
-    def sendPlayerlist(self):
-        pl = []
-        for player in self.players.values(): 
-            nick = player.nick
-            if player.typing:   nick = "*" + nick
-            if player.gm:       nick = "[%s]"%nick
-            if player.avatar:   nick = "%s (%s)"%(nick,"has_avatar")
-            pl.append(nick)
-        ann = u"lop %s"%(" ".join(pl))
-        for player in self.players.values(): player.write(ann)
-    def sendHistory(self,player):
-        for line in self.history:
-            player.sendMessage("Server",line[0],line[1])
-        
-    def messageWorld(self,data,owner="Server",timestamp=False):
-        if not timestamp: timestamp = time.time()
-        data  = self.messageWrap(data,'offtopic')
-        self.history.append((time.time(),data))
-        for player in self.players.values():
-            player.sendMessage(owner,timestamp,data)
-            
-    def messageLocation(self,locationID,messageContent,messageOwner='Server',messageTimestamp=False):
-        print "messageLocation -->",locationID
-        if not messageTimestamp: messageTimestamp = time.time()
-        if not self.locations.has_key(locationID): return False
-        location = self.locations[locationID]
-        
-        for avatar in location['avatars']: self.messageAvatar(avatar,messageContent,messageOwner,messageTimestamp)
-        
-    def messageAvatar(self,avatarID,messageContent,messageOwner='Server',messageTimestamp=False):
-        print "messageAvatar -->",avatarID
-        print "debug, list of players:",self.players
-        
-        if not messageTimestamp: messageTimestamp = time.time()
-        if not self.avatars.has_key(avatarID): return False
-        avatar = self.avatars[avatarID]
-        
-        if self.players.has_key(avatar['owner']) and self.players[avatar['owner']].avatar == avatar['id']:
-            player = self.players[avatar['owner']]
-            player.sendMessage(messageOwner,messageTimestamp,messageContent)
-            avatar['history'].append((messageOwner,messageTimestamp,messageContent))
-        else:
-            avatar['flush'].append((messageOwner,messageTimestamp,messageContent))
-            
-        
-    def addAvatar(self,player,avatarID):
-        print "addAvatar",avatarID
-        if self.avatars.has_key(avatarID): print "addAvatar: invalid avatar ID";return False
-        else:
-            self.avatars[avatarID] = {
-                                'owner':player.id,
-                                'id':avatarID,
-                                'name':avatarID,
-                                'location':'spawn',
-                                'history':[],
-                                'flush':[],
-                                'description':"No description"}
-            self.moveAvatar(avatarID,'spawn')
-            return True
-    def moveAvatar(self,avatarID,location):
-        # This function moves an avatar to a new location
-        # First we check that the target location exists, and 
-        # if it doesn't, we create it.
-        
-        print "moveAvatar()"
-        location = location.lower()
-        if not self.avatars.has_key(avatarID): print "moveAvatar: invalid avatar id",avatarID,self.avatars;return False
-        avatar = self.avatars[avatarID]
-        if not self.locations.has_key(location):
-            self.locations[location] = {'id':'location',
-                                        'avatars':[],
-                                        'title':'No title',
-                                        'description':'No description'}
-        
-        # We remove the character from the old location
-        old_location = avatar['location']
-        if self.locations.has_key(old_location):
-            if avatarID in self.locations[old_location]['avatars']:
-                self.locations[old_location]['avatars'].remove(avatarID)
-        
-        # And add the character to a new location
-        avatar['location'] = location
-        self.locations[location]['avatars'].append(avatarID)
-        
-        self.messageLocation(location,'%s has arrived from %s.'%(avatar['name'],self.locations[old_location]['title']))
-        
-        
    
         
 
