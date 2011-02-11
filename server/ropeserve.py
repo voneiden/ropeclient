@@ -90,7 +90,7 @@ class Game:
         messages = self.pickleLoad('./messages.data')
         world    = self.pickleLoad('./world.data')
         
-        if not messages: messages = Messages()
+        if not messages: messages = {}
         if not world:    world = World()
     
         self.world = world
@@ -141,7 +141,7 @@ class World:
         
         
         
-        self.locations['spawn'] = Location('spawn','Spawn')
+        self.locations['spawn'] = Location(self,'spawn','Spawn')
         print "World: init completed!"
         
     def pickleSave(self,object,filename):
@@ -170,8 +170,13 @@ class World:
             player.sendMessage("It seems that you haven't created any avatar yet. Please do so now by typing a first name or ID for your character")
             player.getname = True
         elif len(player.account.avatars) == 1:
+            print "World:connectPlayer: auto attach"
             player.account.avatars[0].attach(player)
-            
+        else:
+            print "dunno what to do",len(player.account.avatars)
+            for avatar in player.account.avatars:
+                print avatar,avatar.name
+                
     def disconnectPlayer(self,player):
         if player.avatar:
             player.avatar.detach()
@@ -180,7 +185,9 @@ class World:
             if self.players[player.account] == player:
                 self.players[player.account].transport.loseConnection()
                 del self.players[player.account]
-        
+                
+        self.sendAnnounce('%s has left the game!'%(player.nick))
+        self.sendPlayers()
             
     def sendPlayers(self):
         pl = []
@@ -302,24 +309,46 @@ class Account:
         self.avatars = []
     
 class Avatar:
-    def __init__(self,name,account,location):
+    def __init__(self,world,name,account,location):
+        self.world=world
         self.id   = name.lower()
         self.name = name
+        self.player = None
         self.account = account
+        self.oldmessages = []
+        self.newmessages = []
         self.account.avatars.append(self)
         self.location = location
         self.location.addAvatar(self)
-        self.messages = []
-        self.player = None
+        
+        
         
     def __getstate__(self):
         d = self.__dict__.copy() 
         del d['player']
         return d
         
-    def tell(self,message):
-        self.messages.append(message.i)
+    def actionHear(self,timestamp):
+        ''' This is when the avatar hears something. Everything the avatar hears
+         (or sees..) is recorded here. If the player is attached the messages get
+        delivered instantly. Message format.. [Unread(1/0),'''
+        if self.player:
+            self.oldmessages.append(timestamp)
+            msg = self.world.messages[timestamp]
+            self.player.sendMessage(msg[1],msg[0],timestamp)
+        else:
+            self.newmessages.append(timestamp)
+            
+    def getNewMessages(self):
+        if len(self.newmessages) >0:
+            self.player.sendMessage("-- While you were away, your avatar noticed the following --")
+            for timestamp in self.newmessages: # TODO: do something if world doesn't have the requested message
+                msg = self.world.messages[timestamp]
+                self.player.sendMessage(msg[1],msg[0],timestamp)
+            self.oldmessages += self.newmessages
+            self.newmessages = []
         
+            
     def move(self,location):
         if self.location: self.sendAnnounce('%s has left.'%self.name)
         
@@ -330,13 +359,20 @@ class Avatar:
         player.avatar  = self
         self.player    = player
         player.sendMessage("You are now attached to %s"%self.name)
+        self.getNewMessages()
         
     def detach(self):
         if self.player:
             self.player.sendMessage("You have detached from the body of %s."%self.name)
             self.player.avatar = None
             self.player = None
-            
+    
+    
+    def doAction(self,content,owner=False):
+        if not owner and self.player: owner = self.player.account.name
+        self.location.sendAnnounce(content,owner)
+        
+    
 class Location:
     def __init__(self,world,name,title):
         self.world = world
@@ -345,14 +381,21 @@ class Location:
         self.title = title
         
     def addAvatar(self,avatar):
+        print "Location:addAvatar"
         if avatar not in self.avatars: self.avatars.append(avatar)
         self.sendAnnounce("%s has arrived."%(avatar.name))
     def delAvatar(self,avatar):
         if avatar in self.avatars: self.avatars.remove(avatar)
         
-    def sendAnnounce(self,content):
+    def sendAnnounce(self,content,owner=False):
+        print "Location:sendAnnounce",content
+        if not owner: owner = 'Server'
+        timestamp = self.world.timestamp()
+        content = self.world.messageWrap(content)
+        self.world.messages[timestamp] = [owner,content]
+        
         for avatar in self.avatars:
-            avatar.tell(content,self.world.timestamp
+            avatar.actionHear(timestamp)
     
 
 
@@ -496,10 +539,10 @@ class Player(LineReceiver):
     def handleGame(self,recv):
         # First we validate the data #
         if len(recv) < 2: return
-        try: recv = recv.decode('utf-8')
-        except: 
-            print "Player:handleGame: Received non-unicode data from the client, ignoring."
-            return
+        #try: recv = recv.decode('utf-8')
+        #except: 
+        #    print "Player:handleGame: Received non-unicode data from the client, ignoring."
+        #    return
         tok = recv.split(' ')
         
         # Second we read the packet type #
@@ -527,8 +570,7 @@ class Player(LineReceiver):
         print self.defaction
         
         if self.getname: # this can be expanded later
-            avatar = Avatar(messageParams[0],self.account,self.world.locations['spawn'])
-            self.account.avatars.append(avatar)
+            avatar = Avatar(self.world,messageParams[0],self.account,self.world.locations['spawn'])
             avatar.attach(self)
             self.getname = False #Todo save world"
             return
@@ -545,8 +587,7 @@ class Player(LineReceiver):
 
     def sendMessage(self,content,owner=False,timestamp=False):
         ''' Sends the message to the client. 
-            The message is wrapped and processed here before sending '''
-        content = self.world.messageWrap(content)
+            The message is ---wrapped--- and processed here before sending '''
         if not timestamp: timestamp = self.world.timestamp()
         if not owner: owner='Server'
         print "Send ->",timestamp,content
@@ -557,12 +598,15 @@ class Player(LineReceiver):
         if not self.avatar:
             self.gameOfftopic("(%s: %s)"%(self.nick,messageContent))
             return
-        if messageParams[0].lower() == 'to' and len(messageParams) > 2:
-            messageTo = messageParams[1]
-            #if players.has_key(messageTo.lower()):
-             #   pass #TODO: Finish this 
-        else: 
-            pass #Check for avatar.. fail if you don't have an avatar
+        else:
+            self.avatar.location.sendAnnounce('''%s says, "%s"'''%(self.avatar.name,messageContent),self.account.name)
+            
+        #if messageParams[0].lower() == 'to' and len(messageParams) > 2:
+        #    messageTo = messageParams[1]
+        #    #if players.has_key(messageTo.lower()):
+        #     #   pass #TODO: Finish this 
+        #else: 
+        #    pass #Check for avatar.. fail if you don't have an avatar
         
     def gameEmote(self,messageContent):
         pass
@@ -588,7 +632,7 @@ class Player(LineReceiver):
         # Todo, global and local offtopic?
         if messageContent[0] != '(': messageContent = '(' + messageContent
         if messageContent[-1] != ')': messageContent = messageContent + ')'
-        self.world.sendAnnounce(messageContent,self.account,False,True)
+        self.world.sendAnnounce(messageContent,self.account.name)
     
     '''
     def gameAvatar(self,messageContent):
