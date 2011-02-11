@@ -301,6 +301,12 @@ class World:
         self.timestamps.append(timestamp)
         return timestamp
     
+    def makeMessage(self,owner,content):
+        timestamp = self.timestamp()
+        content = self.messageWrap(content)
+        self.messages[timestamp] = [owner,content]
+        return timestamp
+    
 class Account:
     def __init__(self,world,name,pwd):
         self.world=world
@@ -320,6 +326,7 @@ class Avatar:
         self.account.avatars.append(self)
         self.location = location
         self.location.addAvatar(self)
+        self.world.avatars[self.id] = self
         
         
         
@@ -387,12 +394,9 @@ class Location:
     def delAvatar(self,avatar):
         if avatar in self.avatars: self.avatars.remove(avatar)
         
-    def sendAnnounce(self,content,owner=False):
+    def sendAnnounce(self,content,owner="Server"):
         print "Location:sendAnnounce",content
-        if not owner: owner = 'Server'
-        timestamp = self.world.timestamp()
-        content = self.world.messageWrap(content)
-        self.world.messages[timestamp] = [owner,content]
+        timestamp = self.world.makeMessage(owner,content)
         
         for avatar in self.avatars:
             avatar.actionHear(timestamp)
@@ -616,13 +620,27 @@ class Player(LineReceiver):
         
     def gameEmote(self,messageContent):
         if self.avatar:
-            self.avatar.location.sendAnnounce("%s %s"%(self.avatar.name,messageContent),self.account.name)
+            self.avatar.location.sendAnnounce("<action>%s %s"%(self.avatar.name,messageContent),self.account.name)
             
     def gameTell(self,messageContent):
-        pass
+        if self.avatar:
+            tok = messageContent.split(' ')
+            if len(tok) < 2: self.sendMessage("I don't quite get you");return
+            target = tok[0].lower()
+            message = " ".join(tok[1:])
+            
+            for avatar in self.world.avatars.values():
+                print "if",target,avatar.id
+                if target in avatar.id:
+                    self.sendMessage('''<tell>You tell %s: %s'''%(avatar.name,message),self.account.name)
+                    msg = self.world.makeMessage(self.account.name,'''<tell>%s tells you: %s'''%(self.avatar.name,message))
+                    avatar.actionHear(msg)
+                    return
+            self.sendMessage('''There is no such person''')
+            
     def gameDescribe(self,messageContent):
         if self.avatar:
-            self.avatar.location.sendAnnounce("(%s) %s"%(self.avatar.name,messageContent),self.account.name)
+            self.avatar.location.sendAnnounce("<describe>(%s) %s"%(self.avatar.name,messageContent),self.account.name)
     
     def gameLook(self,messageContent):
         pass
