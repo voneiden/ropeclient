@@ -103,7 +103,7 @@ class Window:
         
     
     def browseHistory(self,event):
-        print "keyupdown!!",event,event.keycode
+        print "keyupdown!!",event,event.keycode,event.char
         if self.iHistory == 0: 
             self.cHistory = self.command.get()
         if event.keycode == 38: 
@@ -269,12 +269,15 @@ class Window:
                 data = "pwd %s"%(hashlib.sha256(data+'saltyropeclient').hexdigest())
                 self.connection.write(data)
                 
-            elif self.iHistory:
+            elif self.iHistory and self.lHistory[-self.iHistory][0]: 
                 print "EDI"
                 self.connection.write(u"edi %s %s"%(self.lHistory[-self.iHistory][0],data))
                 self.lHistory[-self.iHistory][1] = data
                 self.iHistory = 0
             else:
+                self.iHistory = 0
+                self.addHistory([0,data])
+
                 self.connection.write(u"msg %s"%(data))
 
         except:
@@ -356,7 +359,7 @@ class Client(LineReceiver):
             #print "Msg",messageContent
             if messageOwner == "Server": self.window.display_line("[Server] %s"%(messageContent),messageTime)
             else: 
-                if messageOwner == self.window.id: self.window.addHistory([messageTime,messageContent])
+                if messageOwner == self.window.id: self.window.lHistory[-1] = [messageTime,messageContent]
                 self.window.display_line("%s"%(messageContent),messageTime,messageOwner)
         
         elif hdr == 'edi' and len(tok) > 2:
