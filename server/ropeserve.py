@@ -53,22 +53,9 @@ dfa = default action
 3 - emote
 4 - describe
 
-'''
-# TODO: fix color highlight according to protocol
-# TODO: password salt
-
-
-''' thinking about modifications
-
-world
-- keeps track of messages
-- maintains a message counter
-
-
-
-- history format: text file?
-- account format: pickle?
--- account should contain: password, avatars
+RC TODO
+- Dice command
+- Hilight command
 
 
 '''
@@ -193,9 +180,9 @@ class World:
         pl = []
         for player in self.players.values(): 
             nick = player.nick
-            if player.typing:   nick = "*" + nick
+            #if player.typing:   nick = "*" + nick
             if player.gm:       nick = "[%s]"%nick
-            if player.avatar:   nick = "%s (%s)"%(nick,"has_avatar")
+            if not player.avatar:   nick = "(%s)"%nick
             pl.append(nick)
         ann = u"lop %s"%(" ".join(pl))
         for player in self.players.values(): player.write(ann)
@@ -314,6 +301,10 @@ class Account:
         self.pwd     = pwd
         self.avatars = []
     
+    def hasAvatar(self,avatarid):
+        for avatar in self.avatars:
+            if avatar.id == avatarid: return avatar
+        return False
 class Avatar:
     def __init__(self,world,name,account,location):
         self.world=world
@@ -355,9 +346,18 @@ class Avatar:
             self.oldmessages += self.newmessages
             self.newmessages = []
         
-            
+    def depart(self):
+        if self.location:
+            self.location.delAvatar(self)
+            self.location = None
+    def arrive(self,location):
+        if not self.location:
+            self.location = location
+            self.location.addAvatar(self)
+    
     def move(self,location):
-        if self.location: self.sendAnnounce('%s has left.'%self.name)
+        self.depart()
+        self.arrive(location)
         
     
     def attach(self,player):
@@ -367,13 +367,14 @@ class Avatar:
         self.player    = player
         player.sendMessage("You are now attached to %s"%self.name)
         self.getNewMessages()
+        self.world.sendPlayers()
         
     def detach(self):
         if self.player:
             self.player.sendMessage("You have detached from the body of %s."%self.name)
             self.player.avatar = None
             self.player = None
-    
+        self.world.sendPlayers()
     
     def doAction(self,content,owner=False):
         if not owner and self.player: owner = self.player.account.name
@@ -393,7 +394,7 @@ class Location:
         self.sendAnnounce("%s has arrived."%(avatar.name))
     def delAvatar(self,avatar):
         if avatar in self.avatars: self.avatars.remove(avatar)
-        
+        self.sendAnnounce("%s has left."%(avatar.name))
     def sendAnnounce(self,content,owner="Server"):
         print "Location:sendAnnounce",content
         timestamp = self.world.makeMessage(owner,content)
@@ -428,7 +429,13 @@ class Player(LineReceiver):
         'emote':self.gameEmote,
         'me':self.gameEmote,
         'tell':self.gameTell,
-        'look':self.gameLook}
+        'look':self.gameLook,
+        'possess':self.avatarPossess,
+        'depossess':self.avatarDepossess,
+        'new':self.avatarNew,
+        'del':self.avatarDel,
+        'name':self.avatarName,
+        'list':self.avatarList}
         #'avatar':self.gameAvatar}
         
         
@@ -510,36 +517,7 @@ class Player(LineReceiver):
             else:
                 print self.nick,self.colors.has_key('highlight'),self.pwd
                 
-    '''
-    def announce(self,data,style="default"):
-        global linebuffer
-        text = self.wrap(data,style=style)
-        linebuffer.append( text)
-        for player in players: player.write(text)
-    '''
-
-    
-
-        
-    '''
-    def setname(self,name):
-        self.name = name
-        first = self.name.split(' ')[0].lower()
-        print "Setting name to:",first
-        self.regex = re.compile("(?<!^)(?<![(])%s"%first,re.IGNORECASE)
-    def tell(self,tok):
-        who = tok[0].lower()
-        txt = " ".join(tok[1:])
-        tells = []
-        told = 0
-        for player in players:
-            if player.nick.lower() == who or who in player.name.lower(): player.write("%s(%s%s tells you: %s)"%(colorize('tell'),colorize('tell'),self.name,txt));told=1
-            elif player.nick.lower() == self.nick.lower(): continue
-            elif player.gm: player.write("%s(%s%s tells %s: %s)"%(colorize('yellow'),colorize('yellow'),self.name,who,txt))
-
-        if told: self.write("%s(%sYou tell %s: %s)"%(colorize('tell'),colorize('tell'),who,txt))
-        else: self.write("%s(%sNobody here with that name)"%(colorize('tell'),colorize('tell')))
-    '''
+                
     def handleGame(self,recv):
         # First we validate the data #
         if len(recv) < 2: return
@@ -580,6 +558,7 @@ class Player(LineReceiver):
         print self.defaction
         
         if self.getname: # this can be expanded later
+            if messageParams[0] in self.world.avatars: self.sendMessage("ID already in use");return
             avatar = Avatar(self.world,messageParams[0],self.account,self.world.locations['spawn'])
             avatar.attach(self)
             self.getname = False #Todo save world"
@@ -661,83 +640,69 @@ class Player(LineReceiver):
         if messageContent[-1] != ')': messageContent = messageContent + ')'
         self.world.sendAnnounce(messageContent,True,self.account.name)
     
-    '''
-    def gameAvatar(self,messageContent):
-        tok       = messageContent.split(' ')
-        hdr       = tok[0].lower()
-        
-        if len(messageContent) == 0:  msgBuffer = [self.world.displayAvatars(self,True),"Available commands: ADD, ENTER, LEAVE, DEL"]
-        elif hdr == 'add':   msgBuffer = self.gameAvatarNew(tok[1:])
-        elif hdr == 'enter': msgBuffer = self.gameAvatarEnter(tok[1:])
-        elif hdr == 'leave': msgBuffer = self.gameAvatarLeave(tok[1:])
-        elif hdr == 'del':   msgBuffer = self.gameAvatarDel(tok[1:])
-        else:                msgBuffer = ["Unknown command"]
-        print "BANG"
-        self.sendMessage("Server",time.time(),"\n".join(msgBuffer))
-          
-    def gameAvatarNew(self,params):
-        if len(params) == 0: return ["Not enough parameters. Please specify a unique ID for your avatar.",
-                                     "Example: avatar add superwarrior"]
-        avatarID = params[0].lower()
-        addavatar= self.world.addAvatar(self,avatarID)
-        if addavatar: return ["Avatar has been created succesfully. You can now use the command 'avatar enter %s' to possess your avatar."%avatarID]
-        else:         return ["The ID you specified is already in use. Please try something else."]
-    
-    def gameAvatarEnter(self,params):
-        if len(params) == 0: return ["Not enough parameters. Please specify a unique ID for your avatar.",
-                                     "Example: avatar enter superwarrior"]
-        avatarID = params[0].lower()
-        if not self.world.avatars.has_key(avatarID):             return ["Avatar %s not found."%avatarID]
-        if not self.world.avatars[avatarID]['owner'] == self.id: return ["You may not enter this soul."]
-        self.avatar = avatarID
-        avatar = self.world.avatars[avatarID]
-        for line in avatar['history']: self.sendMessage(line[0],line[1],line[2])
-        for line in avatar['flush']:   self.world.messageAvatar(avatar['id'],line[2],line[0],line[1])
-        self.gameLook('')
-        
-        return ["You are now attached to %s."%avatarID]
-    
-    def gameAvatarLeave(self,params):
-        return ["not implemented"]
-    def gameAvatarDel(self,params):
-        return ["not implemented"]
-    '''
 
         
         
+    def avatarPossess(self,content):
+        ''' Posses avatar with tok[0] '''
+        tok = content.split(' ')
+        if not len(tok) == 1: self.sendMessage('''Use: possess (avatarid)''');return
+        if len(tok[0]) < 1: self.sendMessage('''Use: possess (avatarid)''');return
+        avatarID = tok[0].lower()
+        avatar = self.account.hasAvatar(avatarID)
+        if avatar:
+            if self.avatar: self.avatar.detach()
+            avatar.attach(self)    
+        else: self.sendMessage('''You own no such avatar''')
         
-
-    """z
-        if   messageHeader    == 'say': self.gameSay(" ".join(messageParams[1:]))
-        elif messageHeader[0] == '.'  : self.gameSay(messageContent[1:])
-        elif messageHeader    == '/me': self.gameEmote
-             messageHeader    == 'emote': self.game
+    def avatarDepossess(self,content):
+        if self.avatar: self.avatar.detach()
+        else: self.sendMessage('''You're not possessing an avatar currently''')
         
-        data = data.replace('\n',' ')
-        data = data.replace('\r', '')
-        tok = data.split(' ')
-        if len(data) == 2:
-            if   data == u'\xff\x00': self.typing = False; self.announce_typing(); return
-            elif data == u'\xff\x01': self.typing = True;  self.announce_typing(); return
-        #if tok[0]   == 'TYPING': self.typing = True;self.announce_players()
-        #elif tok[0] == 'NOT_TYPING': self.typing = False;self.announce_players()
-        if tok[0] == '/name': self.setname(" ".join(tok[1:]))#self.name = ;self.regex = re.compile(self.name,re.IGNORECASE)
-        elif tok[0] == '/gm': pass#self.gm = (self.gm+1)%2;self.typing = False;self.announce_players()
-        elif tok[0] == '/tell': self.tell(tok[1:]);self.typing = False;self.announce_players()
-        else: 
-            if   data[0] == '*':      self.announce('''%s %s'''%(self.name,data[1:].strip()),style="action")
-            elif data[0:3] == '/me':  self.announce('''%s %s'''%(self.name,data[3:].strip()),style="action")
-            elif data[0] == '/': pass
-            elif data[0] == '!': 
-                self.announce('''(%s: %s)'''%(self.name,data))
-            elif data[0] == '#': self.announce('''(%s) %s'''%(self.name,data[1:]),style="describe")
-            elif data[0] == '(': 
-                if data[-1] != ')': data += ')' # People tend to forget to add the last )
-                self.announce('''(%s: %s'''%(self.nick,data[1:]))
-            else: self.announce('''%s says, "%s"'''%(self.name,data))
-            self.typing = False
-            self.announce_players()
-    """
+    def avatarNew(self,content):
+        tok = content.split(' ')
+        print tok
+        if not len(tok) == 1: self.sendMessage('''Use: new (avatarid)''');return
+        if len(tok[0]) < 2: self.sendMessage('''Use: new (avatarid)''');return
+        avatar = tok[0].lower()
+        if avatar in self.world.avatars.keys(): self.sendMessage("Avatar ID already exists. Try some other ID")
+        else:
+            avatar = Avatar(self.world,avatar,self.account,self.world.locations['spawn'])
+            self.sendMessage("Avatar created!")
+        
+    def avatarDel(self,content):
+        tok = content.split(' ')
+        if not len(tok) == 1: self.sendMessage('''Use: del (avatarid)''');return
+        if len(tok[0]) < 1: self.sendMessage('''Use: del (avatarid)''');return
+        avatarID = tok[0].lower()
+        avatar = self.account.hasAvatar(avatarID)
+        if avatar:
+            avatar.detach()
+            avatar.depart()
+            self.account.avatars.remove(avatar)
+            self.sendMessage("Avatar has been deleted")
+        else: self.sendMessage("Avatar not found")
+        
+    def avatarName(self,content):
+        tok = content.split(' ')
+        if not len(tok) < 3: self.sendMessage('''Use: name (avatarid) (avatar name)''');return
+        if len(tok[0]) < 2: self.sendMessage('''Use: name (avatarid) (avatar name)''');return
+        avatarID = tok[0].lower()
+        avatar = self.account.hasAvatar(avatarID)
+        if avatar:
+            oldname = avatar.name
+            newname = " ".join(tok[1:])
+            if len(newname)>20: newname = newname[:20]
+            avatar.name = " ".join(tok[1:])
+            self.world.sendAnnounce("%s is now known as %s."%(oldname,newname))
+        else:self.sendMessage("Avatar not found")
+        
+    def avatarList(self,content): 
+        buf = []
+        for avatar in self.account.avatars:
+            buf.append("%s --- %s"%(avatar.id,avatar.name))
+        self.sendMessage("Your avatars:")
+        for line in buf: self.sendMessage(line)
     
 
     def wrapHilite(self,match):

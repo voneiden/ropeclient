@@ -166,7 +166,6 @@ class Window:
     
     def update_players(self):
         ''' Called when something changes in players '''
-        
         self.listbox.delete(0, END)
         for player in self.playerlist:
             if player[1]: self.listbox.insert(END, "*%s"%player[0])
@@ -174,7 +173,7 @@ class Window:
             
     def playerTyping(self,id,status):
         for player in self.playerlist:
-            if player[0] == id: player[1] = status
+            if id in player[0]: player[1] = status
         self.update_players()
     
     def display_line(self,text,timestamp=None,owner=None):
@@ -259,6 +258,7 @@ class Window:
     def process(self,args):
         self.typing = False
         data=unicode(self.command.get())
+        if len(data) == 0: return
         self.command.set("")
         tok = data.split(' ')
         #if tok[0]== '/name': self.root.title("Ropeclient: %s"%" ".join(tok[1:]))
