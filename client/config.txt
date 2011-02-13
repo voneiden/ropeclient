@@ -1,11 +1,8 @@
 [general]
-nick=Matti
-name=Tailabar
-host=localhost
+host=ninjabox.sytes.net
 default-action=nothing
 
 [colors]
-highlight=yellow
 talk=cyan
 action=white
 offtopic=grey

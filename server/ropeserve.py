@@ -275,7 +275,7 @@ class World:
         
         if not 0 < rolls <= 20: return False
         if not 1 < sides <= 100: return False
-        exploding = True
+        exploding = False
         exploded  = False
         total = 0
         rolls = range(rolls)
