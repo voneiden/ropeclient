@@ -81,6 +81,7 @@ class Window:
         
         self.playerlist = []
         
+        self.asknick  = False
         self.password = False
 
         self.setTitle()
@@ -137,8 +138,8 @@ class Window:
         except: self.display_line("Could not load config.txt");return False
         
         self.vars = {}
-        config = {'general':['nick','host','default-action'],
-                  'colors':['highlight','talk','action','offtopic','describe','tell']}
+        config = {'general':['host','default-action'],
+                  'colors':['talk','action','offtopic','describe','tell']}
         for block,values in config.items():
             for option in values:
                 try:
@@ -146,19 +147,19 @@ class Window:
                     self.vars[option] = value
                 except: self.display_line("config.txt error! Setting for block [%s] option %s is missing"%(block,option));return False
     
-        self.nick = self.vars['nick']
-        self.id   = self.nick.lower()
+        #self.nick = self.vars['nick']
+        #self.id   = self.nick.lower()
         self.host = self.vars['host']
         self.colors = {
                        'talk':self.vars['talk'],
                        'action':self.vars['action'],
                        'offtopic':self.vars['offtopic'],
                        'describe':self.vars['describe'],
-                       'tell':self.vars['tell'],
-                       'highlight':self.vars['highlight']}
+                       'tell':self.vars['tell']}
         
-        self.display_line("Your nick is: %s"%self.nick)
+        #self.display_line("Your nick is: %s"%self.nick)
         self.display_line("Connecting to: %s"%self.host)
+        self.textarea.yview(END)
         return True
     
     def setTitle(self):
@@ -178,6 +179,7 @@ class Window:
     
     def display_line(self,text,timestamp=None,owner=None):
         if not timestamp: timestamp = time.time()
+        print "scroll1:",self.textarea.yview()
         if self.textarea.yview()[1] == 1.0: scroll = True
         else: scroll = False
         if owner:
@@ -202,7 +204,7 @@ class Window:
  
         
         
-        print self.textarea.yview()
+        print "scroll2",self.textarea.yview()
         if scroll: self.textarea.yview(END)
         '''
         if owner:
@@ -268,7 +270,16 @@ class Window:
                 self.entry.config(show='')
                 data = "pwd %s"%(hashlib.sha256(data+'saltyropeclient').hexdigest())
                 self.connection.write(data)
+            
+            elif self.asknick:
+                self.asknick = False
+                self.nick = data.split(' ')[0]
+                self.id   = self.nick.lower()
+                data= u"nck %s"%data
                 
+                self.connection.write(data)
+            
+            
             elif self.iHistory and self.lHistory[-self.iHistory][0]: 
                 print "EDI"
                 self.connection.write(u"edi %s %s"%(self.lHistory[-self.iHistory][0],data))
@@ -313,9 +324,9 @@ class Client(LineReceiver):
     def connectionMade(self):
         self.window.display_line("Connected!")
         self.write("hsk SUPERHANDSHAKE 3")
-        self.write("nck %s"%(self.window.nick))
-        self.write("dfa %s"%(self.window.vars['default-action']))
-        self.write("clr highlight %s"%(self.window.colors['highlight']))
+        #self.write("nck %s"%(self.window.nick))
+        #self.write("dfa %s"%(self.window.vars['default-action']))
+        #self.write("clr highlight %s"%(self.window.colors['highlight']))
         
         
     def lineReceived(self, data):
@@ -342,6 +353,10 @@ class Client(LineReceiver):
             self.window.playerTyping(tok[1],False)
             
         # Password request packet
+        elif hdr == u'nck' and len(tok) > 1:
+            self.window.asknick = True
+            self.window.display_line(" ".join(tok[1:]))
+            self.window.textarea.yview(END)
         elif hdr == u'pwd' and len(tok) > 1:
             self.window.password = True
             self.window.entry.config(show='*')

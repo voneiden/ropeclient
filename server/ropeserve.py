@@ -55,7 +55,9 @@ dfa = default action
 
 RC TODO
 - Hilight command
-
+- Make accounts and locations use dictionaries instead of lists.
+- Make sure all id and name variables are standardized
+- Make those damn trigger functions look more simple
 
 '''
 
@@ -127,7 +129,7 @@ class World:
         
         
         
-        self.locations['spawn'] = Location(self,'spawn','Spawn')
+        Location(self,'spawn','Spawn')
         print "World: init completed!"
         
     def pickleSave(self,object,filename):
@@ -301,6 +303,7 @@ class Account:
         self.name    = name.lower()
         self.pwd     = pwd
         self.avatars = []
+        self.gm   = False
     
     def hasAvatar(self,avatarid):
         for avatar in self.avatars:
@@ -310,13 +313,15 @@ class Avatar:
     def __init__(self,world,name,account,location): #Todo, avatar id should contain only valid letters
         self.world=world
         self.id   = name.lower()
-        self.name = name
+        self.name = name #Todo - account name bug!
         self.player = None
         self.account = account
+        
         self.oldmessages = []
         self.newmessages = []
         self.account.avatars.append(self)
         self.location = location
+        self.hilite = '<yellow>'
         self.location.addAvatar(self)
         self.world.avatars[self.id] = self
         
@@ -389,7 +394,8 @@ class Location:
         self.avatars = []
         self.name = name.lower()
         self.title = title
-        
+        self.hidden = True
+        self.world.locations[self.name] = self
     def addAvatar(self,avatar):
         print "Location:addAvatar"
         if avatar not in self.avatars: self.avatars.append(avatar)
@@ -437,7 +443,13 @@ class Player(LineReceiver):
         'new':self.avatarNew,
         'del':self.avatarDel,
         'name':self.avatarName,
-        'list':self.avatarList}
+        'list':self.avatarList,
+        'create':self.locationCreate,
+        'remove':self.locationRemove,
+        'hide':self.locationHidden,
+        'move':self.avatarMove,
+        'gm':self.accountGM,
+        'hilite':self.avatarHilite}
         #'avatar':self.gameAvatar}
         
         
@@ -480,7 +492,10 @@ class Player(LineReceiver):
             if "SUPERHANDSHAKE" in data:
                 print "handshake",data
                 if hdr == u'hsk' and len(tok) == 3:
-                    if tok[2] == self.protocolVersion: self.sendMessage(self.loginGreeting);self.state = 1
+                    if tok[2] == self.protocolVersion: 
+                        self.sendMessage(self.loginGreeting)
+                        self.state = 1
+                        self.write("nck Who are you?")
                     else:                              self.write(self.loginError);self.state = -1
                 else:                                  self.write(self.loginError);self.state = -1
             else: self.transport.loseConnection() # Not a ropeclient! Lets drop them for now.
@@ -496,11 +511,11 @@ class Player(LineReceiver):
                 else:self.defaction = None
             elif hdr == 'clr' and len(tok) == 3: self.colors[tok[1]] = tok[2]
             
-            if self.nick and self.colors.has_key('highlight') and not self.pwd:
+            if self.nick and not self.pwd:
                 if   self.world.accounts.has_key(self.account):  self.write(u'pwd A password is required to access your account')
                 else:                                        self.write(u'pwd New player, please type your password (your password is encrypted client side, no worries)')
                     
-            elif self.nick and self.colors.has_key('highlight') and self.pwd:
+            elif self.nick and self.pwd:
                 if self.world.accounts.has_key(self.account):
                     print self.world.accounts[self.account].pwd
                     print self.pwd
@@ -510,7 +525,7 @@ class Player(LineReceiver):
                         self.handle = self.handleGame
                     else: self.write("Invalid password");self.transport.loseConnection()
                 else:
-                    self.world.accounts[self.account] = Account(self.world,self.account,self.pwd)
+                    self.world.accounts[self.account] = Account(self.world,self.nick,self.pwd)#fixed a bug here, does it work?
                     # do a save
                     self.account = self.world.accounts[self.account]
                     self.world.saveAll()
@@ -694,7 +709,7 @@ class Player(LineReceiver):
         
     def avatarName(self,content):
         tok = content.split(' ')
-        if not len(tok) < 3: self.sendMessage('''Use: name (avatarid) (avatar name)''');return
+        if len(tok) < 2: self.sendMessage('''Use: name (avatarid) (avatar name)''');return
         if len(tok[0]) < 2: self.sendMessage('''Use: name (avatarid) (avatar name)''');return
         avatarID = tok[0].lower()
         avatar = self.account.hasAvatar(avatarID)
@@ -710,11 +725,101 @@ class Player(LineReceiver):
         buf = []
         for avatar in self.account.avatars:
             buf.append("%s --- %s"%(avatar.id,avatar.name))
-        self.sendMessage("Your avatars:")
+        buf.append("")
+        buf.append("### Locations ###")
+        for location in self.world.locations.values():
+            if location.hidden and not self.account.gm: continue
+            buf.append("%s --- %s"%(location.name,location.title))
+        self.sendMessage("### Avatars ###")
         for line in buf: self.sendMessage(line)
     
-
-    def wrapHilite(self,match):
+    def avatarMove(self,content):
+        tok = content.split(' ')
+        if len(tok) < 2: self.sendMessage('''Use: move (avatarid) (locatoinid)''');return
+        if len(tok[0]) < 2: self.sendMessage('''Use: move (avatarid) (locationid)''');return
+        avatarID   = tok[0].lower()
+        locationID = tok[1].lower()
+        
+        if avatarID in self.world.avatars:
+            if locationID in self.world.locations:
+                avatar = self.world.avatars[avatarID]
+                location = self.world.locations[locationID]
+                if avatar in self.account.avatars or self.account.gm:
+                    avatar.move(location)
+                else: self.sendMessage("Cannot move avatar.")
+            else: self.sendMessage("No such location.")
+        else: self.sendMessage("No such avatar.")
+        
+    def avatarHilite(self,content):
+        tok = content.split(' ')
+        if len(tok) < 2: self.sendMessage('''Use: hilite (avatarid) (color)''');return
+        if len(tok[0]) < 2: self.sendMessage('''Use: hilite (avatarid) (color)''');return
+        avatarid = tok[0].lower()
+        if avatarid in self.world.avatars:
+            avatar = self.world.avatars[avatarid]
+            if avatar in self.account.avatars:
+                color = tok[1].lower()
+                avatar.hilite = "<%s>"%color
+                
+    def locationCreate(self,content):
+        tok = content.split(' ')
+        if not self.account.gm: return
+        if len(tok) < 2: self.sendMessage('''Use: create (locationid) (title description)''');return
+        if len(tok[0]) < 2: self.sendMessage('''Use: create (locationid) (title description)''');return
+        locationID   = tok[0].lower()
+        if locationID in self.world.locations: self.sendMessage("Location already exists.");return
+        title = " ".join(tok[1:])
+        new = Location(self.world,locationID,title)
+        self.sendMessage("Location created!")
+        
+    def locationRemove(self,content):
+        tok = content.split(' ')
+        if not self.account.gm: return
+        if not len(tok) == 1: self.sendMessage('''Use: remove (locationid)''');return
+        if len(tok[0]) < 2: self.sendMessage('''Use: remove (locationid)''');return
+        locationID   = tok[0].lower()
+        if locationID in self.world.locations:
+            location = self.world.locations[locationID]
+            for avatar in location.avatars.values():
+                avatar.move(self.world.locations['spawn'])
+            del self.world.locations[locationID]
+            self.sendMessage("Location destroyed")
+        else: self.sendMessage("Location not found")
+        
+    def locationTitle(self,content):
+        tok = content.split(' ')
+        if not self.account.gm: return
+        if len(tok) <2: self.sendMessage('''Use: title (locationid) (title description)''');return
+        if len(tok[0]) < 2: self.sendMessage('''Use: title (locationid) (title description)''');return
+        locationID = tok[0].lower()
+        title = " ".join(tok[1:])
+        if locationID in self.world.locations:
+            location = self.world.locations[locationID]
+            location.title = title
+            self.sendMessage("Done.")
+        else: self.sendMessage("Location not found")
+        
+    def locationHidden(self,content):
+        tok = content.split(' ')
+        if not self.account.gm: return
+        if not len(tok) == 1: self.sendMessage('''Use: remove (locationid)''');return
+        if len(tok[0]) < 2: self.sendMessage('''Use: remove (locationid)''');return
+        locationID   = tok[0].lower()
+        if locationID in self.world.locations:
+            location = self.world.locations[locationID]
+            location.hidden += 1
+            location.hidden %= 2
+            if location.hidden: self.sendMessage("Location hidden")
+            else: self.sendMessage("Location public")
+        else: self.sendMessage("Location not found")
+    
+    def accountGM(self,content):
+        self.account.gm += 1
+        self.account.gm %= 2
+        if self.account.gm: self.world.sendAnnounce("%s is now GM"%self.account.name)
+        else: self.world.sendAnnounce("%s is no more GM"%self.account.name)
+        
+    def wrapHilite(self,match): #TODO HILITE
         return "%s%s<reset>"%(self.colors['highlight'],match.group())
 
 
