@@ -256,7 +256,7 @@ class World:
             else:
                 tok = obj.split('d')
                 result = self.roll(tok[0],tok[1])
-                if not result: return "<grey>[<red>Dice value too high<reset>]<reset>"
+                if not result: return "<grey>[<red>Invalid dice value<reset>]<reset>"
                 result,exploded = result
                 if exploded: color = '<gold>'
                 else:        color = '<SeaGreen>'
@@ -307,7 +307,7 @@ class Account:
             if avatar.id == avatarid: return avatar
         return False
 class Avatar:
-    def __init__(self,world,name,account,location):
+    def __init__(self,world,name,account,location): #Todo, avatar id should contain only valid letters
         self.world=world
         self.id   = name.lower()
         self.name = name
@@ -615,7 +615,7 @@ class Player(LineReceiver):
             
             for avatar in self.world.avatars.values():
                 print "if",target,avatar.id
-                if target in avatar.id: #todo fix this
+                if target in avatar.name.lower(): #todo fixed??
                     #self.sendMessage('''<tell>You tell %s: %s'''%(avatar.name,message),self.account.name)
                     msg = self.world.makeMessage(self.account.name,'''<tell>%s tells %s: %s'''%(self.avatar.name,avatar.name,message))
                     avatar.actionHear(msg)
