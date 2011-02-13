@@ -56,9 +56,9 @@ dfa = default action
 RC TODO
 - Hilight command
 - Make accounts and locations use dictionaries instead of lists.
-- Make sure all id and name variables are standardized
-- Make those damn trigger functions look more simple
-
+- Make sure all id and name variables are standardized ok
+- Make those damn trigger functions look more simple ok
+-create avatar should use current avatar location
 '''
 
 
@@ -182,7 +182,7 @@ class World:
         for player in self.players.values(): 
             nick = player.nick
             #if player.typing:   nick = "*" + nick
-            if player.gm:       nick = "[%s]"%nick
+            if player.account.gm:   nick = "-[%s]-"%nick
             if not player.avatar:   nick = "(%s)"%nick
             pl.append(nick)
         ann = u"lop %s"%(" ".join(pl))
@@ -193,7 +193,7 @@ class World:
         print "World:sendAnnounce: announcing",message
         msg = self.makeMessage(owner,message)
         for player in self.players.values():
-            for avatar in player.account.avatars:
+            for avatar in player.account.avatars.values():
                     avatar.actionHear(msg)
             if not player.avatar: player.sendMessage(self.messages[msg][1],self.messages[msg][0])
             
@@ -205,11 +205,13 @@ class World:
         data = re.sub(self.regexQuote,self.wrapQuote,data) #Search for text in between quotes
         data = re.sub(self.regexOff,self.wrapOff,data)     #Search for offtopic 
         
-        for player in self.players.values():
-            if player.regexHilite: 
-                data=re.sub(player.regexHilite,player.wrapHilite,data)#Search for player name highlights
-                
-        if   style == "default":  data = "%s%s"%('<white>',data)
+        for avatar in self.avatars.values():
+            print "hilite",avatar
+            if avatar.rHilite: 
+                print "avatar has rlite"
+                data=re.sub(avatar.rHilite,avatar.wrapHilite,data)#Search for player name highlights
+            else: print "avatar has no rlite"
+        if   style == "default":  data = "%s%s"%('<gray>',data)
         elif style == "describe": data = "%s%s"%('<describe>',data)
         elif style == "action":   data = "%s%s"%('<action>',data)
         elif style == "offtopic": data = "%s%s"%('<offtopic>',data)
@@ -302,7 +304,7 @@ class Account:
         self.world=world
         self.name    = name.lower()
         self.pwd     = pwd
-        self.avatars = []
+        self.avatars = {}
         self.gm   = False
     
     def hasAvatar(self,avatarid):
@@ -319,9 +321,10 @@ class Avatar:
         
         self.oldmessages = []
         self.newmessages = []
-        self.account.avatars.append(self)
+        self.account.avatars[self.id] = self
         self.location = location
-        self.hilite = '<yellow>'
+        self.cHilite = '<yellow>'
+        self.compileHilite()
         self.location.addAvatar(self)
         self.world.avatars[self.id] = self
         
@@ -332,6 +335,10 @@ class Avatar:
         d['player'] =None
         return d
         
+        
+    def compileHilite(self):
+        first = self.name.split(' ')[0]
+        self.rHilite = re.compile("(?<!^)%s"%first,re.IGNORECASE)
     def actionHear(self,timestamp):
         ''' This is when the avatar hears something. Everything the avatar hears
          (or sees..) is recorded here. If the player is attached the messages get
@@ -386,28 +393,30 @@ class Avatar:
     def doAction(self,content,owner=False):
         if not owner and self.player: owner = self.player.account.name
         self.location.sendAnnounce(content,owner)
-        
+    
+    def wrapHilite(self,match): #TODO HILITE
+        return "%s%s<reset>"%(self.cHilite,match.group())    
     
 class Location:
-    def __init__(self,world,name,title):
+    def __init__(self,world,ID,name):
         self.world = world
-        self.avatars = []
-        self.name = name.lower()
-        self.title = title
+        self.avatars = {}
+        self.id = ID.lower()
+        self.name = name
         self.hidden = True
-        self.world.locations[self.name] = self
+        self.world.locations[self.id] = self
     def addAvatar(self,avatar):
         print "Location:addAvatar"
-        if avatar not in self.avatars: self.avatars.append(avatar)
+        if avatar.id not in self.avatars: self.avatars[avatar.id] = avatar
         self.sendAnnounce("%s has arrived."%(avatar.name))
     def delAvatar(self,avatar):
-        if avatar in self.avatars: self.avatars.remove(avatar)
+        if avatar.id in self.avatars: del self.avatars[avatar.id]
         self.sendAnnounce("%s has left."%(avatar.name))
     def sendAnnounce(self,content,owner="Server"):
         print "Location:sendAnnounce",content
         timestamp = self.world.makeMessage(owner,content)
         
-        for avatar in self.avatars:
+        for avatar in self.avatars.values():
             avatar.actionHear(timestamp)
     
 
@@ -473,7 +482,7 @@ class Player(LineReceiver):
         self.handle(data)
     
     def connectionLost(self,reason):
-        self.world.disconnectPlayer(self)
+        if not self.state == -1: self.world.disconnectPlayer(self)
     
     def write(self,data,newline=True):
         if newline: data = ("%s\r\n"%data).encode('utf-8')
@@ -523,7 +532,7 @@ class Player(LineReceiver):
                         self.account = self.world.accounts[self.account]
                         self.world.connectPlayer(self)
                         self.handle = self.handleGame
-                    else: self.write("Invalid password");self.transport.loseConnection()
+                    else: self.write("Invalid password");self.transport.loseConnection();self.state = -1
                 else:
                     self.world.accounts[self.account] = Account(self.world,self.nick,self.pwd)#fixed a bug here, does it work?
                     # do a save
@@ -669,12 +678,12 @@ class Player(LineReceiver):
         
     def avatarPossess(self,content):
         ''' Posses avatar with tok[0] '''
-        tok = content.split(' ')
-        if not len(tok) == 1: self.sendMessage('''Use: possess (avatarid)''');return
-        if len(tok[0]) < 1: self.sendMessage('''Use: possess (avatarid)''');return
+        tok = self.verify(content,1,2)
+        if not tok: self.sendMessage('''Use: possess (avatarid)''');return
+
         avatarID = tok[0].lower()
-        avatar = self.account.hasAvatar(avatarID)
-        if avatar:
+        if avatarID in self.account.avatars:
+            avatar = self.account.avatars[avatarID]
             if self.avatar: self.avatar.detach()
             avatar.attach(self)    
         else: self.sendMessage('''You own no such avatar''')
@@ -684,10 +693,9 @@ class Player(LineReceiver):
         else: self.sendMessage('''You're not possessing an avatar currently''')
         
     def avatarNew(self,content):
-        tok = content.split(' ')
-        print tok
-        if not len(tok) == 1: self.sendMessage('''Use: new (avatarid)''');return
-        if len(tok[0]) < 2: self.sendMessage('''Use: new (avatarid)''');return
+        tok = self.verify(content,2,2)
+        if not tok: self.sendMessage('''Use: new (avatarid)''');return
+
         avatar = tok[0].lower()
         if avatar in self.world.avatars.keys(): self.sendMessage("Avatar ID already exists. Try some other ID")
         else:
@@ -695,9 +703,9 @@ class Player(LineReceiver):
             self.sendMessage("Avatar created!")
         
     def avatarDel(self,content):
-        tok = content.split(' ')
-        if not len(tok) == 1: self.sendMessage('''Use: del (avatarid)''');return
-        if len(tok[0]) < 1: self.sendMessage('''Use: del (avatarid)''');return
+        tok = self.verify(content,1,2)
+        if not tok: self.sendMessage('''Use: del (avatarid)''');return
+
         avatarID = tok[0].lower()
         avatar = self.account.hasAvatar(avatarID)
         if avatar:
@@ -708,9 +716,8 @@ class Player(LineReceiver):
         else: self.sendMessage("Avatar not found")
         
     def avatarName(self,content):
-        tok = content.split(' ')
-        if len(tok) < 2: self.sendMessage('''Use: name (avatarid) (avatar name)''');return
-        if len(tok[0]) < 2: self.sendMessage('''Use: name (avatarid) (avatar name)''');return
+        tok = self.verify(content,2,2)
+        if not tok: self.sendMessage('''Use: name (avatarid) (avatar name)''');return
         avatarID = tok[0].lower()
         avatar = self.account.hasAvatar(avatarID)
         if avatar:
@@ -719,24 +726,26 @@ class Player(LineReceiver):
             if len(newname)>20: newname = newname[:20]
             avatar.name = " ".join(tok[1:])
             self.world.sendAnnounce("%s is now known as %s."%(oldname,newname))
+            self.avatar.compileHilite()
         else:self.sendMessage("Avatar not found")
         
     def avatarList(self,content): 
         buf = []
-        for avatar in self.account.avatars:
+        for avatar in self.account.avatars.values():
             buf.append("%s --- %s"%(avatar.id,avatar.name))
         buf.append("")
         buf.append("### Locations ###")
         for location in self.world.locations.values():
             if location.hidden and not self.account.gm: continue
-            buf.append("%s --- %s"%(location.name,location.title))
+            if location.hidden: color = '<red>'
+            else: color='<green>'
+            buf.append("%s%s --- %s"%(color,location.id,location.name))
         self.sendMessage("### Avatars ###")
         for line in buf: self.sendMessage(line)
     
     def avatarMove(self,content):
-        tok = content.split(' ')
-        if len(tok) < 2: self.sendMessage('''Use: move (avatarid) (locatoinid)''');return
-        if len(tok[0]) < 2: self.sendMessage('''Use: move (avatarid) (locationid)''');return
+        tok = self.verify(content,2,2)
+        if not tok: self.sendMessage('''Use: move (avatarid) (locationid)''');return
         avatarID   = tok[0].lower()
         locationID = tok[1].lower()
         
@@ -751,21 +760,19 @@ class Player(LineReceiver):
         else: self.sendMessage("No such avatar.")
         
     def avatarHilite(self,content):
-        tok = content.split(' ')
-        if len(tok) < 2: self.sendMessage('''Use: hilite (avatarid) (color)''');return
-        if len(tok[0]) < 2: self.sendMessage('''Use: hilite (avatarid) (color)''');return
+        tok = self.verify(content,2,2)
+        if not tok: self.sendMessage('''Use: hilite (avatarid) (color)''');return
         avatarid = tok[0].lower()
-        if avatarid in self.world.avatars:
-            avatar = self.world.avatars[avatarid]
-            if avatar in self.account.avatars:
-                color = tok[1].lower()
-                avatar.hilite = "<%s>"%color
+        if avatarid in self.account.avatars:
+            avatar = self.account.avatars[avatarid]
+            color = tok[1].lower()
+            avatar.hilite = "<%s>"%color
                 
     def locationCreate(self,content):
-        tok = content.split(' ')
         if not self.account.gm: return
-        if len(tok) < 2: self.sendMessage('''Use: create (locationid) (title description)''');return
-        if len(tok[0]) < 2: self.sendMessage('''Use: create (locationid) (title description)''');return
+        tok = self.verify(content,2,2)
+        if not tok: self.sendMessage('''Use: create (locationid) (title description)''');return
+        
         locationID   = tok[0].lower()
         if locationID in self.world.locations: self.sendMessage("Location already exists.");return
         title = " ".join(tok[1:])
@@ -773,10 +780,9 @@ class Player(LineReceiver):
         self.sendMessage("Location created!")
         
     def locationRemove(self,content):
-        tok = content.split(' ')
         if not self.account.gm: return
-        if not len(tok) == 1: self.sendMessage('''Use: remove (locationid)''');return
-        if len(tok[0]) < 2: self.sendMessage('''Use: remove (locationid)''');return
+        tok = self.verify(content,1,2)
+        if not tok: self.sendMessage('''Use: remove (locationid)''');return
         locationID   = tok[0].lower()
         if locationID in self.world.locations:
             location = self.world.locations[locationID]
@@ -787,23 +793,21 @@ class Player(LineReceiver):
         else: self.sendMessage("Location not found")
         
     def locationTitle(self,content):
-        tok = content.split(' ')
         if not self.account.gm: return
-        if len(tok) <2: self.sendMessage('''Use: title (locationid) (title description)''');return
-        if len(tok[0]) < 2: self.sendMessage('''Use: title (locationid) (title description)''');return
+        tok = self.verify(content,1,2)
+        if not tok: self.sendMessage('''Use: title (locationid) (title description)''');return
         locationID = tok[0].lower()
         title = " ".join(tok[1:])
         if locationID in self.world.locations:
             location = self.world.locations[locationID]
-            location.title = title
+            location.name = title
             self.sendMessage("Done.")
         else: self.sendMessage("Location not found")
         
     def locationHidden(self,content):
-        tok = content.split(' ')
         if not self.account.gm: return
-        if not len(tok) == 1: self.sendMessage('''Use: remove (locationid)''');return
-        if len(tok[0]) < 2: self.sendMessage('''Use: remove (locationid)''');return
+        tok = self.verify(content,1,2)
+        if not tok: self.sendMessage('''Use: hide (locationid)''');return
         locationID   = tok[0].lower()
         if locationID in self.world.locations:
             location = self.world.locations[locationID]
@@ -818,12 +822,16 @@ class Player(LineReceiver):
         self.account.gm %= 2
         if self.account.gm: self.world.sendAnnounce("%s is now GM"%self.account.name)
         else: self.world.sendAnnounce("%s is no more GM"%self.account.name)
+        self.world.sendPlayers()
         
-    def wrapHilite(self,match): #TODO HILITE
-        return "%s%s<reset>"%(self.colors['highlight'],match.group())
 
 
 
+    def verify(self,content,tokens,length):
+        tok = content.split(' ')
+        if len(tok) < tokens: return False
+        if len(content) < length: return False
+        else: return tok
 
 class PlayerFactory(Factory):
     def __init__(self,game):
