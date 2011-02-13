@@ -54,7 +54,6 @@ dfa = default action
 4 - describe
 
 RC TODO
-- Dice command
 - Hilight command
 
 
@@ -187,13 +186,14 @@ class World:
         ann = u"lop %s"%(" ".join(pl))
         for player in self.players.values(): player.write(ann)
         
-    def sendAnnounce(self,message,save=False,owner=False):
+    def sendAnnounce(self,message,save=False,owner="Server"):
         ''' Send a public message to all players. This is generally either an offtopic or server announcement'''
         print "World:sendAnnounce: announcing",message
-        if save: pass # TODO
-        message = self.messageWrap(message)
+        msg = self.makeMessage(owner,message)
         for player in self.players.values():
-            player.sendMessage(message,owner)
+            for avatar in player.account.avatars:
+                    avatar.actionHear(msg)
+            if not player.avatar: player.sendMessage(self.messages[msg][1],self.messages[msg][0])
             
     
 
@@ -344,6 +344,7 @@ class Avatar:
             for timestamp in self.newmessages: # TODO: do something if world doesn't have the requested message
                 msg = self.world.messages[timestamp]
                 self.player.sendMessage(msg[1],msg[0],timestamp)
+            self.player.sendMessage("-- End of new history --")
             self.oldmessages += self.newmessages
             self.newmessages = []
         

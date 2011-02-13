@@ -106,10 +106,10 @@ class Window:
         print "keyupdown!!",event,event.keycode,event.char
         if self.iHistory == 0: 
             self.cHistory = self.command.get()
-        if event.keycode == 38: 
+        if event.keycode == 38 or event.keycode == 111: 
             self.iHistory += 1
             self.iHistory %= 10
-        elif event.keycode == 40:
+        elif event.keycode == 40 or event.keycode == 116:
             self.iHistory -= 1
             self.iHistory %= 10
         if self.iHistory > len(self.lHistory): self.iHistory = len(self.lHistory)
