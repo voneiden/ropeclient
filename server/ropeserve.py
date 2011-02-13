@@ -191,6 +191,7 @@ class World:
         ''' Send a public message to all players. This is generally either an offtopic or server announcement'''
         print "World:sendAnnounce: announcing",message
         if save: pass # TODO
+        message = self.messageWrap(message)
         for player in self.players.values():
             player.sendMessage(message,owner)
             
@@ -444,8 +445,8 @@ class Player(LineReceiver):
         '*':self.gameEmote,
         ':':self.gameEmote,
         '#':self.gameDescribe,
-        '(':self.gameOfftopic}
-        
+        '(':self.gameOfftopic,
+        '!':self.gameOffdice}
         self.loginGreeting = open('strings/login_motd.txt','r').read()
         self.loginError = self.loginGreeting + open('strings/login_motd.txt','r').read()
         
@@ -581,6 +582,9 @@ class Player(LineReceiver):
         if not owner: owner='Server'
         print "Send ->",owner,timestamp,content
         self.write(u'msg %s %f %s'%(owner,timestamp,content))
+    
+    def gameOffdice(self,messageContent):
+        self.gameOfftopic('!'+messageContent)
         
     def gameSay(self,messageContent):
         messageParams = messageContent.split(' ') #TTODO FIX ERROR
@@ -610,10 +614,11 @@ class Player(LineReceiver):
             
             for avatar in self.world.avatars.values():
                 print "if",target,avatar.id
-                if target in avatar.id:
-                    self.sendMessage('''<tell>You tell %s: %s'''%(avatar.name,message),self.account.name)
-                    msg = self.world.makeMessage(self.account.name,'''<tell>%s tells you: %s'''%(self.avatar.name,message))
+                if target in avatar.id: #todo fix this
+                    #self.sendMessage('''<tell>You tell %s: %s'''%(avatar.name,message),self.account.name)
+                    msg = self.world.makeMessage(self.account.name,'''<tell>%s tells %s: %s'''%(self.avatar.name,avatar.name,message))
                     avatar.actionHear(msg)
+                    self.avatar.actionHear(msg)
                     return
             self.sendMessage('''There is no such person''')
             
@@ -638,6 +643,9 @@ class Player(LineReceiver):
         # Todo, global and local offtopic?
         if messageContent[0] != '(': messageContent = '(%s: '%self.account.name + messageContent
         if messageContent[-1] != ')': messageContent = messageContent + ')'
+        #msg = self.world.makeMessage(self.account.name,messageContent)
+        #for avatar in self.world.avatars.values():
+        #    avatar.
         self.world.sendAnnounce(messageContent,True,self.account.name)
     
 
