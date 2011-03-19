@@ -44,9 +44,20 @@ class RopeModule:
         #self.widget.bind(sequence="<Up>",   func=self.browseHistory)
         #self.widget.bind(sequence="<Down>", func=self.browseHistory)
         self.widget.focus_set()
+        self.parent.addHook('receiveMessage',self.receiveMessage)
+
     def disable(self):
         self.listbox.grid_remove()
+        self.parent.delHook('receiveMessage',self.receiveMessage)
+
         
     def keypress(self,event):
         print event
+        
+    def receiveMessage(self,data):
+        tok = data.split()
+        header = tok[0].lower()
+        
+        if header == 'msg' and len(tok) > 3:
+            pass
         

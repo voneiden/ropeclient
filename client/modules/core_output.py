@@ -23,6 +23,7 @@
 '''
 from Tkinter import N,S,E,W,WORD,DISABLED,NORMAL, StringVar, END
 from ScrolledText import ScrolledText
+import time,re
 
 class RopeModule:
     ''' This module defines the basic output textbox
@@ -37,17 +38,55 @@ class RopeModule:
         self.widget.grid(row=0,column=0,sticky=N+S+W+E)
         self.widget.bind(sequence="<FocusIn>", func=self.defocus)
         self.parent.addHook('output',self.output)
-        
+        self.parent.addHook('receiveMessage',self.receiveMessage)
     def disable(self):
         self.widget.grid_remove()
         self.parent.delHook('output',self.output)
+        self.parent.delHook('receiveMessage',self.receiveMessage)
         
     def defocus(self,event):
         pass
     
     def output(self,data):
+        ''' This function writes the data to the output buffer
+        The data can be a string or a [tags,text] list pairs. '''
         self.widget.config(state=NORMAL)
-        self.widget.insert(END,data)
+        if type(data) == str: 
+            timestamp = time.strftime('[%H:%M:%S]', time.localtime(time.time()))
+            self.widget.insert(END,"%s %s"%(timestamp,data))
+        elif type(data) == list:
+            for tags,text in data:
+                self.widget.insert(END,text,tags)
         self.widget.insert(END,'\n')
         self.widget.config(state=DISABLED)
+        self.widget.yview(END)
+        
+    def receiveMessage(self,data):
+        tok = data.split(" ")
+        header = tok[0].lower()
+        
+        if header == 'msg' and len(tok) > 3:
+            messageOwner  = tok[1]
+            messageTime   = tok[2]
+            messageContent= " ".join(tok[3:])
+            
+            self.output(self.parse(messageContent,messageOwner,messageTime))
+        
+        
+    def parse(self,message,owner,timestamp):
+        tag = time
+        self.widget.tag_config(tag)
+        buffer = []
+        
+        reColor = "(?<=\<)[a-z]+?(?=>)"
+        reText  = "<[a-z]+>"
+        default = 'gray'
+        colors = re.findall(reColor,message)
+        text   = re.split(reText,message)
+        colors.insert(0,default)
+        
+        for i in xrange(len(colors)):
+            buffer.append(((tag,colors[i]),text[i]))
+            
+        return buffer
     

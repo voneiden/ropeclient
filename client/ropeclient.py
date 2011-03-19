@@ -53,6 +53,9 @@ class Window:
         The frame has a grid structure.
         '''
         
+        ''' Initialize connection variable '''
+        self.connection = None
+        
         ''' Create the root '''
         self.root = Tk()
         self.root.protocol("WM_DELETE_WINDOW", self.stop)
@@ -61,7 +64,7 @@ class Window:
         
         ''' Create hooks '''
         self.hooks = {
-        'receiveMessage':[self.receiveMessage],
+        'receiveMessage':[self.debugNET],
         'output':[self.debugIO]
         }
         
@@ -136,9 +139,9 @@ class Window:
         for hook in self.hooks[name]:
             hook(data)
             
-    def receiveMessage(self,data):
-        tok = data.split()
-        header = tok[0].lower()
+        
+    def debugNET(self,data):
+        print "<RECV>",data
         
     def debugIO(self,data):
         print "Output:",data

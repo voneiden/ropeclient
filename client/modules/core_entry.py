@@ -38,12 +38,12 @@ class RopeModule:
         ''' If hide is set to true, entrybox will display stars instead of letters '''
         self.hide = False
         
-        ''' If hash is set to true, entrybox will hash the contents it's going to send '''
-        self.hash = False
+        ''' Tracks the user typing status '''
+        self.typing = False
         
     def enable(self):
         self.widget.grid(row=1,column=0,sticky=E+W)
-        self.widget.bind(sequence="<Key>",  func=self.keypress)
+        self.widget.bind(sequence="<KeyRelease>",  func=self.keypress)
         self.widget.bind("<MouseWheel>",    func=self.scroll)
         self.widget.bind("<Button-4>",      func=self.scroll)
         self.widget.bind("<Button-5>",      func=self.scroll)
@@ -57,7 +57,29 @@ class RopeModule:
         self.parent.delHook('receiveMessage',self.receiveMessage)
         
     def keypress(self,event):
-        print event
+        buffer = self.contents.get()
+        if event.keysym == "BackSpace":
+            buffer = buffer[:-1]
+        elif event.keysym == "Return":
+            if self.parent.connection:
+                self.parent.connection.write("msg %s"%buffer)
+                self.contents.set("")
+                buffer=""
+        
+        else:
+            buffer += event.char
+            
+        if len(buffer) == 0 and self.typing: 
+            self.typing = False
+            print "PNT" #Send PNT
+        elif len(buffer) > 0 and not self.typing: 
+            self.typing = True
+            print "PIT" #Send PIT
+    
+        #print dir(event)
+        #print event.keycode
+        print event.keysym
+        #print event.char
     
     def scroll(self,event):
         pass
@@ -70,3 +92,9 @@ class RopeModule:
             self.hide = (self.hide+1)%2
             if self.hide: self.widget.config(show='*')
             else:         self.widget.config(show='')
+            msg = " ".join(tok[1:])
+            self.parent.display(msg)
+            
+        if header == 'nck':
+            pass
+        

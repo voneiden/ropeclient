@@ -1,5 +1,5 @@
 [general]
-host=ninjabox.sytes.net
+host=127.0.0.1
 default-action=nothing
 
 [colors]

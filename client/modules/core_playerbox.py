@@ -32,10 +32,41 @@ class RopeModule:
     def __init__(self,parent):
         self.parent = parent
         self.listbox = Listbox(parent.frame)
+        self.playerlist = {}
         
     def enable(self):
         self.listbox.grid(row=0,column=1,columnspan=2,sticky=N+S)
+        self.parent.addHook('receiveMessage',self.receiveMessage)
         
     def disable(self):
         self.listbox.grid_remove()
+        self.parent.delHook('receiveMessage',self.receiveMessage)
+    
+    def update(self):
+        self.widget.delete(0, END)
+        for player,state in self.playerlist.items():
+            if state[0]: self.widget.insert(END, "*%s"%player[0])
+            else:         self.widget.insert(END, "%s"%player[0])
+    
+    def receiveMessage(self,data):
+        tok = data.split()
+        header = tok[0].lower()
         
+        if   header == 'lop' and len(tok) > 1:
+            players = tok[1:]
+            self.playerlist = {}
+            for player in players:
+                self.playerlist[player] = [False,False]
+            self.update()
+            
+        elif header == 'pit' and len(tok) > 1:
+            if tok[1] in self.playerlist:
+                self.playerlist[tok[1]][0] = True
+                self.update()
+                
+        elif header == 'pnt' and len(tok) > 1:
+            if tok[1] in self.playerlist:
+                self.playerlist[tok[1]][0] = False
+                self.update()
+     
+    
