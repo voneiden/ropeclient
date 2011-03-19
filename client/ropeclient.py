@@ -22,6 +22,9 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
 
+
+
+
 ''' Hard imports, do not modify '''
 from Tkinter import *
 from ScrolledText import ScrolledText
@@ -31,7 +34,7 @@ from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
 
 ''' Custom module imports, you may modify at your will '''
-MODS = {'mod_playerbox.py':None}
+MODS = {'core_output.py':None,'core_playerbox.py':None,'core_entry.py':None}
 import imp
 
 
@@ -55,50 +58,34 @@ class Window:
         self.root.protocol("WM_DELETE_WINDOW", self.stop)
         self.root.title('Ropeclient')
         
+        
+        ''' Create hooks '''
+        self.hooks = {
+        'receiveMessage':[self.receiveMessage],
+        'output':[self.debugIO]
+        }
+        
         ''' Create the frame and define position 0,0 as the main expander '''
         self.frame = Frame(self.root,background="black")
         self.frame.pack(fill=BOTH,expand=YES)
         self.frame.grid_rowconfigure(0,weight=1)
         self.frame.grid_columnconfigure(0,weight=1)
         
-        
-        ''' Create the textarea that contains main output buffer '''
-        self.output = ScrolledText(self.frame,width=80,height=20,
-                                     wrap=WORD,
-                                     state=DISABLED, background="black",foreground="white")
-        self.output.grid(row=0,column=0)
-        self.output.bind(sequence="<FocusIn>", func=self.returnfocus)
-        
-        
-        
-        
-        
-        ''' Create the entry box for input '''
-        self.command = StringVar()
-        self.entry = Entry(self.frame,
-                             textvariable=self.command,
-                           background="black",foreground="white",
-                             state=NORMAL, insertbackground="white")
-        self.entry.grid(row=1,column=0,sticky=E+W)
-        self.entry.bind(sequence="<Return>", func=self.process)
-        self.entry.bind(sequence="<BackSpace>",func=self.backspace)
-        self.entry.bind(sequence="<Key>", func=self.keypress)
-        self.entry.bind("<MouseWheel>", self.mouse_wheel)
-        self.entry.bind("<Button-4>",   self.mouse_wheel)
-        self.entry.bind("<Button-5>",   self.mouse_wheel)
-        self.entry.bind(sequence="<Up>", func=self.browseHistory)
-        self.entry.bind(sequence="<Down>", func=self.browseHistory)
-        self.entry.focus_set()
 
 
         ''' Load custom modules '''
         for mod in MODS.keys():
-            module = imp.load_source('module.name', mod)
+            module = imp.load_source('module.name', "modules/%s"%mod)
             ropemod = module.RopeModule(self)
             MODS[mod] = ropemod
 
         
-        MODS['mod_playerbox.py'].enable()
+        MODS['core_output.py'].enable()
+        MODS['core_entry.py'].enable()
+        MODS['core_playerbox.py'].enable()
+        
+        
+        
         
         
         self.CONFIG = True
@@ -128,6 +115,38 @@ class Window:
         reactor.stop()
         sys.exit(1)
     
+    
+    def addHook(self,name,func):
+        if name in self.hooks:
+            if func not in self.hooks[name]:
+                self.hooks[name].append(func)
+                return True
+            return False
+        return False
+
+    def delHook(self,name,func):
+        if name in self.hooks:
+            if func in self.hooks[name]:
+                self.hooks[name].remove(func)
+                return True
+            return False
+        return False
+    
+    def callHook(self,name,data):
+        for hook in self.hooks[name]:
+            hook(data)
+            
+    def receiveMessage(self,data):
+        tok = data.split()
+        header = tok[0].lower()
+        
+    def debugIO(self,data):
+        print "Output:",data
+        
+    def display(self,data):
+        self.callHook('output',data)
+        
+    ''' Below are functions which need cleaning '''
     
     def addHistory(self,line):
         print "addHistory"
@@ -190,8 +209,8 @@ class Window:
                        'tell':self.vars['tell']}
         
         #self.display_line("Your nick is: %s"%self.nick)
-        self.writeOutput("Connecting to: %s"%self.host)
-        self.output.yview(END)
+        self.display("Connecting to: %s"%self.host)
+        
         return True
     
     def setTitle(self):
@@ -323,7 +342,7 @@ class Window:
                 self.connection.write(u"msg %s"%(data))
 
         except:
-            self.display_line("!!!!Something went wrong. I might crash!!!")
+            self.display("!!!!Something went wrong. I might crash!!!")
             print ("ERRORROREORE")
             raise
 
@@ -353,7 +372,7 @@ class Client(LineReceiver):
 
         
     def connectionMade(self):
-        self.window.display_line("Connected!")
+        self.window.display("Connected!")
         self.write("hsk SUPERHANDSHAKE 3")
         #self.write("nck %s"%(self.window.nick))
         #self.write("dfa %s"%(self.window.vars['default-action']))
@@ -363,6 +382,11 @@ class Client(LineReceiver):
     def lineReceived(self, data):
         data = data.decode('utf-8')
         #print "lineReceived",data
+        
+        self.window.callHook('receiveMessage',data)
+            
+        
+        return
         if len(data) < 2: return
         tok = data.split(' ')
         hdr = tok[0]
@@ -443,11 +467,12 @@ class CFactory(ReconnectingClientFactory):
         return client
 
     def clientConnectionLost(self, connector, reason):
-        self.window.display_line(' Lost connection. Reason:' + str(reason))
+        self.window.display(' Lost connection. Reason:' + str(reason.getErrorMessage()))
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
-        self.window.display_line( 'Connection failed. Reason:' + str(reason))
+        print dir(reason)
+        self.window.display( 'Connection failed. Reason:' + str(reason.getErrorMessage()))
         ReconnectingClientFactory.clientConnectionFailed(self, connector,
                                                          reason)
 
@@ -456,10 +481,10 @@ if __name__ == '__main__':
     print ("Loading..")
     window = Window()
     
-    window.writeOutput("Installing tksupport")
+    window.display("Installing tksupport")
     tksupport.install(window.root)
     if window.CONFIG:
-        window.writeOutput("Connecting to server..")
+        window.display("Connecting to server..")
         reactor.connectTCP(window.host, 49500, CFactory(window))
     else: window.display_line("Fix your config before you can continue connecting.")
     try: reactor.run()
