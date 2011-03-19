@@ -302,10 +302,12 @@ class World:
 class Account:
     def __init__(self,world,name,pwd):
         self.world=world
-        self.name    = name.lower()
+        self.id      = name.lower()
+        self.name    = name
         self.pwd     = pwd
         self.avatars = {}
         self.gm   = False
+        self.world.accounts[self.id] = self
     
     def hasAvatar(self,avatarid):
         for avatar in self.avatars:
@@ -534,7 +536,7 @@ class Player(LineReceiver):
                         self.handle = self.handleGame
                     else: self.write("Invalid password");self.transport.loseConnection();self.state = -1
                 else:
-                    self.world.accounts[self.account] = Account(self.world,self.nick,self.pwd)#fixed a bug here, does it work?
+                    Account(self.world,self.nick,self.pwd)#fixed a bug here, does it work? Maybe..
                     # do a save
                     self.account = self.world.accounts[self.account]
                     self.world.saveAll()
