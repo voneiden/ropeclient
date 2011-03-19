@@ -22,12 +22,19 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
 
+''' Hard imports, do not modify '''
 from Tkinter import *
 from ScrolledText import ScrolledText
 import ConfigParser, logging, time, re, hashlib
 from twisted.internet import tksupport, reactor
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
+
+''' Custom module imports, you may modify at your will '''
+MODS = {'mod_playerbox.py':None}
+import imp
+
+
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -37,28 +44,42 @@ logging.basicConfig(level=logging.DEBUG,
 
 class Window:
     def __init__(self):
+        ''' This initializes the main window
+        First a root window is created, which is then filled by a core widget called
+        frame. This frame will contain all the other widgets required to assemble the client.
+        The frame has a grid structure.
+        '''
+        
+        ''' Create the root '''
         self.root = Tk()
         self.root.protocol("WM_DELETE_WINDOW", self.stop)
         self.root.title('Ropeclient')
-        self.mainframe = Frame(self.root,background="black")
-        self.mainframe.pack(fill=BOTH,expand=YES)
-        self.mainframe2 = Frame(self.root)
-        self.mainframe2.pack(fill=BOTH,expand=NO)
-
-        self.textarea = ScrolledText(self.mainframe,width=80,height=20,
+        
+        ''' Create the frame and define position 0,0 as the main expander '''
+        self.frame = Frame(self.root,background="black")
+        self.frame.pack(fill=BOTH,expand=YES)
+        self.frame.grid_rowconfigure(0,weight=1)
+        self.frame.grid_columnconfigure(0,weight=1)
+        
+        
+        ''' Create the textarea that contains main output buffer '''
+        self.output = ScrolledText(self.frame,width=80,height=20,
                                      wrap=WORD,
                                      state=DISABLED, background="black",foreground="white")
-        self.textarea.pack(side=LEFT,fill=BOTH, expand = YES)
-        self.textarea.bind(sequence="<FocusIn>", func=self.returnfocus)
+        self.output.grid(row=0,column=0)
+        self.output.bind(sequence="<FocusIn>", func=self.returnfocus)
         
-        self.listbox = Listbox(self.mainframe,width=12,background="black",foreground="white")
-        self.listbox.pack(side=LEFT,fill=BOTH,expand=NO)
+        
+        
+        
+        
+        ''' Create the entry box for input '''
         self.command = StringVar()
-        self.entry = Entry(self.mainframe2,
+        self.entry = Entry(self.frame,
                              textvariable=self.command,
                            background="black",foreground="white",
                              state=NORMAL, insertbackground="white")
-        self.entry.pack(side=BOTTOM,anchor="w",fill=X, expand = NO)
+        self.entry.grid(row=1,column=0,sticky=E+W)
         self.entry.bind(sequence="<Return>", func=self.process)
         self.entry.bind(sequence="<BackSpace>",func=self.backspace)
         self.entry.bind(sequence="<Key>", func=self.keypress)
@@ -69,6 +90,17 @@ class Window:
         self.entry.bind(sequence="<Down>", func=self.browseHistory)
         self.entry.focus_set()
 
+
+        ''' Load custom modules '''
+        for mod in MODS.keys():
+            module = imp.load_source('module.name', mod)
+            ropemod = module.RopeModule(self)
+            MODS[mod] = ropemod
+
+        
+        MODS['mod_playerbox.py'].enable()
+        
+        
         self.CONFIG = True
         self.typing = False
  
@@ -158,8 +190,8 @@ class Window:
                        'tell':self.vars['tell']}
         
         #self.display_line("Your nick is: %s"%self.nick)
-        self.display_line("Connecting to: %s"%self.host)
-        self.textarea.yview(END)
+        self.writeOutput("Connecting to: %s"%self.host)
+        self.output.yview(END)
         return True
     
     def setTitle(self):
@@ -177,16 +209,15 @@ class Window:
             if id in player[0]: player[1] = status
         self.update_players()
     
-    def display_line(self,text,timestamp=None,owner=None):
+    def writeOutput(self,text,timestamp=None,owner=None):
         if not timestamp: timestamp = time.time()
-        print "scroll1:",self.textarea.yview()
-        if self.textarea.yview()[1] == 1.0: scroll = True
+        if self.output.yview()[1] == 1.0: scroll = True
         else: scroll = False
         if owner:
             tag   = timestamp
-            self.textarea.tag_config(tag)
+            self.output.tag_config(tag)
         
-        self.textarea.config(state=NORMAL)
+        self.output.config(state=NORMAL)
         asciitime = time.strftime('[%H:%M:%S]', time.localtime(float(timestamp)))
         #if owner: self.textarea.mark_set(start, END);self.textarea.mark_gravity(start,LEFT
         text = self.wrap(text)
@@ -195,17 +226,17 @@ class Window:
         if owner:
             print "TAGA",tag
             for piece in text:
-                self.textarea.insert(END, piece[1],(piece[0],tag))
+                self.output.insert(END, piece[1],(piece[0],tag))
         else:
             for piece in text:
-                self.textarea.insert(END, piece[1],piece[0])
+                self.output.insert(END, piece[1],piece[0])
         #if owner: self.textarea.mark_set(end, END);self.textarea.mark_gravity(end,LEFT)
-        self.textarea.insert(END,'\n')
+        self.output.insert(END,'\n')
  
         
         
-        print "scroll2",self.textarea.yview()
-        if scroll: self.textarea.yview(END)
+        print "scroll2",self.output.yview()
+        if scroll: self.output.yview(END)
         '''
         if owner:
             print "Checking tag.."
@@ -213,22 +244,22 @@ class Window:
             print dir(a)
             self.textarea.delete(a,b)
         '''  
-        self.textarea.config(state=DISABLED)
+        self.output.config(state=DISABLED)
 
     def edit_line(self,text,timestamp):
         print "Got edit",text #Edit needs to check if the mark exists!
         tag = "%s"%timestamp
         print "TAGE",tag
-        self.textarea.config(state=NORMAL)
+        self.output.config(state=NORMAL)
         asciitime = time.strftime('[%H:%M:%S]*', time.localtime(float(timestamp)))
-        a,b= self.textarea.tag_ranges(tag) #<- this will fail TODO TODO TODOValueError
-        self.textarea.delete(a,b)
+        a,b= self.output.tag_ranges(tag) #<- this will fail TODO TODO TODOValueError
+        self.output.delete(a,b)
         text = self.wrap(text)
         ts = ('grey',"%s "%(asciitime))
         text.insert(0,ts)
         text.reverse()
         for piece in text:
-            self.textarea.insert(a, piece[1],(piece[0],tag))
+            self.output.insert(a, piece[1],(piece[0],tag))
         #text = self.wrap(text)
         #ts = ('grey',"%s "%(asciitime))
         #text.insert(0,ts)
@@ -238,7 +269,7 @@ class Window:
         
  
         
-        self.textarea.config(state=DISABLED)
+        self.output.config(state=DISABLED)
         
     def wrap(self,text):
         buf = []
@@ -425,10 +456,10 @@ if __name__ == '__main__':
     print ("Loading..")
     window = Window()
     
-    window.display_line("Installing tksupport")
+    window.writeOutput("Installing tksupport")
     tksupport.install(window.root)
     if window.CONFIG:
-        window.display_line("Connecting to server..")
+        window.writeOutput("Connecting to server..")
         reactor.connectTCP(window.host, 49500, CFactory(window))
     else: window.display_line("Fix your config before you can continue connecting.")
     try: reactor.run()
