@@ -61,20 +61,41 @@ RC TODO
 -create avatar should use current avatar location
 '''
 
-
-
-
-
-
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
-import hashlib, random, re, pickle, time, os
+import hashlib, random, re, pickle, time, os, imp
 
+
+''' The basic modules to load
+     -core_singlechannel provides a single chat room, and contains no save/load features
+     -core_multichannel provides functionality for multiple rooms and characters.. maybe not a good idea
+'''
+
+MODS = {
+'core_singlechannel.py':None,
+'core_dispatcher.py':None}
 
 class Game:
     def __init__(self):
-        print "Intializing game"
+        self.hooks = {'output':[],
+                      'receiveMessage':[],
+                      'sendMessage':[]}
+        self.addHook('output',self.debugIO)
+        self.display("Intializing game")
+        
+        for mod in MODS.keys():
+            module = imp.load_source('module.name', "modules/%s"%mod)
+            ropemod = module.RopeModule(self)
+            MODS[mod] = ropemod
+
+        
+        MODS['core_singlechannel.py'].enable()
+        MODS['core_dispatcher.py'].enable()
+        
+        
+        
+        ''' Obsolete stuff
         messages = self.pickleLoad('./messages.data')
         world    = self.pickleLoad('./world.data')
         
@@ -95,6 +116,33 @@ class Game:
         
         self.world.timestamps = []
         print "Game initialized"
+        '''
+        
+    def addHook(self,name,func):
+        if name in self.hooks:
+            if func not in self.hooks[name]:
+                self.hooks[name].append(func)
+                return True
+            return False
+        return False
+
+    def delHook(self,name,func):
+        if name in self.hooks:
+            if func in self.hooks[name]:
+                self.hooks[name].remove(func)
+                return True
+            return False
+        return False
+    
+    def callHook(self,name,data):
+        if name in self.hooks.keys():
+            for hook in self.hooks[name]:
+                hook(data)
+
+        else: 
+            self.display("callHook: %s not found."%name)
+
+            
     def pickleLoad(self,filename):
         try:
             f = open(filename,'rb')
@@ -103,6 +151,10 @@ class Game:
             return x
         except: return False
     
+    def display(self,data):
+        self.callHook('output',data)
+    def debugIO(self,data):
+        print "Output:",data
 class Messages(dict):
     def __init__(self):
         self.counter = 1
@@ -426,6 +478,9 @@ class Location:
 
 class Player(LineReceiver):
     def connectionMade(self):
+        self.parent = self.factory.game
+        self.parent.callHook("connectionMade","")
+        return
         print "connectionMade"
         self.handle   = self.handleLogin
         self.state    = 0
@@ -481,7 +536,8 @@ class Player(LineReceiver):
     def lineReceived(self, data):
         #print("Line received!")
         data = data.decode('utf-8')
-        self.handle(data)
+        self.parent.callHook("receiveMessage",[self,data])
+        #self.handle(data)
     
     def connectionLost(self,reason):
         if not self.state == -1: self.world.disconnectPlayer(self)
@@ -838,7 +894,7 @@ class Player(LineReceiver):
 class PlayerFactory(Factory):
     def __init__(self,game):
         self.protocol = Player
-        self.world    = game.world
+        self.game    = game
 
 
    

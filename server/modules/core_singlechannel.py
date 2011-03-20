@@ -29,14 +29,33 @@ Ropeserver singelchannel core module
 This module intends to provide the basic functionality for 
 single channel chatting.
 '''
+import time
 
 class RopeModule:
     def __init__(self,parent):
+        self.parent = parent
+        self.players = {}
         
-    
+        
     def enable(self):
         self.parent.addHook('receiveMessage',self.receiveMessage)
     
     def disable(self):
         pass
     
+    def receiveMessage(self,data):
+        ''' The server receiveMessage should be type list, and contains
+            the sender player and data string '''
+        if type(data) != list: self.display("Received data not a list");return
+        player = data[0]
+        text   = data[1]
+        tok    = text.split(' ')
+        header = tok[0].lower()
+    
+        if header == "hsk" and len(tok) > 2:
+            if tok[2] == 2: player.write("msg Welcome to Ropeclient")
+            else: self.parent.callHook('sendMessage',[player,"Your version is invalid."])
+            
+            
+    def display(self,data):
+        self.parent.display("core_singlechannel: %s"%data)
