@@ -73,6 +73,7 @@ import hashlib, random, re, pickle, time, os, imp
 '''
 
 MODS = {
+'core_module.py':None,
 'core_singlechannel.py':None,
 'core_dispatcher.py':None}
 
@@ -80,7 +81,8 @@ class Game:
     def __init__(self):
         self.hooks = {'output':[],
                       'receiveMessage':[],
-                      'sendMessage':[]}
+                      'sendMessage':[],
+                      'requireModule':[]}
         self.addHook('output',self.debugIO)
         self.display("Intializing game")
         
@@ -89,7 +91,7 @@ class Game:
             ropemod = module.RopeModule(self)
             MODS[mod] = ropemod
 
-        
+        MODS['core_module.py'].enable()
         MODS['core_singlechannel.py'].enable()
         MODS['core_dispatcher.py'].enable()
         
@@ -137,6 +139,7 @@ class Game:
     def callHook(self,name,data):
         if name in self.hooks.keys():
             for hook in self.hooks[name]:
+                print "Calling hook:",name,hook
                 hook(data)
 
         else: 
@@ -481,6 +484,9 @@ class Player(LineReceiver):
         self.parent = self.factory.game
         self.parent.callHook("connectionMade","")
         return
+    
+    
+    '''
         print "connectionMade"
         self.handle   = self.handleLogin
         self.state    = 0
@@ -532,7 +538,7 @@ class Player(LineReceiver):
         
         self.world = self.factory.world
         print "end connection made"
-        
+    '''    
     def lineReceived(self, data):
         #print("Line received!")
         data = data.decode('utf-8')
@@ -540,8 +546,9 @@ class Player(LineReceiver):
         #self.handle(data)
     
     def connectionLost(self,reason):
-        if not self.state == -1: self.world.disconnectPlayer(self)
-    
+        self.parent.callHook("connectionLost",self)
+        
+
     def write(self,data,newline=True):
         if newline: data = ("%s\r\n"%data).encode('utf-8')
         self.transport.write(data)

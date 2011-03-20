@@ -53,9 +53,23 @@ class RopeModule:
         header = tok[0].lower()
     
         if header == "hsk" and len(tok) > 2:
-            if tok[2] == 2: player.write("msg Welcome to Ropeclient")
+            if tok[2] == "3": 
+                self.parent.callHook("requireModule",[player,"enable","core_output.py"])
+                self.parent.callHook("requireModule",[player,"enable","core_entry.py"])
+                self.parent.callHook("requireModule",[player,"enable","core_playerbox.py"])
+                
+                self.msgPlayer(player,"Welcome to Ropeclient")
             else: self.parent.callHook('sendMessage',[player,"Your version is invalid."])
+        elif header == "msg" and len(tok) > 2:
+            text = " ".join(tok[1:])
             
+        else:
+            self.display("Received unknown packet")
             
     def display(self,data):
         self.parent.display("core_singlechannel: %s"%data)
+        
+    def msgPlayer(self,player,text):
+        self.parent.callHook('sendMessage',[player,text])
+        
+        

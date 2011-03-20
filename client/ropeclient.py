@@ -34,7 +34,6 @@ from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
 
 ''' Custom module imports, you may modify at your will '''
-MODS = {'core_output.py':None,'core_playerbox.py':None,'core_entry.py':None}
 import imp
 
 
@@ -77,15 +76,15 @@ class Window:
 
 
         ''' Load custom modules '''
-        for mod in MODS.keys():
-            module = imp.load_source('module.name', "modules/%s"%mod)
-            ropemod = module.RopeModule(self)
-            MODS[mod] = ropemod
+        self.mods = {'core_module.py':None,'core_output.py':None,'core_playerbox.py':None,'core_entry.py':None}
 
-        
-        MODS['core_output.py'].enable()
-        MODS['core_entry.py'].enable()
-        MODS['core_playerbox.py'].enable()
+        for mod in self.mods.keys():
+            self.modLoad(mod)
+
+        self.mods['core_module.py'].enable()
+        #self.mods['core_output.py'].enable()
+        #self.mods['core_entry.py'].enable()
+        #self.mods['core_playerbox.py'].enable()
         
         
         
@@ -112,7 +111,15 @@ class Window:
         self.cHistory = ''
         #for i in xrange(10): self.lHistory.append('')
         self.iHistory = 0
-    
+    def modLoad(self,mod):
+        try:
+            module = imp.load_source('module.name', "modules/%s"%mod)
+            ropemod = module.RopeModule(self)
+            self.mods[mod] = ropemod
+            return True
+        except:
+            self.display("Failed to load requested module: %s"%mod)
+            return False
     def stop(self):
         self.root.destroy()
         reactor.stop()
