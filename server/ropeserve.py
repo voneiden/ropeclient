@@ -77,6 +77,19 @@ MODS = {
 'core_singlechannel.py':None,
 'core_dispatcher.py':None}
 
+class Event: 
+    pass
+
+class Module:
+    pass
+
+class Game:
+    def __init__(self):
+        pass
+    
+    
+
+
 class Game:
     def __init__(self):
         self.hooks = {'output':[],
