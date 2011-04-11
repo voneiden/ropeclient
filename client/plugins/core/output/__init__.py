@@ -25,11 +25,11 @@ from Tkinter import N,S,E,W,WORD,DISABLED,NORMAL, StringVar, END
 from ScrolledText import ScrolledText
 import time,re
 
-class RopeModule:
+class Plugin:
     ''' This module defines the basic output textbox
     '''
-    def __init__(self,parent):
-        self.parent = parent
+    def __init__(self,core):
+        self.parent = core
         self.widget = ScrolledText(self.parent.frame,width=80,height=20,
                                      wrap=WORD,
                                      state=DISABLED, background="black",foreground="white")
@@ -37,12 +37,12 @@ class RopeModule:
     def enable(self):
         self.widget.grid(row=0,column=0,sticky=N+S+W+E)
         self.widget.bind(sequence="<FocusIn>", func=self.defocus)
-        self.parent.addHook('output',self.output)
-        self.parent.addHook('receiveMessage',self.receiveMessage)
+        self.parent.event.add('output',self.output)
+        self.parent.event.add('lineReceived',self.receiveMessage)
     def disable(self):
         self.widget.grid_remove()
         self.parent.delHook('output',self.output)
-        self.parent.delHook('receiveMessage',self.receiveMessage)
+        self.parent.delHook('lineReceived',self.receiveMessage)
         
     def defocus(self,event):
         pass
@@ -61,8 +61,9 @@ class RopeModule:
         self.widget.config(state=DISABLED)
         self.widget.yview(END)
         
-    def receiveMessage(self,data):
-        tok = data.split(" ")
+    def receiveMessage(self,kwargs):
+        
+        tok = kwargs['tok']
         header = tok[0].lower()
         
         if header == 'msg' and len(tok) > 3:

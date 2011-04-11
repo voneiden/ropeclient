@@ -21,13 +21,13 @@
 
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
-from Tkinter import Entry,N,S,E,W
+from Tkinter import Entry,N,S,E,W,StringVar,NORMAL
 
-class RopeModule:
+class Plugin:
     ''' This is the entry module, it takes user input
     '''
-    def __init__(self,parent):
-        self.parent   = parent
+    def __init__(self,core):
+        self.parent   = core
         self.depends  = []
         self.contents = StringVar()
         self.widget = Entry(self.parent.frame,
@@ -51,10 +51,10 @@ class RopeModule:
         #self.widget.bind(sequence="<Down>", func=self.browseHistory)
         self.widget.focus_set()
         
-        self.parent.addHook('receiveMessage',self.receiveMessage)
+        self.parent.event.add('lineReceived',self.receiveMessage)
     def disable(self):
         self.listbox.grid_remove()
-        self.parent.delHook('receiveMessage',self.receiveMessage)
+        self.parent.event.add('lineReceived',self.receiveMessage)
         
     def keypress(self,event):
         buffer = self.contents.get()
@@ -84,8 +84,8 @@ class RopeModule:
     def scroll(self,event):
         pass
     
-    def receiveMessage(self,data):
-        tok = data.split()
+    def receiveMessage(self,kwargs):
+        tok = kwargs['tok']
         header = tok[0].lower()
         
         if   header == 'pwd':

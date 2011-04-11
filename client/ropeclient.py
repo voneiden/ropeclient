@@ -44,6 +44,28 @@ logging.basicConfig(level=logging.DEBUG,
                     filename='ropeclient.log')
 
 
+
+class Event:
+    def __init__(self):
+        self.events = {}
+        
+    def add(self,name,func):
+        if name not in self.events: self.events[name] = []
+        self.events[name].append(func)
+        return True
+    
+    def rem(self,name,func):
+        if name not in self.events: return False
+        if func not in self.events[name]: return False
+        self.events[name].remove(func)
+        return True
+    
+    def call(self,name,kwargs):
+        if name not in self.events: return False
+        for event in self.events[name]:
+            event(kwargs)
+
+
 class Window:
     def __init__(self):
         ''' This initializes the main window
@@ -61,11 +83,14 @@ class Window:
         self.root.title('Ropeclient')
         
         
-        ''' Create hooks '''
-        self.hooks = {
-        'receiveMessage':[self.debugNET],
-        'output':[self.debugIO]
-        }
+        ''' Create the event subsystem '''
+        self.event = Event()
+        
+        #''' Create hooks '''
+        #self.hooks = {
+        #'receiveMessage':[self.debugNET],
+        #'output':[self.debugIO]
+        #}
         
         ''' Create the frame and define position 0,0 as the main expander '''
         self.frame = Frame(self.root,background="black")
@@ -76,16 +101,20 @@ class Window:
 
 
         ''' Load custom modules '''
-        self.mods = {'core_module.py':None,'core_output.py':None,'core_playerbox.py':None,'core_entry.py':None}
+        #self.mods = {'core_module.py':None,'core_output.py':None,'core_playerbox.py':None,'core_entry.py':None}
+        #
+        #for mod in self.mods.keys():
+        #    self.modLoad(mod)
 
-        for mod in self.mods.keys():
-            self.modLoad(mod)
-
-        self.mods['core_module.py'].enable()
+        #self.mods['core_module.py'].enable()
         #self.mods['core_output.py'].enable()
         #self.mods['core_entry.py'].enable()
         #self.mods['core_playerbox.py'].enable()
         
+        # This enables the autoloading of plugins upon request by server!
+        import plugins.core.hotplug
+        self.hotplug = plugins.core.hotplug.Plugin(self)
+        self.hotplug.enable()
         
         
         
@@ -125,26 +154,7 @@ class Window:
         reactor.stop()
         sys.exit(1)
     
-    
-    def addHook(self,name,func):
-        if name in self.hooks:
-            if func not in self.hooks[name]:
-                self.hooks[name].append(func)
-                return True
-            return False
-        return False
-
-    def delHook(self,name,func):
-        if name in self.hooks:
-            if func in self.hooks[name]:
-                self.hooks[name].remove(func)
-                return True
-            return False
-        return False
-    
-    def callHook(self,name,data):
-        for hook in self.hooks[name]:
-            hook(data)
+ 
             
         
     def debugNET(self,data):
@@ -154,7 +164,7 @@ class Window:
         print "Output:",data
         
     def display(self,data):
-        self.callHook('output',data)
+        self.event.call("display",{'text':data})
         
     ''' Below are functions which need cleaning '''
     
@@ -383,17 +393,17 @@ class Client(LineReceiver):
         
     def connectionMade(self):
         self.window.display("Connected!")
-        self.write("hsk SUPERHANDSHAKE 3")
+        self.write("hsk 2.0.alpha-1")
         #self.write("nck %s"%(self.window.nick))
         #self.write("dfa %s"%(self.window.vars['default-action']))
         #self.write("clr highlight %s"%(self.window.colors['highlight']))
         
         
     def lineReceived(self, data):
-        data = data.decode('utf-8')
-        #print "lineReceived",data
+        data = data.decode('utf-8').strip()
+        tok = data.split(' ')
         
-        self.window.callHook('receiveMessage',data)
+        self.window.event.call('lineReceived',{'text':data, 'tok':tok})
             
         
         return
