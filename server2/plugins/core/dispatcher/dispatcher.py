@@ -17,6 +17,7 @@ class Plugin:
         self.timestamps = []
         
     def sendMessage(self,kwargs):
+        print "plugins.core.dispatcher: sendMessage()"
         if not kwargs.has_key('message') or not kwargs.has_key('to'):
             print "plugins.core.dispatcher: Unable to process an event."
             return

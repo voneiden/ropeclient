@@ -12,6 +12,7 @@ class Plugin:
         
         self.core.event.add("connectionMade",self.connectionMade)
         
+        self.motd = open('strings/motd.txt','r').read()
         
     def connectionMade(self,kwargs):
         print "plugins.core.login: Connection made"
@@ -46,7 +47,10 @@ class Plugin:
                 self.core.event.call("sendMessage",{'to':player,'message':"Outdated version. You're running %s, server is running %s."%(tok[1],self.core.version)})
             else:
                 self.core.event.call("sendMessage",{'to':player,'message':"Version up to date."})
+                self.core.event.call("sendMessage",{'to':player,'message':self.motd})
+                self.core.event.call("sendMessage",{'to':player,'message':"What is your name?"})
             player.version = tok[1]
                 
-                
+        elif not player.account:
+            self.core.event.call("sendMessage",{'to':player,'message':"Hello %s!"%line})
 
