@@ -4,12 +4,24 @@ https://github.com/voneiden/ropeclient/tree/0.B-RC1
 
 The master branch is under massive clean up and redesign and probably not working.
 
-1.0 Quickstart
+1.0 Development plan (as of April 27th 2011)
 
-The wiki page contains basic instructions 
-https://github.com/voneiden/ropeclient/wiki so please check there for 
-updates on how to use. The homepage http://www.eiden.fi/ropeclient is 
-slightly outdated, but contains some win32 builds. 
+Slowly but surely I'm reworking the whole idea. When I first created ropeclient, it
+was programmed as ideas came, with little flexibility in mind. It served its purpose
+well but in general I didn't like how the code looked and the poor structure it had.
+
+Thus I started multiple rewrites. I lost track how many rewrites I've started, though
+that's probably visible on the github commit history. Currently the system features a
+few notable things
+
+Client side
+- Server can request to enable and disable custom modules. This allows easy development of
+custom servers without having to rewrite any original client source code.
+
+Server side
+- All functions are nicely sorted into modules. Currently there are modules for things like loggin in and protocol.
+- There's a good event system, which allows modules to communicate with each others.
+
 
 2.0 Installation
 Ropeclient runs on any nix system that has python 2.x and the following 
@@ -29,34 +41,24 @@ used for anykind of ropeclient related discussion, from ideas to issues.
 
 
 4.0 Protocol specification
-The protocol is constantly changing. All major versions are incompatible 
-with each others protocol wise. For the time being I have settled with a 
-line based protocol, where each message between client and server is 
-terminated by a CRLF. Currently an example of the protocol goes roughly 
-like follows..
+The protocol is in the most recent version relatively simple. The bulk 
+of the data exchanged between the server and the client is made of msg packets.
 
-4.1 Connecting to server after connection established.
-1) Client  -> Server "hsk SUPERHANDSHAKE [int:protocolVersion]\r\n"
-2) Server  -> Client "[string:greeting]"
-2) Client  -> Server "nck [string:username\r\n"
-3) Client  -> Server "clr highlight [string:color]\r\n"
-4) Server  -> Client "pwd [string:passwordRequestGreeting]\r\n"
-5) Client  -> Server "pwd [string(sha256hexdigest):password]\r\n"
+Client to server: msg body
+Server to client: msg timestamp owner body
 
-4.2 Post login communication
+Body is the message payload, timestamp is the message ID and time when it was created.
+Originally this message ID was created to allow editing of previous messages in a Skype
+like fashion. Finally the owner is the owner of the message, to help the client figure
+what it's able to edit and what not.
 
-Client  -> Server "pit" (player is typing)
-Client  -> Server "pnt" (player not typing)
-Client <-  Server "pit [string:playerID]"
-Client <-  Server "pnt [string:playerID]"
-Client <-  Server "lop [playerID1 playerID2 playerIDn]" (list of players)
-Client  -> Server "msg [string:content]"
-Client <-  Server "msg [string:owner] [float:timestamp] [strint:content]
+Other packets include the "pwd" packet which when sent by the server to client toggles
+the password mode - the core entry box will display stars instead of characters and all
+sent messages will be hashed.
 
-4.3 Other protocols
+4.3 People wanting to play though other protocols.
 
-Plans exist for other protocols. Main targets will be IRC and telnet. 
-This will of course cause some limitations in coloring etc.. So it must 
-be thought of still.
+There were plans, but I'm not working on anything like that at the moment. In theory
+it should be relatively possible through the modularity of the server.
 
 
