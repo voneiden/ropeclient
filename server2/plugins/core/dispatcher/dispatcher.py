@@ -11,6 +11,7 @@ class Plugin:
         self.core  = core
         
         self.core.event.add("sendMessage",self.sendMessage)
+        self.core.event.add("modPassword",self.modPassword)
         self.core.event.add("enablePlugin",self.enablePlugin)
         self.core.event.add("disablePlugin",self.disablePlugin)
         
@@ -62,3 +63,9 @@ class Plugin:
         player.write(message)
         return True
         
+        
+    def modPassword(self,kwargs):
+        if not kwargs.has_key('to'): return False
+        to = kwargs['to']
+        message = "pwd"
+        to.write(message)

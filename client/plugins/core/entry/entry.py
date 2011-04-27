@@ -22,7 +22,7 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
 from Tkinter import Entry,N,S,E,W,StringVar,NORMAL
-
+import sha
 class Plugin:
     ''' This is the entry module, it takes user input
     '''
@@ -50,6 +50,8 @@ class Plugin:
         #self.widget.bind(sequence="<Up>",   func=self.browseHistory)
         #self.widget.bind(sequence="<Down>", func=self.browseHistory)
         self.widget.focus_set()
+        self.hide = 0
+        self.widget.config(show='')
         
         self.parent.event.add('lineReceived',self.receiveMessage)
     def disable(self):
@@ -62,7 +64,9 @@ class Plugin:
             buffer = buffer[:-1]
         elif event.keysym == "Return":
             if self.parent.connection:
-                self.parent.connection.write("msg %s"%buffer)
+                if self.hide: msg = sha.sha(buffer).hexdigest()
+                else:         msg = buffer
+                self.parent.connection.write("msg %s"%msg)
                 self.contents.set("")
                 buffer=""
         
@@ -92,8 +96,8 @@ class Plugin:
             self.hide = (self.hide+1)%2
             if self.hide: self.widget.config(show='*')
             else:         self.widget.config(show='')
-            msg = " ".join(tok[1:])
-            self.parent.display(msg)
+            #msg = " ".join(tok[1:])
+            #self.parent.display(msg)
             
         if header == 'nck':
             pass
