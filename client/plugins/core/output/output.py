@@ -39,10 +39,12 @@ class Plugin:
         self.widget.bind(sequence="<FocusIn>", func=self.defocus)
         self.parent.event.add('output',self.output)
         self.parent.event.add('lineReceived',self.receiveMessage)
+        self.parent.event.add('connectionLost',self.connectionLost)
     def disable(self):
         self.widget.grid_remove()
         self.parent.event.rem('output',self.output)
         self.parent.event.rem('lineReceived',self.receiveMessage)
+        self.parent.event.rem('connectionLost',self.connectionLost)
         
     def defocus(self,event):
         pass
@@ -91,3 +93,6 @@ class Plugin:
             
         return buffer
     
+    def connectionLost(self,kwargs):
+        self.output("Connection lost! (Either the internet broke down or you caused a bug!)")
+        

@@ -76,9 +76,11 @@ class Plugin:
         if len(buffer) == 0 and self.typing: 
             self.typing = False
             print "PNT" #Send PNT
+            self.parent.connection.write("pnt")
         elif len(buffer) > 0 and not self.typing: 
             self.typing = True
             print "PIT" #Send PIT
+            self.parent.connection.write("pit")
     
         #print dir(event)
         #print event.keycode

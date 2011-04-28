@@ -32,9 +32,7 @@ import ConfigParser, logging, time, re, hashlib
 from twisted.internet import tksupport, reactor
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
-
-''' Custom module imports, you may modify at your will '''
-import imp
+import imp, sys
 
 
 
@@ -140,6 +138,10 @@ class Window:
         self.cHistory = ''
         #for i in xrange(10): self.lHistory.append('')
         self.iHistory = 0
+        
+        
+        ''' Debugging stuff '''
+        
     def modLoad(self,mod):
         try:
             module = imp.load_source('module.name', "modules/%s"%mod)
@@ -461,7 +463,7 @@ class Client(LineReceiver):
             self.window.display_line("Corrupted packet %s"%data)
     
     def connectionLost(self,reason):
-        pass
+        self.window.event.call('connectionLost',{'reason':reason})
 
     def write(self,data):
         data = data+'\r\n'

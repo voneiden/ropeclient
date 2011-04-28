@@ -86,7 +86,7 @@ class Plugin:
                 self.sendMessage(player,"What is your name?")
             player.version = tok[1]
                 
-        elif not player.account:
+        elif not player.account and len(tok) > 1:
             name = tok[1].lower()
             if name in self.passwords:
                 player.account = name
@@ -97,7 +97,7 @@ class Plugin:
                 player.account = (name,1)
                 
                 
-        else:
+        elif len(tok) > 1:
             # If player is creating a new account, verify that's what he wants!
             if type(player.account) == tuple:
                 if tok[1][0].lower() == "y":
@@ -134,7 +134,7 @@ class Plugin:
                     f.close()
                     
                     
-                
+        else: print "plugins.core.login: ignored packet",line
                 
 
     def sendMessage(self,to,message):

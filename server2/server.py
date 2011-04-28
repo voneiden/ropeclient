@@ -87,6 +87,10 @@ class Player(LineReceiver):
     def write(self,data,newline=True):
         if newline: data = ("%s\r\n"%data).encode('utf-8')
         self.transport.write(data)
+    def connectionLost(self,reason):
+        self.core.event.call('connectionLost',{'player':self})
+        
+        
     def disconnect(self): self.transport.loseConnection()
 class Network(Factory):
     def __init__(self,core):
