@@ -19,6 +19,7 @@ class Plugin:
         self.sendMessage(player,"* To join the chatroom, type: /chatroom (%i players online)"%len(self.players))
         player.event.add("lineReceived",self.lineReceived)
         player.typing = False
+        player.name   = player.account
         
     def connectionLost(self,kwargs):
         player = kwargs['player']
@@ -41,7 +42,12 @@ class Plugin:
             if tok[1].lower() == '/chatroom':
                 self.addPlayer(player)
         else:
-            pass
+            if tok[1].lower() == '/name' and len(tok) > 2:
+                player.name = " ".join(tok[2:])
+                # TODO: somehow notify the player of the character name..
+            else:
+                self.sendMessage(self.players,'''%s says, "%s"'''%(player.name," ".join(tok[1:])))
+                
         
         
     def addPlayer(self,player):
@@ -49,11 +55,14 @@ class Plugin:
         self.players.append(player)
         self.core.event.call("enablePlugin",{'to':player, 'plugin':'plugins.core.playerbox'})
         self.sendListOfPlayers()
+        self.sendMessage(player,"Please set your character name using the command: /name")
+        self.sendMessage(self.players,"%s has joined the game!"%player.account)
         
     def remPlayer(self,player):
         print "plugins.core.chatroom: renPlayer"
         self.players.remove(player)
         self.sendListOfPlayers()
+        self.sendMessage(self.players,"%s has left the game!"%player.account)
         
     def sendListOfPlayers(self):
         players = []
@@ -71,3 +80,6 @@ class Plugin:
         for player in self.players:
             player.write(buf)
             
+    #def sendAnnounce(self,message):
+    #    for player in self.players:
+    #        sendMessage
