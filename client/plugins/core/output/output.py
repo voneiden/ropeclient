@@ -34,6 +34,9 @@ class Plugin:
                                      wrap=WORD,
                                      state=DISABLED, background="black",foreground="white")
         self.widget.yview(END)
+        self.colortags = []
+        
+        
     def enable(self):
         self.widget.grid(row=0,column=0,sticky=N+S+W+E)
         self.widget.bind(sequence="<FocusIn>", func=self.defocus)
@@ -57,6 +60,8 @@ class Plugin:
         if type(data) == str: 
             timestamp = time.strftime('[%H:%M:%S]', time.localtime(time.time()))
             self.widget.insert(END,"%s %s"%(timestamp,data))
+        
+        #TODO: Fix this list issue
         elif type(data) == list:
             for tags,text in data:
                 self.widget.insert(END,text,tags)
@@ -78,6 +83,7 @@ class Plugin:
         
         
     def parse(self,message,owner,timestamp):
+        # TODO: Parse should handle resets
         tag = time
         self.widget.tag_config(tag)
         buffer = []
@@ -90,8 +96,11 @@ class Plugin:
         colors.insert(0,default)
         
         for i in xrange(len(colors)):
-            buffer.append(((tag,colors[i]),text[i]))
-            
+            color = colors[i]
+            buffer.append(((tag,color),text[i]))
+            if color not in self.colortags:
+                try:    self.widget.tag_config(color, foreground=color)
+                except: self.widget.tag_config(color,foreground="white")
         return buffer
     
     def connectionLost(self,kwargs):

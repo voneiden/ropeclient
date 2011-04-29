@@ -58,7 +58,7 @@ class Plugin:
                         
                     
                     
-                    message = message.replace(request,"[Rolling %s: %s = %s]"%(request, " ".join(buffer), total), 1)
+                    message = message.replace(request,"[<red>%s = %s<reset>]"%(" ".join(buffer), total), 1)
                     
                 
                 self.sendMessage(self.players,'''%s says, "%s"'''%(player.name,message))
