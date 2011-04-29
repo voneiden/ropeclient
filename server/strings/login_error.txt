@@ -1,5 +1,0 @@
-Unfortunately it seems your ropeclient is out of date.
-To connect to this server, please update your client from 
-   http://eiden.fi/ropeclient
-OR http://eiden.fi/ropeclient/releases
-OR http://github.com/voneiden/ropeclient
