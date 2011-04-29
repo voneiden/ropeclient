@@ -69,7 +69,7 @@ class Event:
     def call(self,name,kwargs):
         if name not in self.events: return False
         for event in self.events[name]:
-            event(kwargs)
+            return event(kwargs)
             
         
 class Player(LineReceiver):
