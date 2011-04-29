@@ -47,7 +47,19 @@ class Plugin:
                 # TODO: somehow notify the player of the character name..
             else:
                 message = " ".join(tok[1:])
-                self.core.event.call('dicerSearch',{'data':message})
+                diceResults = self.core.event.call('dicerSearch',{'data':message})
+                for request,value in diceResults.items():
+                    total = value['total']
+                    subresults = value['results']
+                    buffer  = []
+                    for subresult in subresults:
+                        if subresult[2]: pass #Exploding dice
+                        buffer.append("%s (%s)"%(subresult[0],subresult[1]))
+                        
+                    
+                    
+                    message = message.replace(request,"[Rolling %s: %s = %s]"%(request, " ".join(buffer), total), 1)
+                    
                 
                 self.sendMessage(self.players,'''%s says, "%s"'''%(player.name,message))
                 

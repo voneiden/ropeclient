@@ -73,6 +73,7 @@ class Plugin:
                 if not sign: 
                     value = -value
                     roll = "-"+roll
+                else: roll = "+"+roll
                 results.append((roll,value,exploded))
                 total += value
             else:
@@ -80,7 +81,8 @@ class Plugin:
                 if not sign: 
                     value = -value
                     roll = "-"+roll
-                results.append(roll,value,False)
+                else: roll = "+"+roll
+                results.append((roll,value,False))
                 total += value
                 
         return {'total':total,'results':results}
