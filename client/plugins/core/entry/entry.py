@@ -54,10 +54,11 @@ class Plugin:
         self.widget.config(show='')
         
         self.parent.event.add('lineReceived',self.receiveMessage)
+        self.parent.event.add("defocus",self.focus)
     def disable(self):
         self.widget.grid_remove()
         self.parent.event.rem('lineReceived',self.receiveMessage)
-        
+        self.parent.event.rem("defocus",self.focus)        
     def keypress(self,event):
         buffer = self.contents.get()
         if event.keysym == "BackSpace":
@@ -103,4 +104,6 @@ class Plugin:
             
         if header == 'nck':
             pass
+    def focus(self,kwargs):
+        self.widget.focus_set()
         

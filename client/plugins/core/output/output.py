@@ -47,7 +47,8 @@ class Plugin:
         self.parent.event.rem('connectionLost',self.connectionLost)
         
     def defocus(self,event):
-        pass
+        print "DEFUCS"
+        self.parent.event.call("defocus",{})
     
     def output(self,data):
         ''' This function writes the data to the output buffer
