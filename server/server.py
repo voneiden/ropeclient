@@ -41,11 +41,13 @@ class Core:
         import plugins.core.dispatcher
         import plugins.core.login
         import plugins.core.chatroom
+        import plugins.core.dicer
         
         self.plugins = {
         'plugins.core.dispatcher':plugins.core.dispatcher.Plugin(self),
         'plugins.core.login':plugins.core.login.Plugin(self),
-        'plugins.core.chatroom':plugins.core.chatroom.Plugin(self)
+        'plugins.core.chatroom':plugins.core.chatroom.Plugin(self),
+        'plugins.core.dicer':plugins.core.dicer.Plugin(self)
 
         }
         

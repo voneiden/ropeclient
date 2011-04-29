@@ -46,7 +46,10 @@ class Plugin:
                 player.name = " ".join(tok[2:])
                 # TODO: somehow notify the player of the character name..
             else:
-                self.sendMessage(self.players,'''%s says, "%s"'''%(player.name," ".join(tok[1:])))
+                message = " ".join(tok[1:])
+                self.core.event.call('dicerSearch',{'data':message})
+                
+                self.sendMessage(self.players,'''%s says, "%s"'''%(player.name,message))
                 
         
         
