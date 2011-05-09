@@ -17,9 +17,27 @@ class Plugin:
     def loggedIn(self,kwargs):
         player = kwargs['player']
         self.sendMessage(player,"* To join the chatroom, type: /chatroom (%i players online)"%len(self.players))
-        player.event.add("lineReceived",self.lineReceived)
+        player.event.add("lineReceived",self.takeOver)
+        player.event.add("takenOver",self.takenOver)
         player.typing = False
         player.name   = player.account
+        
+    def takeOver(self,kwargs):
+        ''' This function is used for taking over a player after loggin in '''
+        line   = kwargs['line']
+        player = kwargs['player']
+        print "core.chatroom.takeover",line
+        if line == 'msg /chatroom':
+            player.event.add("lineReceived",self.lineReceived)
+            player.event.call("takenOver",{'player':player})
+            self.addPlayer(player)
+            
+    def takenOver(self,kwargs):
+        ''' This function means that the player was taken over.. well said he? '''
+        print "plugins.chatroom: Giving up player"
+        player = kwargs['player']
+        player.event.rem("takenOver",self.takenOver)
+        player.event.rem("lineReceived",self.takeOver)
         
     def connectionLost(self,kwargs):
         player = kwargs['player']
@@ -38,9 +56,7 @@ class Plugin:
         if len(tok) == 1:
             if line   == 'pit': player.typing = True;self.sendTyping(player)
             elif line == 'pnt': player.typing = False;self.sendTyping(player)
-        elif player not in self.players:
-            if tok[1].lower() == '/chatroom':
-                self.addPlayer(player)
+        
         else:
             if tok[1].lower() == '/name' and len(tok) > 2:
                 player.name = " ".join(tok[2:])

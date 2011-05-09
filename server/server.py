@@ -38,24 +38,26 @@ class Core:
         #self.plugins = {}
         
         ''' Import here the plugin packages you want to use '''
+        self.plugins = {}
         import plugins.core.dispatcher
         import plugins.core.login
         import plugins.core.chatroom
         import plugins.core.dicer
+        import plugins.harnmud
         
-        self.plugins = {
-        'plugins.core.dispatcher':plugins.core.dispatcher.Plugin(self),
-        'plugins.core.login':plugins.core.login.Plugin(self),
-        'plugins.core.chatroom':plugins.core.chatroom.Plugin(self),
-        'plugins.core.dicer':plugins.core.dicer.Plugin(self)
-
-        }
+        self.plugins['plugins.core.dispatcher'] = plugins.core.dispatcher.Plugin(self),
+        self.plugins['plugins.core.login'] = plugins.core.login.Plugin(self),
+        self.plugins['plugins.core.chatroom'] = plugins.core.chatroom.Plugin(self),
+        self.plugins['plugins.core.dicer'] = plugins.core.dicer.Plugin(self),
+        self.plugins['plugins.harnmud'] = plugins.harnmud.Plugin(self)
+        
         
         
         
 class Event:
     def __init__(self):
         self.events = {}
+        self.db     = {}
         
     def add(self,name,func):
         if name not in self.events: self.events[name] = []
@@ -70,8 +72,13 @@ class Event:
     
     def call(self,name,kwargs):
         if name not in self.events: return False
-        for event in self.events[name]:
-            return event(kwargs)
+        results = []
+        for event in self.events[name][:]: #Fixed a possible bug with list being modified on the fly?
+            print "event.call:",name,len(self.events[name])
+            results.append(event(kwargs))
+            
+        # HACK: Should the server be able to return multiple event values?
+        if len(results) == 1: return results[0]
             
         
 class Player(LineReceiver):
