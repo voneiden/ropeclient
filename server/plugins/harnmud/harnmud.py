@@ -41,7 +41,7 @@ class Plugin:
             
     def takenOver(self,kwargs):
         ''' This function means that the player was taken over.. well said he? '''
-        print "plugins.harnmud: Giving up player"
+        print "plugins.harnmud.takeOver: Giving up player"
         player = kwargs['player']
         player.event.rem("takenOver",self.takenOver)
         player.event.rem("lineReceived",self.takeOver)

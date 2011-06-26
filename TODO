@@ -14,3 +14,8 @@ such a module is loaded.
 - Client side module examples: History modification
 
 - Server side module examples: Dice, history modification, etc
+
+
+
+-- server should remember previous nick
+

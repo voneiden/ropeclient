@@ -1,4 +1,4 @@
-import time
+import time,re
 
 class Plugin:
     def __init__(self,core):
@@ -12,6 +12,7 @@ class Plugin:
         
         self.core.event.add("loggedIn",self.loggedIn)
         self.core.event.add("connectionLost",self.connectionLost)
+        self.core.event.add("colorize",self.colorize)
         self.players = []
         
     def loggedIn(self,kwargs):
@@ -80,6 +81,9 @@ class Plugin:
                     
                     message = message.replace(request,"[<red>%s = %s<reset>]"%(" ".join(buffer), total), 1)
                     
+                # Message needs some color parsing to be done.
+                finalmessage = self.core.event.call("colorize",{'message':message})
+                if finalmessage: message = finalmessage
                 
                 self.sendMessage(self.players,'''%s says, "%s"'''%(player.name,message))
                 
@@ -115,6 +119,28 @@ class Plugin:
         for player in self.players:
             player.write(buf)
             
-    #def sendAnnounce(self,message):
-    #    for player in self.players:
-    #        sendMessage
+    def colorize(self,kwargs):
+        ''' This function takes a keyword argument message, goes through it and sets colors to appropriate
+        values (solves the resets) 
+        
+        The regex is (?<=\<).+?(?=\>)'''
+        message = kwargs['message']
+        
+        colorstack = ['gray']
+        
+        for color in re.finditer('(?<=\<).+?(?=\>)',message):
+            color = color.group()
+            print "color:",color
+            if color != 'reset':
+                colorstack.append(color)
+            else:
+                try: 
+                    colorstack.pop()
+                    reset = colorstack[-1]
+                except IndexError: reset = 'white'
+                
+                message = message.replace('<reset>','<%s>'%reset,1)
+                
+        print "Colorized",message
+        return message
+                
