@@ -51,7 +51,7 @@ from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 from twisted.protocols.telnet import Telnet
 
-import time
+import time, os, sys
 import player
 
 class Core:
@@ -138,8 +138,14 @@ class TelnetNetwork(Factory):
         self.protocol = TelnetPlayer
         self.core     = core
 
+class UrwidNetwork:
+    def __init__(self):
+        import urwidplayer
+
 if __name__ == '__main__':
     core = Core()
     reactor.listenTCP(49500, RopeNetwork(core))
     reactor.listenTCP(10023, TelnetNetwork(core))
+    if os.name == 'posix':
+
     reactor.run()
