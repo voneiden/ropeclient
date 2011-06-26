@@ -101,6 +101,9 @@ class Event:
 class RopePlayer(LineReceiver):
     def connectionMade(self):
         self.core = self.factory.core
+        self.player = player.Player(self,self.core)
+        for line in self.core.greeting: self.sendMessage([None,None,line])
+
     def lineReceived(self,line):
         line = line.decode('utf-8')
         line = line.strip()
@@ -109,8 +112,13 @@ class RopePlayer(LineReceiver):
         if newline: data = ("%s\r\n"%data).encode('utf-8')
         self.transport.write(data)
     def connectionLost(self,reason):
-        self.core.event.call('connectionLost',{'player':self})
-
+        #self.core.event.call('connectionLost',{'player':self})
+        print "Connection lost"
+    def sendMessage(self,message):
+        if not message[0]: message[0] = 'server'
+        if not message[1]:
+            message = self.core.createMessage(message[0],message[2])
+        self.write('msg %s %s %s'%(message[0],message[1],message[2]))
 
     def disconnect(self): self.transport.loseConnection()
 
@@ -138,14 +146,9 @@ class TelnetNetwork(Factory):
         self.protocol = TelnetPlayer
         self.core     = core
 
-class UrwidNetwork:
-    def __init__(self):
-        import urwidplayer
 
 if __name__ == '__main__':
     core = Core()
     reactor.listenTCP(49500, RopeNetwork(core))
     reactor.listenTCP(10023, TelnetNetwork(core))
-    if os.name == 'posix':
-
     reactor.run()
