@@ -31,13 +31,17 @@ class Connection(LineReceiver):
 
     def connectionMade(self):
         self.window.displayMain("Connected!")
-        self.write("hsk 2.0.alpha-1")
+        self.write("hsk 3.0.0")
 
     def lineReceived(self, data):
         data = data.decode('utf-8').strip()
         tok = data.split(' ')
-
-        self.window.displayMain(data)
+        
+        if tok[0] == 'msg':
+            owner = tok[1]
+            timestamp = tok[2]
+            message = " ".join(tok[3:])
+            self.window.displayMain(message)
 
     def write(self,data):
         data = data+'\r\n'
@@ -50,7 +54,7 @@ class connectionFactory(ReconnectingClientFactory):
         self.window = window
 
     def startedConnecting(self, connector):
-        print ('Started to connect.')
+        self.window.displayMain("Connecting to server..")
 
     def buildProtocol(self, addr):
         print ('Connected.')
@@ -62,10 +66,13 @@ class connectionFactory(ReconnectingClientFactory):
         return connection
 
     def clientConnectionLost(self, connector, reason):
-        print(' Lost connection. Reason:' + str(reason.getErrorMessage()))
+        message = reason.getErrorMessage().split(':')[0]
+        self.window.displayMain("Connection failed (%s)"%(message))
+        self.window.connection = None
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
-        print dir(reason)
-        print( 'Connection failed. Reason:' + str(reason.getErrorMessage()))
+        message = reason.getErrorMessage().split(':')[0]
+        self.window.displayMain("Connection failed (%s)"%(message))
+        self.window.connection = None
         ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)

@@ -34,9 +34,21 @@ class Player:
         self.core       = core
         self.username   = 'Unknown'
         self.password   = ''
-
+    def recvIgnore(self,message): pass
     def recv(self,message):
         print "Recv",message
+        message = message.strip()
+        tok = message.split(' ')
+        if tok[0] == 'msg':
+            pass
+        elif tok[0] == 'pnt':
+            pass
+        elif tok[0] == 'pit':
+            pass
+        elif tok[0] == 'hsk':
+            if tok[1] != self.core.version:
+                self.send("Your version of ropeclient (%s) is not compatible with this server (%s)"%(tok[1],self.core.version))
+                self.recv = self.recvIgnore
         self.send(message)
     def send(self,message):
         print "Send",message

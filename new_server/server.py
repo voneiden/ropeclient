@@ -71,33 +71,6 @@ class Core:
             else: timestamp += 0.01
         return timestamp
 
-class Event:
-    def __init__(self):
-        self.events = {}
-        self.db     = {}
-
-    def add(self,name,func):
-        if name not in self.events: self.events[name] = []
-        self.events[name].append(func)
-        return True
-
-    def rem(self,name,func):
-        if name not in self.events: return False
-        if func not in self.events[name]: return False
-        self.events[name].remove(func)
-        return True
-
-    def call(self,name,kwargs):
-        if name not in self.events: return False
-        results = []
-        for event in self.events[name][:]: #Fixed a possible bug with list being modified on the fly?
-            print "event.call:",name,len(self.events[name])
-            results.append(event(kwargs))
-
-        # HACK: Should the server be able to return multiple event values?
-        if len(results) == 1: return results[0]
-
-
 class RopePlayer(LineReceiver):
     def connectionMade(self):
         self.core = self.factory.core
@@ -107,7 +80,8 @@ class RopePlayer(LineReceiver):
     def lineReceived(self,line):
         line = line.decode('utf-8')
         line = line.strip()
-
+        self.player.recv(line)
+        
     def write(self,data,newline=True):
         if newline: data = ("%s\r\n"%data).encode('utf-8')
         self.transport.write(data)
@@ -121,7 +95,6 @@ class RopePlayer(LineReceiver):
         self.write('msg %s %s %s'%(message[0],message[1],message[2]))
 
     def disconnect(self): self.transport.loseConnection()
-
 
 class TelnetPlayer(Telnet):
     def connectionMade(self):
