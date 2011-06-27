@@ -23,9 +23,8 @@
 '''
 
 from twisted.internet import tksupport, reactor
-import window, network
-
-
+import window
+import network
 
 if __name__ == '__main__':
     print ("Loading..")

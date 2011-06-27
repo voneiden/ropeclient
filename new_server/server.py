@@ -57,7 +57,7 @@ import sys
 import player
 
 
-class Core:
+class Core(object)):
     """ This class contains some core information.."""
 
     def __init__(self):

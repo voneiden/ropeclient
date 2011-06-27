@@ -26,8 +26,9 @@ from twisted.internet.protocol import ReconnectingClientFactory
 
 
 class Connection(LineReceiver):
-    def __init__(self,window):
-        self.window   = window
+
+    def __init__(self, window):
+        self.window = window
 
     def connectionMade(self):
         self.window.displayMain("Connected!")
@@ -36,21 +37,23 @@ class Connection(LineReceiver):
     def lineReceived(self, data):
         data = data.decode('utf-8').strip()
         tok = data.split(' ')
-        
+
         if tok[0] == 'msg':
             owner = tok[1]
             timestamp = tok[2]
             message = " ".join(tok[3:])
             self.window.displayMain(message)
 
-    def write(self,data):
-        data = data+'\r\n'
+    def write(self, data):
+        data = data + '\r\n'
         data = data.encode('utf-8')
-        print "Writing",data
+        print "Writing", data
         self.transport.write(data)
 
+
 class connectionFactory(ReconnectingClientFactory):
-    def __init__(self,window):
+
+    def __init__(self, window):
         self.window = window
 
     def startedConnecting(self, connector):
@@ -67,12 +70,12 @@ class connectionFactory(ReconnectingClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         message = reason.getErrorMessage().split(':')[0]
-        self.window.displayMain("Connection failed (%s)"%(message))
+        self.window.displayMain("Connection failed (%s)" % (message))
         self.window.connection = None
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
         message = reason.getErrorMessage().split(':')[0]
-        self.window.displayMain("Connection failed (%s)"%(message))
+        self.window.displayMain("Connection failed (%s)" % (message))
         self.window.connection = None
         ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
