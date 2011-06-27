@@ -22,6 +22,8 @@ class Plugin:
         player.event.add("takenOver",self.takenOver)
         player.typing = False
         player.name   = player.account
+        player.gm     = False
+        
         
     def takeOver(self,kwargs):
         ''' This function is used for taking over a player after loggin in '''
@@ -62,6 +64,8 @@ class Plugin:
             if tok[1].lower() == '/name' and len(tok) > 2:
                 player.name = " ".join(tok[2:])
                 # TODO: somehow notify the player of the character name..
+            elif tok[1].lower() == '/gm':
+                player.gm = True
             else:
                 message = " ".join(tok[1:])
                 diceResults = self.core.event.call('dicerSearch',{'data':message})

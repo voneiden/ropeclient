@@ -51,68 +51,66 @@ from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 from twisted.protocols.telnet import Telnet
 
+import time, os, sys
+import player
 
 class Core:
 
     def __init__(self):
         self.version = "3.0.0"
+        self.greeting = open('motd.txt','r').readlines()
+        self.messageHistory = {}
 
+    def createMessage(self,username,message):
+        timestamp = self.getUniqueTimestamp()
+        return [username,timestamp,message]
 
-class Event:
-    def __init__(self):
-        self.events = {}
-        self.db = {}
-
-    def add(self,name,func):
-        if name not in self.events: self.events[name] = []
-        self.events[name].append(func)
-        return True
-
-    def rem(self,name,func):
-        if name not in self.events: return False
-        if func not in self.events[name]: return False
-        self.events[name].remove(func)
-        return True
-
-    def call(self,name,kwargs):
-        if name not in self.events: return False
-        results = []
-        for event in self.events[name][:]: #Fixed a possible bug with list being modified on the fly?
-            print "event.call:",name,len(self.events[name])
-            results.append(event(kwargs))
-
-        # HACK: Should the server be able to return multiple event values?
-        if len(results) == 1: return results[0]
-
+    def getUniqueTimestamp(self):
+        timestamp = time.time()
+        while 1:
+            if timestamp not in self.messageHistory.keys(): break
+            else: timestamp += 0.01
+        return timestamp
 
 class RopePlayer(LineReceiver):
     def connectionMade(self):
         self.core = self.factory.core
-        self.core.event.call("connectionMade",{'player':self})
+        self.player = player.Player(self,self.core)
+        for line in self.core.greeting: self.sendMessage([None,None,line])
+
     def lineReceived(self,line):
         line = line.decode('utf-8')
         line = line.strip()
-        self.event.call("lineReceived",{'player':self,'line':line})
+        self.player.recv(line)
 
-
-    #def message(self,
     def write(self,data,newline=True):
         if newline: data = ("%s\r\n"%data).encode('utf-8')
         self.transport.write(data)
     def connectionLost(self,reason):
-        self.core.event.call('connectionLost',{'player':self})
+        #self.core.event.call('connectionLost',{'player':self})
+        print "Connection lost"
+    def sendMessage(self,message):
+        if not message[0]: message[0] = 'server'
+        if not message[1]:
+            message = self.core.createMessage(message[0],message[2])
+        self.write('msg %s %s %s'%(message[0],message[1],message[2]))
 
 
     def disconnect(self): self.transport.loseConnection()
 
-
 class TelnetPlayer(Telnet):
     def connectionMade(self):
         self.core = self.factory.core
-        print "Telnet connection made."
+        self.player = player.Player(self,self.core)
+        for line in self.core.greeting: self.sendMessage([None,None,line])
 
     def telnet_User(self,recv):
-        print "Received",recv
+        self.player.recv(recv)
+
+    def sendMessage(self,message):
+        payload = message[2] + '\r\n'
+        self.write(payload)
+
 
 class RopeNetwork(Factory):
     def __init__(self,core):
@@ -123,6 +121,7 @@ class TelnetNetwork(Factory):
     def __init__(self,core):
         self.protocol = TelnetPlayer
         self.core     = core
+
 
 if __name__ == '__main__':
     core = Core()

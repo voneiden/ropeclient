@@ -1,21 +1,4 @@
 This is the TODO file that lists things I would personally like to 
 tackle next.
 
-******************
-* Module support *
-******************
-
-- Both client and server should have optional modules. The server may 
-enforce certain modules and may disallow the client to connect unless 
-such a module is loaded.
-
-- All extended functionality should be put into modules
-
-- Client side module examples: History modification
-
-- Server side module examples: Dice, history modification, etc
-
-
-
--- server should remember previous nick
-
+- Make a new god damn rewrite of the whole thing
