@@ -1,4 +1,4 @@
-import time
+import time,re
 
 class Plugin:
     def __init__(self,core):
@@ -12,14 +12,35 @@ class Plugin:
         
         self.core.event.add("loggedIn",self.loggedIn)
         self.core.event.add("connectionLost",self.connectionLost)
+        self.core.event.add("colorize",self.colorize)
         self.players = []
         
     def loggedIn(self,kwargs):
         player = kwargs['player']
         self.sendMessage(player,"* To join the chatroom, type: /chatroom (%i players online)"%len(self.players))
-        player.event.add("lineReceived",self.lineReceived)
+        player.event.add("lineReceived",self.takeOver)
+        player.event.add("takenOver",self.takenOver)
         player.typing = False
         player.name   = player.account
+        player.gm     = False
+        
+        
+    def takeOver(self,kwargs):
+        ''' This function is used for taking over a player after loggin in '''
+        line   = kwargs['line']
+        player = kwargs['player']
+        print "core.chatroom.takeover",line
+        if line == 'msg /chatroom':
+            player.event.add("lineReceived",self.lineReceived)
+            player.event.call("takenOver",{'player':player})
+            self.addPlayer(player)
+            
+    def takenOver(self,kwargs):
+        ''' This function means that the player was taken over.. well said he? '''
+        print "plugins.chatroom: Giving up player"
+        player = kwargs['player']
+        player.event.rem("takenOver",self.takenOver)
+        player.event.rem("lineReceived",self.takeOver)
         
     def connectionLost(self,kwargs):
         player = kwargs['player']
@@ -38,13 +59,13 @@ class Plugin:
         if len(tok) == 1:
             if line   == 'pit': player.typing = True;self.sendTyping(player)
             elif line == 'pnt': player.typing = False;self.sendTyping(player)
-        elif player not in self.players:
-            if tok[1].lower() == '/chatroom':
-                self.addPlayer(player)
+        
         else:
             if tok[1].lower() == '/name' and len(tok) > 2:
                 player.name = " ".join(tok[2:])
                 # TODO: somehow notify the player of the character name..
+            elif tok[1].lower() == '/gm':
+                player.gm = True
             else:
                 message = " ".join(tok[1:])
                 diceResults = self.core.event.call('dicerSearch',{'data':message})
@@ -60,6 +81,9 @@ class Plugin:
                     
                     message = message.replace(request,"[<red>%s = %s<reset>]"%(" ".join(buffer), total), 1)
                     
+                # Message needs some color parsing to be done.
+                finalmessage = self.core.event.call("colorize",{'message':message})
+                if finalmessage: message = finalmessage
                 
                 self.sendMessage(self.players,'''%s says, "%s"'''%(player.name,message))
                 
@@ -95,6 +119,28 @@ class Plugin:
         for player in self.players:
             player.write(buf)
             
-    #def sendAnnounce(self,message):
-    #    for player in self.players:
-    #        sendMessage
+    def colorize(self,kwargs):
+        ''' This function takes a keyword argument message, goes through it and sets colors to appropriate
+        values (solves the resets) 
+        
+        The regex is (?<=\<).+?(?=\>)'''
+        message = kwargs['message']
+        
+        colorstack = ['gray']
+        
+        for color in re.finditer('(?<=\<).+?(?=\>)',message):
+            color = color.group()
+            print "color:",color
+            if color != 'reset':
+                colorstack.append(color)
+            else:
+                try: 
+                    colorstack.pop()
+                    reset = colorstack[-1]
+                except IndexError: reset = 'white'
+                
+                message = message.replace('<reset>','<%s>'%reset,1)
+                
+        print "Colorized",message
+        return message
+                

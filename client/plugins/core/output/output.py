@@ -26,7 +26,10 @@ from ScrolledText import ScrolledText
 import time,re
 
 class Plugin:
-    ''' This module defines the basic output textbox
+    ''' 
+    This module defines the basic output textbox
+    
+    As a bonus feature, it could revert offtopic to seperate window?
     '''
     def __init__(self,core):
         self.parent = core

@@ -1,12 +1,4 @@
 This is the TODO file that lists things I would personally like to 
 tackle next.
 
-******************
-* Module support *
-******************
-
-- Client side module examples: History modification
-
-- Server side module examples: history modification, ajax connection!
-
-236x
+- Make a new god damn rewrite of the whole thing
