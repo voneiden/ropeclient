@@ -21,7 +21,7 @@
 '''
 
 
-class Player:
+class Player(object):
     '''
     Player is the standard class that handles basic client processing
     Player can be attached to various characters, or if unattached, it
@@ -29,15 +29,16 @@ class Player:
     send offtopic messages.
     '''
 
-    def __init__(self,connection,core):
+    def __init__(self, connection, core):
         self.connection = connection
-        self.core       = core
+        self.core = core
         self.username   = 'Unknown'
         self.password   = ''
-    
-    def recvIgnore(self,message): pass
-    
-    def recv(self,message):
+
+    def recvIgnore(self, message):
+        pass
+
+    def recv(self, message):
         print "Recv",message
         message = message.strip()
         tok = message.split(' ')
@@ -49,10 +50,11 @@ class Player:
             pass
         elif tok[0] == 'hsk':
             if tok[1] != self.core.version:
-                self.send("Your version of ropeclient (%s) is not compatible with this server (%s)"%(tok[1],self.core.version))
+                self.send("Your version of ropeclient (%s) is not" +
+                          " compatible with this server (%s)"%(tok[1],self.core.version))
                 self.recv = self.recvIgnore
         self.send(message)
-    
+
     def send(self,message):
         print "Send",message
         self.connection.sendMessage(self.core.createMessage(self.username,message))
