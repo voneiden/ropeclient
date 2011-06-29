@@ -86,7 +86,6 @@ class RopePlayer(LineReceiver):
         if newline: data = ("%s\r\n"%data).encode('utf-8')
         self.transport.write(data)
     def connectionLost(self,reason):
-        #self.core.event.call('connectionLost',{'player':self})
         print "Connection lost"
     def sendMessage(self,message):
         if not message[0]: message[0] = 'server'
