@@ -104,15 +104,15 @@ class Window(object):
 
     def entryboxKeypress(self,event):
         ''' Handles the input on entrybox. Slightly hacky, maybe..! '''
-        print "emsg:",self.entryboxMessage.get()
+        message = self.entryboxMessage.get()
         if   event.keysym == "BackSpace" and len(self.entryboxMessage.get()) == 0 and self.entryboxTyping:
             self.write("pnt")
             self.entryboxTyping = False
-        elif event.keysym == "Return":
+        elif event.keysym == "Return" and len(message) > 0:
             if self.entryboxHide:
-                self.write("msg %s"%(sha.sha(self.entryboxMessage.get()).hexdigest()))
+                self.write("msg %s"%(sha.sha(message).hexdigest()))
             else:
-                self.write("msg %s"%(self.entryboxMessage.get()))
+                self.write("msg %s"%(message))
             self.entryboxMessage.set("")
             self.entryboxTyping = False
         elif len(self.entryboxMessage.get()) >= 1 and not self.entryboxTyping:

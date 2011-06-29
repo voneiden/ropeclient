@@ -55,7 +55,7 @@ import time
 import os
 import sys
 import player
-
+import db
 
 class Core(object):
     """ This class contains some core information.."""
@@ -64,6 +64,7 @@ class Core(object):
         self.version = "3.0.0"
         self.greeting = open('motd.txt', 'r').readlines()
         self.messageHistory = {}
+        self.db = db.db()
 
     def createMessage(self, username, message):
         timestamp = self.getUniqueTimestamp()

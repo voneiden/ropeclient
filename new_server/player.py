@@ -19,7 +19,7 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 
 '''
-
+import re
 
 class Player(object):
     '''
@@ -32,29 +32,72 @@ class Player(object):
     def __init__(self, connection, core):
         self.connection = connection
         self.core = core
-        self.username   = 'Unknown'
-        self.password   = ''
+        self.db = self.core.db
+        self.username = 'Unknown'
+        self.password = ''
+        self.handler = self.loginHandler
 
     def recvIgnore(self, message):
         pass
 
     def recv(self, message):
-        print "Recv",message
+        print "Recv", message
         message = message.strip()
         tok = message.split(' ')
         if tok[0] == 'msg':
-            pass
+            response = self.handler(tok[1:])
+            print "Got resp",response
+            print "Type",type(response)
+            if type(response) is str or type(response) is unicode:
+                self.send(None, response)
+
         elif tok[0] == 'pnt':
             pass
+
         elif tok[0] == 'pit':
             pass
+
         elif tok[0] == 'hsk':
             if tok[1] != self.core.version:
                 self.send("Your version of ropeclient (%s) is not" +
-                          " compatible with this server (%s)"%(tok[1],self.core.version))
+                          " compatible with this server (%s)" % (tok[1],
+                          self.core.version))
                 self.recv = self.recvIgnore
-        self.send(message)
 
-    def send(self,message):
-        print "Send",message
-        self.connection.sendMessage(self.core.createMessage(self.username,message))
+        self.send(None, message)
+
+    def send(self, username, message):
+        print "Send", message
+        if username == None:
+            username == 'Server'
+        message = self.core.createMessage(self.username, message)
+        self.connection.sendMessage(message)
+
+    def loginHandler(self, message):
+        """ Message is tokenized! """
+
+        if self.username == 'Unknown':
+            if len(message) == 1:
+                if message[0] in self.db.accounts.keys():
+                    return "Account foudn"
+
+                elif re.match("^[A-Za-z]+$", message[0]):
+                    self.username = (False,message[0])
+                    return "The account you typed does not exist. Would you like to create a new account by the name '%s'?" % message[0]
+                else:
+                    return "This not ok"
+            else:
+                return "This not ok length"
+        else:
+            if type(self.username) == tuple and len(message[0]) > 0:
+                if self.username[0] == False:
+                    if message[0][0].lower() == 'y':
+                        self.username = (True,self.username[1])
+                        return "Choose your password"
+                    else:
+                        self.username = 'Unknown'
+                        return "Who are you then?"
+                else:
+                    return "Password chosen!"
+            else:
+                return "Checking your password"
