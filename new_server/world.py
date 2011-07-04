@@ -20,22 +20,53 @@
 
     The world class file should be saveable as a whole
 '''
-import copy
+'''
+Design some kind of nice system when loading a saved world that checks for missing
+attributes
+'''
 
-class World:
-    def __init__(self):
-        self.characters = {}
-        self.locations  = {}
-        
+import cPickle
+
+class World(object):
+    def __init__(self,name='default'):
+        self.name = name
+        self.characters = []
+        self.locations  = []
+           
     def save(self):
-        selfsave = World()
-        for name,character in self.characters.items():
-            charactecopy = copy.copy(character)
-            charactercopy.player = None
-            selfsave.characters[name] = charactercopy
-            
-class Character:
-    def __init__(self):
-        self.owner = None
-        self.player = None
+        f = open('worlds/%s.world','w')
+        cPickle.dump(self,f)
+        f.close()
         
+    def find(self,identity,target):
+        """ 
+            Will search target list for an identity.
+            Returns None if not found, object if single
+            occurence found, or a list if multiple choices
+            were found
+        """
+        results = []
+        for obj in target:
+            if identity.lower() in obj.name.lower(): results.append(obj)
+        if len(results) == 0: 
+            return None
+        elif len(results) == 1: 
+            return results[0]
+        else:
+            for obj in results:
+                if identity.lower() == obj.name.lower():
+                    return obj
+            return results
+        
+class Character(object):
+    def __init__(self,name='unnamed',owner=None):
+        self.owner = owner
+        self.player = None
+        self.name = name
+        
+        
+class Location(object):
+    def __init__(self,name="New location",description = ""):
+        self.name = name
+        self.description = description
+        self.characters = []

@@ -37,6 +37,10 @@ class Player(object):
         self.password = ''
         self.handler = self.loginHandler
 
+    def __getstate__(self): 
+        """ Players will never be pickled as they contain references to networking """
+        return None
+
     def recvIgnore(self, message):
         pass
 
