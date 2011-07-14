@@ -68,7 +68,8 @@ class Core(object):
         self.db = db.db()
         self.world = world.World()
 
-
+    def __getstate__(self):
+        return None
 
 class RopePlayer(LineReceiver):
 

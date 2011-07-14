@@ -25,21 +25,52 @@ Design some kind of nice system when loading a saved world that checks for missi
 attributes
 '''
 
-import cPickle
+import cPickle, time
 
 class World(object):
     def __init__(self,name='default'):
         self.name = name
-        self.spawn      = Location("Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
+        self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
         self.characters = []
+        self.players    = []
         self.locations  = [self.spawn]
+        self.messages = {}
         
-           
+    def timestamp(self):
+        timestamp = time.time()
+        print "timestamp",timestamp,self.messages.keys()
+        while timestamp in self.messages.keys():
+            timestamp += 0.01
+        return timestamp
+        
     def save(self):
         f = open('worlds/%s.world','w')
         cPickle.dump(self,f)
         f.close()
 
+    def message(self,recipients,message):
+        ''' This is the function to send messages to player. The message is given an ID which can be later retrieved! '''
+        timestamp = self.timestamp()
+        self.messages[timestamp] = message
+        print "Preparing to message"
+        if isinstance(recipients,Character):
+            recipients.message(timestamp)
+            print "1"
+        elif isinstance(recipients, list):
+            print "2"
+            for recipient in recipients:
+                recipient.message(timestamp)
+           
+    def updatePlayers(self):
+        print "Updating player list.."
+        typinglist = []
+        for player in self.players:
+             if player.typing: typinglist.append("%s:1"%player.name)
+             else: typinglist.append("%s:0"%player.name)
+        lop = ";".join(typinglist)
+        for player in self.players:
+            player.connection.write("plu %s"%lop)
+            
         
 class Character(object):
     def __init__(self,world,name='unnamed',owner=None):
@@ -61,6 +92,7 @@ class Character(object):
         self.read = []
         self.unread = []
         
+        self.move(self.world.spawn)
     def move(self,location):
         if self.location != None:
             print "Left from location"
@@ -69,25 +101,41 @@ class Character(object):
                 self.location.announce("%s has left."%(self.name))
         self.location = location
         self.location.characters.append(self)
-        self.location.announce("%s has left."%(self.name))
+        self.location.announce("%s has arrived."%(self.name))
+        self.world.message(self,"You have arrived.")
         
     def attach(self,player):
         self.player = player
+        self.player.character = self
+        
+        while len(self.unread):
+            message = self.unread.pop(0)
+            self.message(message)
+            self.read.append(message)
+            
     def detach(self):
         self.player = None
         
-    def message(self,message):
+    def message(self,timestamp): 
+        print "sending message id",timestamp
         if self.player:
-            pass #messageille jotkut iideet.. tee funtkio esim worldiin joka ottaa listan pelaajista yms.
+            self.player.send(self.world.messages[timestamp])
+            self.read.append(timestamp)
+        else:
+            self.unread.append(timestamp)
         
 class Location(object):
-    def __init__(self,name="New location",description = ""):
+    def __init__(self,world,name="New location",description = ""):
+        self.world = world
         self.name = name
         self.description = description
         self.characters = []
         
     def announce(self,message,ignore=None):
-        for character in self.characters:
-            if character == ignore: continue
-            character.player.sendMessage(message)
-            
+        recipients = self.characters[:]
+        print "Announcing to",recipients,message
+        if ignore in recipients: recipients.remove(ignore)
+        if len(recipients) > 0: 
+            self.world.message(recipients,message)
+        else:
+            print "Nobody to receive this message, ignoring.."

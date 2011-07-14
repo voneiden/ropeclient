@@ -39,14 +39,27 @@ class Connection(LineReceiver):
         tok = data.split(' ')
 
         if tok[0] == 'msg':
-            print tok
             timestamp = tok[1]
             message = " ".join(tok[2:])
-            self.window.displayMain(message)
+            if message[0] == '(':
+                self.window.displayOfftopic(message)
+            else:
+                self.window.displayMain(message)
         elif tok[0] == 'pwd':
             self.window.entryboxHide = True
             self.window.entrybox.config(show='*')
-
+        
+        elif tok[0] == 'plu': 
+            # Player list update
+            lop = " ".join(tok[1:]).split(';')
+            playerlist = {}
+            for player in lop:
+                ptok = player.split(':')
+                playerlist[ptok[0]] = [ptok[1]]
+                
+            self.window.playerlist = playerlist
+            self.window.playerboxUpdate()
+            
     def write(self, data):
         data = data + '\r\n'
         data = data.encode('utf-8')

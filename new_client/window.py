@@ -136,3 +136,14 @@ class Window(object):
 
     def focusEntrybox(self,args):
         print "Focus"
+        
+    def playerboxUpdate(self):
+        players = self.playerlist.keys()
+        players.sort()
+        
+        self.playerbox.delete(0, END)
+        for player in players:
+            if self.playerlist[player][0] == "1": self.playerbox.insert(END, "*%s"%player)
+            else:         self.playerbox.insert(END, "%s"%player)
+            
+        

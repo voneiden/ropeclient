@@ -43,7 +43,7 @@
 
 '''
 
-import cPickle
+import cPickle, time
 
 class db:
 
@@ -55,7 +55,8 @@ class db:
         except IOError:
             self.accounts = []
          
-        self.messages = []
+        
+        
     def find(self,name,target):
         """ 
             Will search target list for an identity.

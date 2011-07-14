@@ -34,9 +34,10 @@ class Player(object):
         self.core = core
         self.world = self.core.world
         self.db = self.core.db
-        self.username = 'Unknown'
+        self.name = 'Unknown'
         self.password = None
         self.account = None
+        self.typing = False
         self.handler = self.loginHandler
 
     def __getstate__(self): 
@@ -58,10 +59,12 @@ class Player(object):
                 self.send(response)
 
         elif tok[0] == 'pnt':
-            pass
+            self.typing = False
+            self.world.updatePlayers()
 
         elif tok[0] == 'pit':
-            pass
+            self.typing = True
+            self.world.updatePlayers()
         
         # Todo: maybe handshake should be mandatory before accepting any other comms..
         elif tok[0] == 'hsk':
@@ -74,6 +77,7 @@ class Player(object):
         #self.send(None, message)
 
     def send(self, message):
+        print "Sending!111",message
         self.connection.sendMessage(message)
 
     def loginHandler(self, message):
@@ -83,35 +87,35 @@ class Player(object):
             self.username == (False,Name) means the user account does not exist
             self.username == (Password,Name) means the user has given a new password, verify and create account
         """
-        if self.username == 'Unknown':
+        if self.name == 'Unknown':
             if len(message) == 1:
                 find = self.db.find(message[0],self.db.accounts)
-                print self.db.accounts
-                print self.db.accounts[0].name
-                print find
+                #print self.db.accounts
+                #print self.db.accounts[0].name
+                #print find
                 if isinstance(find,db.Account):
-                    self.username = find.name
+                    self.name = find.name
                     self.account  = find
                     self.connection.write('pwd\r\n')
                     return "Your password?"
 
                 elif re.match("^[A-Za-z]+$", message[0]):
-                    self.username = (False,message[0])
+                    self.name = (False,message[0])
                     return "The account you typed does not exist. Would you like to create a new account by the name '%s'?" % message[0]
                 else:
                     return "This not ok"
             else:
                 return "This not ok length"
         else:
-            if type(self.username) == tuple and len(message[0]) > 0:
-                if self.username[0] == False:
+            if type(self.name) == tuple and len(message[0]) > 0:
+                if self.name[0] == False:
                     if message[0][0].lower() == 'y':
-                        self.username = (True,self.username[1])
+                        self.name = (True,self.name[1])
                         # Todo: request password type
                         self.connection.write('pwd\r\n')
                         return "Choose your password"
                     else:
-                        self.username = 'Unknown'
+                        self.name = 'Unknown'
                         return "Who are you then?"
                 elif self.password == None:
                     print "Got pwd",message
@@ -121,9 +125,9 @@ class Player(object):
            
                 else:
                     if self.password == message[0]:
-                        self.account = db.Account(self.username[1],self.password)
+                        self.account = db.Account(self.name[1],self.password)
                         self.db.accounts.append(self.account)
-                        self.username = self.account.name
+                        self.name = self.account.name
                         self.db.save()
                         return self.login()
                     else:
@@ -138,13 +142,24 @@ class Player(object):
                     self.connection.disconnect()
          
     def login(self):
-        character = self.db.findOwner(self.username,self.core.world.characters)
+        character = self.db.findOwner(self.name,self.core.world.characters)
         if character == None:
-            newcharacter = world.Character(self.world,"Soul of %s"%(self.username),self.account.name)
-            self.character = newcharacter
-            self.character.player = self
+            newcharacter = world.Character(self.world,"Soul of %s"%(self.name),self.account.name)
+            newcharacter.attach(self)
         elif isinstance(character,self.world.Character):
-            self.character = character
-            self.character.player = self
-            
+            character.attach(self)
+        # Todo handle disconnects properly..
+        self.world.players.append(self)
+        self.handler = self.gameHandler
         
+    def gameHandler(self, message):
+        if self.character:
+            if message[0][0] == '(':
+                if message[-1][-1] != ')': 
+                    message[-1] += ')'
+                message = "(%s: %s"%(self.name," ".join(message)[1:])
+                
+                for player in self.world.players:
+                    player.send(message)
+            else:        
+                self.character.location.announce('''%s says, "%s"'''%(self.character.name, " ".join(message)))
