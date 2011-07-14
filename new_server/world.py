@@ -30,7 +30,7 @@ import cPickle
 class World(object):
     def __init__(self,name='default'):
         self.name = name
-        self.spawn      = Location("Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own."
+        self.spawn      = Location("Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
         self.characters = []
         self.locations  = [self.spawn]
         
@@ -63,9 +63,12 @@ class Character(object):
             print "Left from location"
             if self in self.location.characters:
                 self.location.characters.remove(self)
-                self.location.announce(self.player.account.name)
+                self.location.announce("%s has left."%(self.name))
         self.location = location
         self.location.characters.append(self)
+        self.location.announce("%s has left."%(self.name))
+        
+    
         
 class Location(object):
     def __init__(self,name="New location",description = ""):
@@ -73,7 +76,8 @@ class Location(object):
         self.description = description
         self.characters = []
         
-    def announce(self,username,message):
+    def announce(self,message,ignore=None):
         for character in self.characters:
-            character.player.sendMessage(username,message)
+            if character == ignore: continue
+            character.player.sendMessage(message)
             

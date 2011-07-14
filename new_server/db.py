@@ -64,14 +64,14 @@ class db:
         """
         results = []
         for obj in target:
-            if identity.lower() in obj.name.lower(): results.append(obj)
+            if name.lower() in obj.name.lower(): results.append(obj)
         if len(results) == 0: 
             return None
         elif len(results) == 1: 
             return results[0]
         else:
             for obj in results:
-                if identity.lower() == obj.name.lower():
+                if name == obj.name:
                     return obj
             return results
 

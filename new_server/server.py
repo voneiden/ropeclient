@@ -64,23 +64,9 @@ class Core(object):
     def __init__(self):
         self.version = "3.0.0"
         self.greeting = open('motd.txt', 'r').readlines()
-        self.messageHistory = {}
         self.db = db.db()
         self.world = world.World()
 
-    def createMessage(self, username, message):
-        timestamp = self.getUniqueTimestamp()
-        return [username, timestamp, message]
-
-    def getUniqueTimestamp(self):
-    # TODO not really unique ..
-        timestamp = time.time()
-        while 1:
-            if timestamp not in self.messageHistory.keys():
-                break
-            else:
-                timestamp += 0.01
-        return timestamp
 
 
 class RopePlayer(LineReceiver):
@@ -90,7 +76,7 @@ class RopePlayer(LineReceiver):
         self.player = player.Player(self, self.core)
         #for line in self.core.greeting:
         #    self.sendMessage([None, None, line])
-        self.sendMessage([None,None,"".join(self.core.greeting)])
+        self.sendMessage("".join(self.core.greeting))
 
     def lineReceived(self, line):
         line = line.decode('utf-8')
@@ -106,11 +92,7 @@ class RopePlayer(LineReceiver):
         print "Connection lost"
 
     def sendMessage(self, message):
-        if not message[0]:
-            message[0] = 'server'
-        if not message[1]:
-            message = self.core.createMessage(message[0], message[2])
-        self.write('msg %s %s %s' % (message[0], message[1], message[2]))
+        self.write('msg %f %s' % (time.time(),message))
 
     def disconnect(self):
         self.transport.loseConnection()
@@ -122,13 +104,13 @@ class TelnetPlayer(Telnet):
         self.core = self.factory.core
         self.player = player.Player(self, self.core)
         for line in self.core.greeting:
-            self.sendMessage([None, None, line])
+            self.sendMessage(line)
 
     def telnet_User(self, recv):
         self.player.recv(recv)
 
     def sendMessage(self, message):
-        payload = message[2] + '\r\n'
+        payload = message + '\r\n'
         self.write(payload)
 
 

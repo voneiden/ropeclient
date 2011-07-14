@@ -19,7 +19,7 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 
 '''
-import re, db
+import re, db, world
 
 class Player(object):
     '''
@@ -55,7 +55,7 @@ class Player(object):
             print "Got resp",response
             print "Type",type(response)
             if type(response) is str or type(response) is unicode:
-                self.send(None, response)
+                self.send(response)
 
         elif tok[0] == 'pnt':
             pass
@@ -73,11 +73,7 @@ class Player(object):
 
         #self.send(None, message)
 
-    def send(self, username, message):
-        print "Send", message
-        if username == None:
-            username == 'Server'
-        message = self.core.createMessage(username, message)
+    def send(self, message):
         self.connection.sendMessage(message)
 
     def loginHandler(self, message):
@@ -144,7 +140,7 @@ class Player(object):
     def login(self):
         character = self.db.findOwner(self.username,self.core.world.characters)
         if character == None:
-            newcharacter = self.world.Character(self.world,"Soul of %s"%(self.username),self.account.name)
+            newcharacter = world.Character(self.world,"Soul of %s"%(self.username),self.account.name)
             self.character = newcharacter
             self.character.player = self
         elif isinstance(character,self.world.Character):

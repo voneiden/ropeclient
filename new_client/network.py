@@ -40,9 +40,8 @@ class Connection(LineReceiver):
 
         if tok[0] == 'msg':
             print tok
-            owner = tok[1]
-            timestamp = tok[2]
-            message = " ".join(tok[3:])
+            timestamp = tok[1]
+            message = " ".join(tok[2:])
             self.window.displayMain(message)
         elif tok[0] == 'pwd':
             self.window.entryboxHide = True
