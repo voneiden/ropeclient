@@ -54,7 +54,8 @@ class db:
             f.close()
         except IOError:
             self.accounts = []
-            
+         
+        self.messages = []
     def find(self,name,target):
         """ 
             Will search target list for an identity.

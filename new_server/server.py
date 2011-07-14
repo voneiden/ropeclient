@@ -44,7 +44,8 @@
 '''
 
 # TODO
-# plugins.core.dispatcher
+# Some kind of message history system so that message history can be transfered to
+# characters that have no souls attached
 
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor

@@ -58,6 +58,9 @@ class Character(object):
         self.deaf      = False
         self.blind     = False
         
+        self.read = []
+        self.unread = []
+        
     def move(self,location):
         if self.location != None:
             print "Left from location"
@@ -68,7 +71,14 @@ class Character(object):
         self.location.characters.append(self)
         self.location.announce("%s has left."%(self.name))
         
-    
+    def attach(self,player):
+        self.player = player
+    def detach(self):
+        self.player = None
+        
+    def message(self,message):
+        if self.player:
+            pass #messageille jotkut iideet.. tee funtkio esim worldiin joka ottaa listan pelaajista yms.
         
 class Location(object):
     def __init__(self,name="New location",description = ""):
