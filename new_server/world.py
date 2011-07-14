@@ -30,40 +30,33 @@ import cPickle
 class World(object):
     def __init__(self,name='default'):
         self.name = name
+        self.spawn      = Location("Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own."
         self.characters = []
-        self.locations  = []
+        self.locations  = [self.spawn]
+        
            
     def save(self):
         f = open('worlds/%s.world','w')
         cPickle.dump(self,f)
         f.close()
-        
-    def find(self,identity,target):
-        """ 
-            Will search target list for an identity.
-            Returns None if not found, object if single
-            occurence found, or a list if multiple choices
-            were found
-        """
-        results = []
-        for obj in target:
-            if identity.lower() in obj.name.lower(): results.append(obj)
-        if len(results) == 0: 
-            return None
-        elif len(results) == 1: 
-            return results[0]
-        else:
-            for obj in results:
-                if identity.lower() == obj.name.lower():
-                    return obj
-            return results
+
         
 class Character(object):
-    def __init__(self,name='unnamed',owner=None):
+    def __init__(self,world,name='unnamed',owner=None):
+        self.world = world
         self.owner = owner
         self.player = None
         self.name = name
+        self.description = ''
+        self.info        = ''
         
+        # TODO set location here
+        self.location = self.world.spawn
+        
+        self.invisible = False
+        self.mute      = False
+        self.deaf      = False
+        self.blind     = False
         
 class Location(object):
     def __init__(self,name="New location",description = ""):

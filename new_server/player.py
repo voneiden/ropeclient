@@ -19,7 +19,7 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 
 '''
-import re
+import re, db
 
 class Player(object):
     '''
@@ -34,7 +34,8 @@ class Player(object):
         self.core = core
         self.db = self.core.db
         self.username = 'Unknown'
-        self.password = ''
+        self.password = None
+        self.account = None
         self.handler = self.loginHandler
 
     def __getstate__(self): 
@@ -60,7 +61,8 @@ class Player(object):
 
         elif tok[0] == 'pit':
             pass
-
+        
+        # Todo: maybe handshake should be mandatory before accepting any other comms..
         elif tok[0] == 'hsk':
             if tok[1] != self.core.version:
                 self.send("Your version of ropeclient (%s) is not" +
@@ -68,22 +70,33 @@ class Player(object):
                           self.core.version))
                 self.recv = self.recvIgnore
 
-        self.send(None, message)
+        #self.send(None, message)
 
     def send(self, username, message):
         print "Send", message
         if username == None:
             username == 'Server'
-        message = self.core.createMessage(self.username, message)
+        message = self.core.createMessage(username, message)
         self.connection.sendMessage(message)
 
     def loginHandler(self, message):
         """ Message is tokenized! """
-
+        """ 
+            self.username == 'Unknown' means the user is not authenticated at all
+            self.username == (False,Name) means the user account does not exist
+            self.username == (Password,Name) means the user has given a new password, verify and create account
+        """
         if self.username == 'Unknown':
             if len(message) == 1:
-                if message[0] in self.db.accounts.keys():
-                    return "Account foudn"
+                find = self.db.find(message[0],self.db.accounts)
+                print self.db.accounts
+                print self.db.accounts[0].name
+                print find
+                if isinstance(find,db.Account):
+                    self.username = find.name
+                    self.account  = find
+                    self.connection.write('pwd\r\n')
+                    return "Your password?"
 
                 elif re.match("^[A-Za-z]+$", message[0]):
                     self.username = (False,message[0])
@@ -97,11 +110,36 @@ class Player(object):
                 if self.username[0] == False:
                     if message[0][0].lower() == 'y':
                         self.username = (True,self.username[1])
+                        # Todo: request password type
+                        self.connection.write('pwd\r\n')
                         return "Choose your password"
                     else:
                         self.username = 'Unknown'
                         return "Who are you then?"
+                elif self.password == None:
+                    print "Got pwd",message
+                    self.password = message[0]
+                    self.connection.write('pwd\r\n')
+                    return "Please retype your password.."
+           
                 else:
-                    return "Password chosen!"
+                    if self.password == message[0]:
+                        self.account = db.Account(self.username[1],self.password)
+                        self.db.accounts.append(self.account)
+                        self.username = self.account.name
+                        self.db.save()
+                        return self.login()
+                    else:
+                        self.password = None
+                        self.connection.write('pwd\r\n')
+                        return "Passwords mismatch, try again. Choose your password"
             else:
-                return "Checking your password"
+                if message[0] == self.account.password:
+                    return self.login()
+                    
+                else:
+                    self.connection.disconnect()
+         
+    def login(self):
+        character = self.db.findOwner(self.username,self.core.world.characters)
+        

@@ -56,6 +56,7 @@ import os
 import sys
 import player
 import db
+import world
 
 class Core(object):
     """ This class contains some core information.."""
@@ -65,12 +66,14 @@ class Core(object):
         self.greeting = open('motd.txt', 'r').readlines()
         self.messageHistory = {}
         self.db = db.db()
+        self.world = world.World()
 
     def createMessage(self, username, message):
         timestamp = self.getUniqueTimestamp()
         return [username, timestamp, message]
 
     def getUniqueTimestamp(self):
+    # TODO not really unique ..
         timestamp = time.time()
         while 1:
             if timestamp not in self.messageHistory.keys():
@@ -85,8 +88,9 @@ class RopePlayer(LineReceiver):
     def connectionMade(self):
         self.core = self.factory.core
         self.player = player.Player(self, self.core)
-        for line in self.core.greeting:
-            self.sendMessage([None, None, line])
+        #for line in self.core.greeting:
+        #    self.sendMessage([None, None, line])
+        self.sendMessage([None,None,"".join(self.core.greeting)])
 
     def lineReceived(self, line):
         line = line.decode('utf-8')

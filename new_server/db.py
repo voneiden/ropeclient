@@ -43,6 +43,7 @@
 
 '''
 
+import cPickle
 
 class db:
 
@@ -52,4 +53,55 @@ class db:
             self.accounts = cPickle.load(f)
             f.close()
         except IOError:
-            self.accounts = {}
+            self.accounts = []
+            
+    def find(self,name,target):
+        """ 
+            Will search target list for an identity.
+            Returns None if not found, object if single
+            occurence found, or a list if multiple choices
+            were found
+        """
+        results = []
+        for obj in target:
+            if identity.lower() in obj.name.lower(): results.append(obj)
+        if len(results) == 0: 
+            return None
+        elif len(results) == 1: 
+            return results[0]
+        else:
+            for obj in results:
+                if identity.lower() == obj.name.lower():
+                    return obj
+            return results
+
+            
+    def findOwner(self,owner,target):
+        """ 
+            Will search target list for an identity.
+            Returns None if not found, object if single
+            occurence found, or a list if multiple choices
+            were found
+        """
+        results = []
+        for obj in target:
+            if identity.lower() in obj.owner.lower(): results.append(obj)
+        if len(results) == 0: 
+            return None
+        elif len(results) == 1: 
+            return results[0]
+        else:
+            for obj in results:
+                if identity.lower() == obj.owner.lower():
+                    return obj
+            return results
+            
+    def save(self):
+        f = open('accounts.db','wb')
+        cPickle.dump(self.accounts,f,-1)
+        f.close()
+        
+class Account:
+    def __init__(self,name,password):
+        self.name = name
+        self.password = password

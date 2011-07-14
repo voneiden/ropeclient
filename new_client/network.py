@@ -23,7 +23,7 @@
 '''
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
-
+import sha
 
 class Connection(LineReceiver):
 
@@ -39,10 +39,14 @@ class Connection(LineReceiver):
         tok = data.split(' ')
 
         if tok[0] == 'msg':
+            print tok
             owner = tok[1]
             timestamp = tok[2]
             message = " ".join(tok[3:])
             self.window.displayMain(message)
+        elif tok[0] == 'pwd':
+            self.window.entryboxHide = True
+            self.window.entrybox.config(show='*')
 
     def write(self, data):
         data = data + '\r\n'

@@ -17,3 +17,5 @@ Welcome to ropeclient
                                                    |     `;      \
                                                    `--..._ `  _.-'
                                                           `--'
+
+What be your name? 

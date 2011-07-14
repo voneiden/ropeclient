@@ -26,7 +26,7 @@ from Tkinter import Entry, Listbox, StringVar, Tk, Frame
 from ScrolledText import ScrolledText
 import time
 import re
-
+from hashlib import sha256
 
 class Window(object):
 
@@ -110,7 +110,9 @@ class Window(object):
             self.entryboxTyping = False
         elif event.keysym == "Return" and len(message) > 0:
             if self.entryboxHide:
-                self.write("msg %s"%(sha.sha(message).hexdigest()))
+                self.write("msg %s"%(sha256(message+'r0p3s4lt').hexdigest()))
+                self.entryboxHide = False
+                self.entrybox.config(show='')
             else:
                 self.write("msg %s"%(message))
             self.entryboxMessage.set("")
