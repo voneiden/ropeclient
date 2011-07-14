@@ -16,97 +16,121 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-    Also, this program features very messy code, don't hurt your head
-    trying to decypher it.
-
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
+
+    This is now the 3rd complete -from scratch- version of the server.
+    The original version was functional, but featured rather hacky code
+    and was not really expandable. The second version was designed towards
+    a plugin based approach, however it turned out to be rather painful
+    to develop as utilizing object-oriented code became increasingly difficult.
+    Now I'm after a 3rd version, this time sacrificing the plugin support
+    for fast development but with a clean logic. Hopefully this turns out well.
+
+    == Few words on the rope protocol ==
+
+    The protocol between the client and server is pretty straightforward
+    The packet starts with a 3-letter command. The most crucial ones are
+    msg and pwd. The server to client msg packet looks like this
+
+    msg timestamp owner payload
+
+    And the client to server msg packet looks simply like this
+    msg payload
+
+    This time around I plan on implementing also standard telnet protocol.
+
+
+
 '''
 
 # TODO
-# plugins.core.dispatcher
+# Some kind of message history system so that message history can be transfered to
+# characters that have no souls attached
 
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
+from twisted.protocols.telnet import Telnet
 
+import time
+import os
+import sys
+import player
+import db
+import world
 
+class Core(object):
+    """ This class contains some core information.."""
 
-class Core:
     def __init__(self):
-        self.version = "2.0.alpha-1"
-        self.event = Event()
-        #self.plugins = {}
-        
-        ''' Import here the plugin packages you want to use '''
-        self.plugins = {}
-        import plugins.core.dispatcher
-        import plugins.core.login
-        import plugins.core.chatroom
-        import plugins.core.dicer
-        import plugins.harnmud
-        
-        self.plugins['plugins.core.dispatcher'] = plugins.core.dispatcher.Plugin(self),
-        self.plugins['plugins.core.login'] = plugins.core.login.Plugin(self),
-        self.plugins['plugins.core.chatroom'] = plugins.core.chatroom.Plugin(self),
-        self.plugins['plugins.core.dicer'] = plugins.core.dicer.Plugin(self),
-        self.plugins['plugins.harnmud'] = plugins.harnmud.Plugin(self)
-        
-        
-        
-        
-class Event:
-    def __init__(self):
-        self.events = {}
-        self.db     = {}
-        
-    def add(self,name,func):
-        if name not in self.events: self.events[name] = []
-        self.events[name].append(func)
-        return True
-    
-    def rem(self,name,func):
-        if name not in self.events: return False
-        if func not in self.events[name]: return False
-        self.events[name].remove(func)
-        return True
-    
-    def call(self,name,kwargs):
-        if name not in self.events: return False
-        results = []
-        for event in self.events[name][:]: #Fixed a possible bug with list being modified on the fly?
-            print "event.call:",name,len(self.events[name])
-            results.append(event(kwargs))
-            
-        # HACK: Should the server be able to return multiple event values?
-        if len(results) == 1: return results[0]
-            
-        
-class Player(LineReceiver):
+        self.version = "3.0.0"
+        self.greeting = open('motd.txt', 'r').readlines()
+        self.db = db.db()
+        self.world = world.World()
+
+    def __getstate__(self):
+        return None
+
+class RopePlayer(LineReceiver):
+
     def connectionMade(self):
         self.core = self.factory.core
-        self.event = Event()
-        self.core.event.call("connectionMade",{'player':self})
-    def lineReceived(self,line):
+        self.player = player.Player(self, self.core)
+        #for line in self.core.greeting:
+        #    self.sendMessage([None, None, line])
+        self.sendMessage("".join(self.core.greeting))
+
+    def lineReceived(self, line):
         line = line.decode('utf-8')
         line = line.strip()
-        self.event.call("lineReceived",{'player':self,'line':line})
-    
+        self.player.recv(line)
 
-    #def message(self,
-    def write(self,data,newline=True):
-        if newline: data = ("%s\r\n"%data).encode('utf-8')
+    def write(self, data, newline=True):
+        if newline:
+            data = ("%s\r\n" % data).encode('utf-8')
         self.transport.write(data)
-    def connectionLost(self,reason):
-        self.core.event.call('connectionLost',{'player':self})
-        
-        
-    def disconnect(self): self.transport.loseConnection()
-class Network(Factory):
-    def __init__(self,core):
-        self.protocol = Player
-        self.core    = core
-        
+
+    def connectionLost(self, reason):
+        print "Connection lost"
+
+    def sendMessage(self, message):
+        self.write('msg %f %s' % (time.time(),message))
+
+    def disconnect(self):
+        self.transport.loseConnection()
+
+
+class TelnetPlayer(Telnet):
+
+    def connectionMade(self):
+        self.core = self.factory.core
+        self.player = player.Player(self, self.core)
+        for line in self.core.greeting:
+            self.sendMessage(line)
+
+    def telnet_User(self, recv):
+        self.player.recv(recv)
+
+    def sendMessage(self, message):
+        payload = message + '\r\n'
+        self.write(payload)
+
+
+class RopeNetwork(Factory):
+
+    def __init__(self, core):
+        self.protocol = RopePlayer
+        self.core = core
+
+class TelnetNetwork(Factory):
+
+    def __init__(self, core):
+        self.protocol = TelnetPlayer
+        self.core = core
+
+
 if __name__ == '__main__':
     core = Core()
-    reactor.listenTCP(49500, Network(core))
+    reactor.listenTCP(49500, RopeNetwork(core))
+    reactor.listenTCP(10023, TelnetNetwork(core))
     reactor.run()
