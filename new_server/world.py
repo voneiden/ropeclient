@@ -51,15 +51,29 @@ class Character(object):
         self.info        = ''
         
         # TODO set location here
-        self.location = self.world.spawn
+        self.location = None
         
         self.invisible = False
         self.mute      = False
         self.deaf      = False
         self.blind     = False
         
+    def move(self,location):
+        if self.location != None:
+            print "Left from location"
+            if self in self.location.characters:
+                self.location.characters.remove(self)
+                self.location.announce(self.player.account.name)
+        self.location = location
+        self.location.characters.append(self)
+        
 class Location(object):
     def __init__(self,name="New location",description = ""):
         self.name = name
         self.description = description
         self.characters = []
+        
+    def announce(self,username,message):
+        for character in self.characters:
+            character.player.sendMessage(username,message)
+            

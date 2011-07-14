@@ -32,6 +32,7 @@ class Player(object):
     def __init__(self, connection, core):
         self.connection = connection
         self.core = core
+        self.world = self.core.world
         self.db = self.core.db
         self.username = 'Unknown'
         self.password = None
@@ -142,4 +143,12 @@ class Player(object):
          
     def login(self):
         character = self.db.findOwner(self.username,self.core.world.characters)
+        if character == None:
+            newcharacter = self.world.Character(self.world,"Soul of %s"%(self.username),self.account.name)
+            self.character = newcharacter
+            self.character.player = self
+        elif isinstance(character,self.world.Character):
+            self.character = character
+            self.character.player = self
+            
         
