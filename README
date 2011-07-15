@@ -1,29 +1,10 @@
 0.0 Development notes
-If you want to try this program, please use 
+This program is in totally unstable development. If you want to try a stable result, check out 
 https://github.com/voneiden/ropeclient/tree/0.B-RC1
 
-The master branch is under massive clean up and redesign and probably not working.
+CURRENT STATE OF SOFTWARE IS COMPELTELY DIFFERENT FROM 0.B-RC1
 
-1.0 Development plan (as of April 27th 2011)
-
-Slowly but surely I'm reworking the whole idea. When I first created ropeclient, it
-was programmed as ideas came, with little flexibility in mind. It served its purpose
-well but in general I didn't like how the code looked and the poor structure it had.
-
-Thus I started multiple rewrites. I lost track how many rewrites I've started, though
-that's probably visible on the github commit history. Currently the system features a
-few notable things
-
-Client side
-- Server can request to enable and disable custom modules. This allows easy development of
-custom servers without having to rewrite any original client source code.
-
-Server side
-- All functions are nicely sorted into modules. Currently there are modules for things like loggin in and protocol.
-- There's a good event system, which allows modules to communicate with each others.
-
-
-2.0 Installation
+1.0 Installation notes
 Ropeclient runs on any nix system that has python 2.x and the following 
 dependencies installed:
 - Tkinter          Ships with python.
@@ -31,34 +12,52 @@ dependencies installed:
 -- zope.interfaces http://pypi.python.org/pypi/zope.interface#download
 
 The win32 builds ship with all the dependencies and python included in 
-one convinient (usage wise.. not size wise) package.
+one convinient package (py2exe). Any patches released on win32 build only
+need to replace the executable.
 
-3.0 Contact
+2.0 Contact
 Primary means of contact either through Github or the mailing list 
 ropeclient@googlegroups.com. To subscribe to the mailing list, send an 
 email to ropeclient+subscribe@googlegroups.com. The mailing list may be 
 used for anykind of ropeclient related discussion, from ideas to issues.
 
 
-4.0 Protocol specification
-The protocol is in the most recent version relatively simple. The bulk 
-of the data exchanged between the server and the client is made of msg packets.
+3.0 Usage
 
-Client to server: msg body
-Server to client: msg timestamp owner body
+3.1 Login
+When you login, you're asked for your name. Simply type an user name you wish 
+to use. If the name does not exist, you will be asked if you wish to create
+a new one. Answering anything beginning with 'y' will result in account
+creation process. You'll be asked for a password twice. The password is
+hashed client side, so it's fairly safe.
 
-Body is the message payload, timestamp is the message ID and time when it was created.
-Originally this message ID was created to allow editing of previous messages in a Skype
-like fashion. Finally the owner is the owner of the message, to help the client figure
-what it's able to edit and what not.
+3.2 In-game
+Once you're ingame, you'll be just a soul representing your account. You are
+most likely situated in the spawn area and the only thing you can do is chat
+in the off topic section. You can chat off topic by starting your sentence with
+a '(' left bracket. If you simply type text, the game assumes you want to speak it
+out loud. However spirits are mute, and thus your text would be automatically
+delivered as off topic.
 
-Other packets include the "pwd" packet which when sent by the server to client toggles
-the password mode - the core entry box will display stars instead of characters and all
-sent messages will be hashed.
+You can switch between two modes of command processing. There's the IRC-style and
+MUD-style. In IRC-style all commands are preceded with a '/' slash, except for offtopic '('
+and normal talk, which is the default action. The alternative is the MUD-style, which
+uses the same commands as IRC-style but without the '/' slash. Off-topic is still '(' left
+bracket, however to speak out loud you must use the command 'say', as MUD-style defaults
+to no action if it doesn't recognize a command.
 
-4.3 People wanting to play though other protocols.
+After you've spawned, the GM will likely transfer you from your soul to a character so you
+can start gaming!
 
-There were plans, but I'm not working on anything like that at the moment. In theory
-it should be relatively possible through the modularity of the server.
-
-
+3.3 Important commands
++-----------+-----------+
+| IRC-style | MUD-style | Explanation
++-----------+-----------+
+| /say      | say       | Speaks out loud
+| (         | (         | Off topic
+| /look     | look      | Provides a brief description of your surroundings and people there
+| /introduce| introduce | Introduce yourself to the people in the same room
+| /memorize | memorize  | Memorize a name of somebody else (or click with mouse on the text!)
+| /style    | style     | Switches between IRC and MUD style
+|           |           | Speaks out loud in IRC-style, nothing in MUD-style
++-----------+-----------+
