@@ -87,15 +87,27 @@ class Window(object):
         ''' Player box, for showing who's around!'''
         self.playerbox = Listbox(self.frame,background="black",foreground="white")
         self.playerbox.grid(row=0,column=1,rowspan=3,sticky=N+S)
+        
+        # Colors that have been loaded!
+        self.colors = []
 
     def displayMain(self,message,tags=None):
+        if tags == None: tags = ()
+        message = self.colorResetParse(message)
+        message = self.colorTags(message)
         self.textboxMain.config(state=NORMAL)
-        self.textboxMain.insert(END,message,tags)
+        for tag,text in message:
+            print "Adding text",text
+            print tags
+            print tag
+
+            self.textboxMain.insert(END,text,tags+tag)
         self.textboxMain.insert(END,'\n')
         self.textboxMain.config(state=DISABLED)
         self.textboxMain.yview(END)
 
     def displayOfftopic(self,message):
+        message = self.colorResetParse(message)
         self.textboxOfftopic.config(state=NORMAL)
         self.textboxOfftopic.insert(END,message)
         self.textboxOfftopic.insert(END,'\n')
@@ -153,3 +165,39 @@ class Window(object):
                 self.playerbox.insert(END, "%s (%s)"%(player,self.playerlist[player][1]))
             
         
+    def colorResetParse(self,message):
+        colorstack = []
+        fallback = '<gray>'
+        regex = '\<.*?\>'
+        print "Pre-parse:",message
+        for color in re.finditer(regex,message):
+            color = color.group()
+            if color == '<reset>':
+                try:
+                    colorstack.pop()
+                    replace = colorstack[-1]
+                except:
+                    replace = fallback
+                message = message.replace(color,replace,1)
+                
+            else:
+                colorstack.append(color)
+        print "Finished:",message
+        return message
+            
+    def colorTags(self,message):
+        regex = '\<.*?\>'
+        colors = ['gray']+[color[1:-1] for color in re.findall(regex,message)]
+        parts  = re.split(regex,message)
+        
+        print "Colors:",colors
+        print "Parts:",parts
+        message = []
+        for i,color in enumerate(colors):
+            if color not in self.colors:
+                self.colors.append(color)
+                self.textboxMain.tag_config(color,foreground=color)
+                self.textboxOfftopic.tag_config(color,foreground=color)
+            message.append([(color,),parts[i]]) 
+        print message
+        return message

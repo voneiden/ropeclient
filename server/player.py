@@ -122,7 +122,7 @@ class Player(object):
                 self.handlerstate = 2
                 self.account = find
                 self.connection.write('pwd\r\n')
-                return "Your password?"   
+                return "Your <red>password<reset>?"   
             elif find == None:
                 if re.match("^[A-Za-z]+$", message[0]):
                     self.handlerstate = 10
@@ -141,7 +141,7 @@ class Player(object):
             if message[0][0].lower() == 'y':
                 self.handlerstate = 11
                 self.connection.write('pwd\r\n')
-                return "What would your password be?"
+                return "What would your <red>password<reset> be?"
             else:
                 self.handlerstate = 1
                 return "What is your name?"

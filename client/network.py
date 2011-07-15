@@ -82,7 +82,7 @@ class Connection(LineReceiver):
             print tag,color,command,text
             self.window.textboxMain.tag_config(tag,foreground=color)
             self.window.textboxMain.tag_bind(tag,"<Button-1>",lambda(event): self.window.entryboxSet(command))
-            self.window.displayMain(text,tag)
+            self.window.displayMain(text,(tag,))
             print "Displayed"
             
     def write(self, data):
