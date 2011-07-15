@@ -41,7 +41,8 @@ class Player(object):
         self.handler = self.loginHandler
         self.character = None
         self.gamemaster = False
-
+        self.handlerstate = 1
+        self.temp = {}
     def __getstate__(self): 
         """ Players will never be pickled as they contain references to networking """
         return None
@@ -92,68 +93,63 @@ class Player(object):
     def offtopic(self, message):
         self.connection.write('oft %f %s'%(time.time(),message))
         
-    
-        
     def loginHandler(self, message):
-        """ Message is tokenized! """
-        """ 
-            self.username == 'Unknown' means the user is not authenticated at all
-            self.username == (False,Name) means the user account does not exist
-            self.username == (Password,Name) means the user has given a new password, verify and create account
-        """
-        if self.name == 'Unknown':
-            if len(message) == 1:
-                find = self.db.find(message[0],self.db.accounts)
-                #print self.db.accounts
-                #print self.db.accounts[0].name
-                #print find
-                if isinstance(find,db.Account):
-                    self.name = find.name
-                    self.account  = find
-                    self.connection.write('pwd\r\n')
-                    return "Your password?"
-
-                elif re.match("^[A-Za-z]+$", message[0]):
-                    self.name = (False,message[0])
-                    return "The account you typed does not exist. Would you like to create a new account by the name '%s'?" % message[0]
+        '''
+        State 1 - asking for name
+        State 2 - asking for password
+        State 10 - asking for new account verification
+        State 11 - asking for new account password
+        State 12 - asking one more time for password
+        '''
+        if self.handlerstate == 1:
+            self.temp['name'] = message[0]
+            find = self.db.find(message[0],self.db.accounts)
+            if isinstance(find,db.Account):
+                self.handlerstate = 2
+                self.account = find
+                self.connection.write('pwd\r\n')
+                return "Your password?"   
+            elif find == None:
+                if re.match("^[A-Za-z]+$", message[0]):
+                    self.handlerstate = 10
+                    return "Would you like to create a new account under the name '%s' yes/no?"%message[0]
                 else:
-                    return "This not ok"
+                    return "This account name contains invalid characters - Try again"
+             
+        
+        elif self.handlerstate == 2:
+            if message[0] == self.account.password:
+                return self.login()
             else:
-                return "This not ok length"
-        else:
-            if type(self.name) == tuple and len(message[0]) > 0:
-                if self.name[0] == False:
-                    if message[0][0].lower() == 'y':
-                        self.name = (True,self.name[1])
-                        # Todo: request password type
-                        self.connection.write('pwd\r\n')
-                        return "Choose your password"
-                    else:
-                        self.name = 'Unknown'
-                        return "Who are you then?"
-                elif self.password == None:
-                    print "Got pwd",message
-                    self.password = message[0]
-                    self.connection.write('pwd\r\n')
-                    return "Please retype your password.."
-           
-                else:
-                    if self.password == message[0]:
-                        self.account = db.Account(self.name[1],self.password)
-                        self.db.accounts.append(self.account)
-                        self.name = self.account.name
-                        self.db.save()
-                        return self.login()
-                    else:
-                        self.password = None
-                        self.connection.write('pwd\r\n')
-                        return "Passwords mismatch, try again. Choose your password"
+                self.connection.disconnect()
+                
+        elif self.handlerstate == 10:
+            if message[0][0].lower() == 'y':
+                self.handlerstate = 11
+                self.connection.write('pwd\r\n')
+                return "What would your password be?"
             else:
-                if message[0] == self.account.password:
-                    return self.login()
-                    
-                else:
-                    self.connection.disconnect()
+                self.handlerstate = 1
+                return "What is your name?"
+                
+        elif self.handlerstate == 11:
+            self.temp['password'] = message[0]
+            self.handlerstate = 12
+            self.connection.write('pwd\r\n')
+            return "Please retype"
+            
+        elif self.handlerstate == 12:
+            if self.temp['password'] == message[0]:
+                self.account = db.Account(self.temp['name'],self.temp['password'])
+                self.db.accounts.append(self.account)
+                self.db.save()
+                self.login()
+            else:
+                self.handlerstate = 11
+                self.connection.write('pwd\r\n')
+                return "Password mismatch, try again! Your password?"
+    
+    
     def disconnect(self):
         if self.character: self.character.detach()
         self.world.remPlayer(self)
@@ -166,7 +162,6 @@ class Player(object):
         print "Looking for old",old
         if isinstance(old,Player):
             old.disconnect()
-    
         character = self.db.findOwner(self.name,self.core.world.characters)
         if character == None:
             newcharacter = world.Character(self.world,"Soul of %s"%(self.name),self.account.name)
