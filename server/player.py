@@ -155,8 +155,16 @@ class Player(object):
     def disconnect(self):
         if self.character: self.character.detach()
         self.world.remPlayer(self)
+        self.send("You are being logged out because you logged in elsewhere.")
+        self.connection.transport.loseConnection()
         
     def login(self):
+        # We need to check for old player connections and disconnect them.
+        old = self.world.find(self.name,self.world.players)
+        print "Looking for old",old
+        if isinstance(old,Player):
+            old.disconnect()
+    
         character = self.db.findOwner(self.name,self.core.world.characters)
         if character == None:
             newcharacter = world.Character(self.world,"Soul of %s"%(self.name),self.account.name)
