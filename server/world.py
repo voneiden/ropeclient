@@ -60,7 +60,12 @@ class World(object):
             print "2"
             for recipient in recipients:
                 recipient.message(timestamp)
-           
+    
+    def offtopic(self,message):
+        timestamp = self.timestamp()
+        for player in self.players:
+            player.connection.write("oft %f %s"%(timestamp,message))
+            
     def updatePlayers(self):
         print "Updating player list.."
         typinglist = []
@@ -71,7 +76,25 @@ class World(object):
         for player in self.players:
             player.connection.write("plu %s"%lop)
             
-        
+    def updatePlayer(self,player):
+        print "Updating just one player"
+        if player.typing: 
+            buffer = "%s:1"%(player.name)
+        else: 
+            buffer = "%s:0"%(player.name)
+        for player in self.players:
+            player.connection.write("ptu %s"%buffer)
+            
+    def addPlayer(self,player):
+        if player not in self.players:
+            self.players.append(player)
+            self.updatePlayers()
+            self.offtopic("%s has joined the game!"%player.name)
+            
+    def remPlayer(self,player):
+        if player in self.players:
+            self.players.remove(player)
+            self.updatePlayers()
 class Character(object):
     def __init__(self,world,name='unnamed',owner=None):
         self.world = world

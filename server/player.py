@@ -39,6 +39,7 @@ class Player(object):
         self.account = None
         self.typing = False
         self.handler = self.loginHandler
+        self.character = None
 
     def __getstate__(self): 
         """ Players will never be pickled as they contain references to networking """
@@ -48,6 +49,9 @@ class Player(object):
         pass
 
     def recv(self, message):
+        self.typing = False
+        self.world.updatePlayer(self)
+        
         print "Recv", message
         message = message.strip()
         tok = message.split(' ')
@@ -60,11 +64,11 @@ class Player(object):
 
         elif tok[0] == 'pnt':
             self.typing = False
-            self.world.updatePlayers()
+            self.world.updatePlayer(self)
 
         elif tok[0] == 'pit':
             self.typing = True
-            self.world.updatePlayers()
+            self.world.updatePlayer(self)
         
         # Todo: maybe handshake should be mandatory before accepting any other comms..
         elif tok[0] == 'hsk':
@@ -140,7 +144,10 @@ class Player(object):
                     
                 else:
                     self.connection.disconnect()
-         
+    def disconnect(self):
+        if self.character: self.character.detach()
+        self.world.remPlayer(self)
+        
     def login(self):
         character = self.db.findOwner(self.name,self.core.world.characters)
         if character == None:
@@ -149,17 +156,16 @@ class Player(object):
         elif isinstance(character,self.world.Character):
             character.attach(self)
         # Todo handle disconnects properly..
-        self.world.players.append(self)
+        self.world.addPlayer(self)
         self.handler = self.gameHandler
         
     def gameHandler(self, message):
         if self.character:
             if message[0][0] == '(':
-                if message[-1][-1] != ')': 
-                    message[-1] += ')'
-                message = "(%s: %s"%(self.name," ".join(message)[1:])
+                if message[-1][-1] == ')': 
+                    message[-1] = message[-1][:-1]
+                message = "%s: %s"%(self.name," ".join(message)[1:])
                 
-                for player in self.world.players:
-                    player.send(message)
+                self.world.offtopic(message)
             else:        
                 self.character.location.announce('''%s says, "%s"'''%(self.character.name, " ".join(message)))

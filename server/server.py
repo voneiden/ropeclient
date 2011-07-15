@@ -92,6 +92,7 @@ class RopePlayer(LineReceiver):
 
     def connectionLost(self, reason):
         print "Connection lost"
+        self.player.disconnect()
 
     def sendMessage(self, message):
         self.write('msg %f %s' % (time.time(),message))

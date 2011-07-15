@@ -45,6 +45,12 @@ class Connection(LineReceiver):
                 self.window.displayOfftopic(message)
             else:
                 self.window.displayMain(message)
+        
+        elif tok[0] == 'oft':
+            timestamp = tok[1]
+            message   = " ".join(tok[2:])
+            self.window.displayOfftopic(message)
+            
         elif tok[0] == 'pwd':
             self.window.entryboxHide = True
             self.window.entrybox.config(show='*')
@@ -58,6 +64,11 @@ class Connection(LineReceiver):
                 playerlist[ptok[0]] = [ptok[1]]
                 
             self.window.playerlist = playerlist
+            self.window.playerboxUpdate()
+            
+        elif tok[0] == 'ptu':
+            ptu = " ".join(tok[1:]).split(':')
+            self.window.playerlist[ptu[0]] = [ptu[1]]
             self.window.playerboxUpdate()
             
     def write(self, data):
