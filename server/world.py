@@ -139,9 +139,17 @@ class World(object):
         elif len(results) == 1: 
             return results[0]
         else:
-            return results     
+            return results   
+            
+    def findUnique(self,unique,target):
+        result = []
+        for obj in target:
+            if unique == obj.unique: return obj
+        return None
+        
 class Character(object):
-    def __init__(self,world,name='unnamed',owner=None,description="A new character",info="A soul"):
+    def __init__(self,world,owner=None,name='unnamed',info="A soul",description="A new character"):
+        self.unique = world.uniqueID()
         self.world = world
         self.owner = owner
         self.player = None
@@ -164,6 +172,7 @@ class Character(object):
         
         self.world.characters.append(self)
         self.move(self.world.spawn)
+        
     def move(self,location):
         if self.location != None:
             print "Left from location"

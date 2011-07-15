@@ -108,7 +108,7 @@ class Window(object):
         if   event.keysym == "BackSpace" and len(self.entryboxMessage.get()) == 0 and self.entryboxTyping:
             self.write("pnt")
             self.entryboxTyping = False
-        elif event.keysym == "Return" and len(message) > 0:
+        elif event.keysym == "Return": #and len(message) > 0:
             if self.entryboxHide:
                 self.write("msg %s"%(sha256(message+'r0p3s4lt').hexdigest()))
                 self.entryboxHide = False

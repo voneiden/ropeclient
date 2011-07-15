@@ -205,12 +205,67 @@ class Player(object):
                 self.offtopic('\n'.join(buffer))
                 
             elif message[0] == '/introduce':
+                name = " ".join(message[1:])
+                if len(name) < 2: return "Introduce as who?"
                 pass
+                
             elif message[0] == '/memorize':
                 pass
+                
+            elif message[0] == '/gm':
+                self.gamemaster = True
+                
+            elif message[0] == '/spawn':
+                self.handler = self.gmSpawner
+                self.handlerstate = 0
+                self.temp = {}
+                return self.handler(None)
+            elif message[0] == '/look':
+                loc = self.character.location
+                buffer = [loc.name]
+                buffer.append(loc.description)
+                if len(loc.characters) == 1:
+                    buffer.append("You're alone")
+                elif len(loc.characters) == 2:
+                    chars = loc.characters[:]
+                    chars.remove(self.character)
+                    buffer.append("%s is here."%chars[0].name)
+                else:
+                    chars = loc.characters[:]
+                    chars.remove(self.character)
+                    buffer.append("%s are here."%(", ".join(chars)))
+                self.send("\n".join(buffer))
                 
             elif not self.character.mute:        
                 self.character.location.announce('''%s says, "%s"'''%(self.character.name, " ".join(message)))
             else:
                 message = "%s: %s"%(self.name," ".join(message))
                 self.world.offtopic(message)
+                
+    def gmSpawner(self,message):
+        self.handlerstate += 1
+        if isinstance(message,list):
+            msg = " ".join(message)
+            
+        if self.handlerstate  == 1:
+            return "Owner of this character (Enter=you)"
+        elif self.handlerstate == 2:
+            if msg == '':
+                self.temp['owner'] = self.account.name
+            else:
+                self.temp['owner'] = msg
+                
+            return "Name of the character?"
+            
+        elif self.handlerstate == 3:
+            self.temp['name'] = msg
+            return "Describe with a few words?"
+        elif self.handlerstate == 4:
+            self.temp['info'] = msg
+            return "Describe a bit longer?"
+        elif self.handlerstate == 5:
+            self.temp['description'] = msg
+            newchar = world.Character(self.world,self.account.name,self.temp['name'],self.temp['info'],self.temp['description'])
+            newchar.move(self.character.location)
+            self.handler = self.gameHandler
+            return "Done"
