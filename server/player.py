@@ -51,7 +51,8 @@ class Player(object):
             'gm':self.handleGM,
             'spawn':self.handleSpawn,
             'look':self.handleLook,
-            'style':self.handleStyle
+            'style':self.handleStyle,
+            'say':self.handleSay
             }
         
     def __getstate__(self): 
@@ -99,6 +100,8 @@ class Player(object):
         
     def send(self, message):
         ''' This function will also do some parsing stuff! '''
+        if self.character:
+            message = self.character.parse(message)
         self.connection.sendMessage(message)
         
     def offtopic(self, message):
@@ -201,12 +204,9 @@ class Player(object):
                     
             if tok[0][0] == '(':
                 return self.handleOfftopic(tok)
-                
-            elif not self.character.mute:        
-                self.character.location.announce('''%s says, "%s"'''%(self.character.name, " ".join(message)))
-            else:
-                message = "%s: %s"%(self.account.name," ".join(tok))
-                self.world.offtopic(message)
+            
+            if self.account.style == 0: 
+                return self.handleSay(tok)
                 
     def gmSpawner(self,message):
         ''' This is a handler for character generation '''
@@ -247,11 +247,11 @@ class Player(object):
         elif len(loc.characters) == 2:
             chars = loc.characters[:]
             chars.remove(self.character)
-            buffer.append("%s is here."%chars[0].name)
+            buffer.append("%s is here."%chars[0].rename)
         else:
             chars = loc.characters[:]
             chars.remove(self.character)
-            buffer.append("%s are here."%(", ".join(chars)))
+            buffer.append("%s are here."%(", ".join([char.rename for char in chars])))
         self.send("\n".join(buffer))
         
     def handleSpawn(self, tok):
@@ -267,7 +267,9 @@ class Player(object):
         self.world.offtopic(message)
         
     def handleSay(self, tok):
-        pass
+        if not self.character.mute:        
+            self.character.location.announce('''%s says, "%s"'''%(self.character.name, " ".join(message)))
+        self.offtopic("You are mute! You can't talk")
         
     def handleShout(self, tok):
         pass

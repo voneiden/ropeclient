@@ -103,6 +103,7 @@ class db:
             return results
             
     def save(self):
+        print "Saving accounts.db.."
         f = open('accounts.db','wb')
         cPickle.dump(self.accounts,f,-1)
         f.close()

@@ -154,6 +154,7 @@ class Character(object):
         self.owner = owner
         self.player = None
         self.name = name
+        self.rename = "$(name=%s)"%(self.name)
         self.description = description
         self.info        = info
         
