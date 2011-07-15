@@ -23,7 +23,7 @@
 '''
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
-import sha
+import sha, time
 
 class Connection(LineReceiver):
 
@@ -47,8 +47,9 @@ class Connection(LineReceiver):
                 self.window.displayMain(message)
         
         elif tok[0] == 'oft':
-            timestamp = tok[1]
-            message   = " ".join(tok[2:])
+            timestamp = float(tok[1])
+            
+            message   = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp))," ".join(tok[2:]))
             self.window.displayOfftopic(message)
             
         elif tok[0] == 'pwd':
@@ -61,14 +62,14 @@ class Connection(LineReceiver):
             playerlist = {}
             for player in lop:
                 ptok = player.split(':')
-                playerlist[ptok[0]] = [ptok[1]]
+                playerlist[ptok[0]] = ptok[1:]
                 
             self.window.playerlist = playerlist
             self.window.playerboxUpdate()
             
         elif tok[0] == 'ptu':
             ptu = " ".join(tok[1:]).split(':')
-            self.window.playerlist[ptu[0]] = [ptu[1]]
+            self.window.playerlist[ptu[0]] = ptu[1:]
             self.window.playerboxUpdate()
             
     def write(self, data):

@@ -25,7 +25,7 @@ Design some kind of nice system when loading a saved world that checks for missi
 attributes
 '''
 
-import cPickle, time
+import cPickle, time, re
 
 class World(object):
     def __init__(self,name='default'):
@@ -35,6 +35,7 @@ class World(object):
         self.players    = []
         self.locations  = [self.spawn]
         self.messages = {}
+        self.memory = {}
         
     def timestamp(self):
         timestamp = time.time()
@@ -64,26 +65,27 @@ class World(object):
     def offtopic(self,message):
         timestamp = self.timestamp()
         for player in self.players:
-            player.connection.write("oft %f %s"%(timestamp,message))
+            player.connection.write("oft %f %s"%(timestamp,player.character.parse(message)))
             
     def updatePlayers(self):
         print "Updating player list.."
         typinglist = []
         for player in self.players:
-             if player.typing: typinglist.append("%s:1"%player.name)
-             else: typinglist.append("%s:0"%player.name)
+             if player.typing: typinglist.append("%s:1:$(name=%s)"%(player.name,player.character.name))
+             else: typinglist.append("%s:0:$(name=%s)"%(player.name,player.character.name))
         lop = ";".join(typinglist)
         for player in self.players:
-            player.connection.write("plu %s"%lop)
+            player.connection.write("plu %s"%player.character.parse(lop))
             
     def updatePlayer(self,player):
         print "Updating just one player"
+        if not player.character: return
         if player.typing: 
-            buffer = "%s:1"%(player.name)
+            buffer = "%s:1:$(name=%s)"%(player.name,player.character.name)
         else: 
-            buffer = "%s:0"%(player.name)
+            buffer = "%s:0:$(name=%s)"%(player.name,player.character.name)
         for player in self.players:
-            player.connection.write("ptu %s"%buffer)
+            player.connection.write("ptu %s"%player.character.parse(buffer))
             
     def addPlayer(self,player):
         if player not in self.players:
@@ -95,8 +97,29 @@ class World(object):
         if player in self.players:
             self.players.remove(player)
             self.updatePlayers()
+            
+    def find(self,name,target):
+        """ 
+            Will search target list for an identity.
+            Returns None if not found, object if single
+            occurence found, or a list if multiple choices
+            were found
+        """
+        results = []
+        for obj in target:
+            if name.lower() in obj.name.lower(): results.append(obj)
+        if len(results) == 0: 
+            return None
+        elif len(results) == 1: 
+            return results[0]
+        else:
+            for obj in results:
+                if name == obj.name:
+                    return obj
+            return results
+            
 class Character(object):
-    def __init__(self,world,name='unnamed',owner=None):
+    def __init__(self,world,name='unnamed',owner=None,description="A new character",info="A soul"):
         self.world = world
         self.owner = owner
         self.player = None
@@ -142,10 +165,33 @@ class Character(object):
     def message(self,timestamp): 
         print "sending message id",timestamp
         if self.player:
-            self.player.send(self.world.messages[timestamp])
+            self.player.send(self.parse(self.world.messages[timestamp]))
             self.read.append(timestamp)
         else:
             self.unread.append(timestamp)
+            
+    def parse(self,message):
+        #nameregex = "(?<=\(name\=).+?(?=\))"
+        nameregex = "\$\(name\=.+?\)"
+        #message = re.sub(nameregex, self.memoryCheck, message)
+        #return message
+        print "Parsing.."
+        for match in re.finditer(nameregex,message):
+            name = self.memoryCheck(match)
+            print "Replacing..",match.group(),name
+            message = message.replace(match.group(),name,1)
+        
+        return message
+    def memoryCheck(self,match):
+        name = match.group()[7:-1]
+        character = self.world.find(name,self.world.characters)
+        if not character: 
+            print "character not found"
+            return name
+        if character.name in self.memory or character == self:
+            return self.memory[character.name]
+        else:
+            return character.info
         
 class Location(object):
     def __init__(self,world,name="New location",description = ""):

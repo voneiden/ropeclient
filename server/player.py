@@ -40,6 +40,7 @@ class Player(object):
         self.typing = False
         self.handler = self.loginHandler
         self.character = None
+        self.gamemaster = False
 
     def __getstate__(self): 
         """ Players will never be pickled as they contain references to networking """
@@ -80,10 +81,17 @@ class Player(object):
 
         #self.send(None, message)
 
+        
+        
+    
+        
     def send(self, message):
-        print "Sending!111",message
+        ''' This function will also do some parsing stuff! '''
         self.connection.sendMessage(message)
+        
 
+    
+        
     def loginHandler(self, message):
         """ Message is tokenized! """
         """ 
@@ -152,6 +160,7 @@ class Player(object):
         character = self.db.findOwner(self.name,self.core.world.characters)
         if character == None:
             newcharacter = world.Character(self.world,"Soul of %s"%(self.name),self.account.name)
+            newcharacter.mute = True
             newcharacter.attach(self)
         elif isinstance(character,self.world.Character):
             character.attach(self)
@@ -165,7 +174,9 @@ class Player(object):
                 if message[-1][-1] == ')': 
                     message[-1] = message[-1][:-1]
                 message = "%s: %s"%(self.name," ".join(message)[1:])
-                
                 self.world.offtopic(message)
-            else:        
+            elif not self.character.mute:        
                 self.character.location.announce('''%s says, "%s"'''%(self.character.name, " ".join(message)))
+            else:
+                message = "%s: %s"%(self.name," ".join(message))
+                self.world.offtopic(message)

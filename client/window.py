@@ -143,7 +143,9 @@ class Window(object):
         
         self.playerbox.delete(0, END)
         for player in players:
-            if self.playerlist[player][0] == "1": self.playerbox.insert(END, "*%s"%player)
-            else:         self.playerbox.insert(END, "%s"%player)
+            if self.playerlist[player][0] == "1": 
+                self.playerbox.insert(END, "*%s (%s)"%(player,self.playerlist[player][1]))
+            else:
+                self.playerbox.insert(END, "%s (%s)"%(player,self.playerlist[player][1]))
             
         
