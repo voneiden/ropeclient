@@ -19,7 +19,7 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 
 '''
-import re, db, world
+import re, db, world, time
 
 class Player(object):
     '''
@@ -89,7 +89,9 @@ class Player(object):
         ''' This function will also do some parsing stuff! '''
         self.connection.sendMessage(message)
         
-
+    def offtopic(self, message):
+        self.connection.write('oft %f %s'%(time.time(),message))
+        
     
         
     def loginHandler(self, message):
@@ -170,11 +172,13 @@ class Player(object):
             newcharacter = world.Character(self.world,"Soul of %s"%(self.name),self.account.name)
             newcharacter.mute = True
             newcharacter.attach(self)
-        elif isinstance(character,self.world.Character):
+        elif isinstance(character,world.Character):
             character.attach(self)
         # Todo handle disconnects properly..
         self.world.addPlayer(self)
         self.handler = self.gameHandler
+        print "Sending clk"
+        self.connection.write("clk test;yellow;/testing;Click here to test a command!")
         
     def gameHandler(self, message):
         if self.character:
@@ -183,6 +187,28 @@ class Player(object):
                     message[-1] = message[-1][:-1]
                 message = "%s: %s"%(self.name," ".join(message)[1:])
                 self.world.offtopic(message)
+            
+            elif message[0] == '/chars':
+                print "Listing chars"
+                chars = self.world.findOwner(self.name,self.world.characters)
+                if chars == None: 
+                    self.offtopic("You possess no characters..")
+                    return
+                buffer = ["You can possess the following characters"]
+                if not isinstance(chars,list): 
+                    chars = [chars]
+                for char in chars:
+                    if char == self.character:
+                        buffer.append("** %s - %s **"%(char.name,char.info))
+                    else:
+                        buffer.append("%s - %s"%(char.name,char.info))
+                self.offtopic('\n'.join(buffer))
+                
+            elif message[0] == '/introduce':
+                pass
+            elif message[0] == '/memorize':
+                pass
+                
             elif not self.character.mute:        
                 self.character.location.announce('''%s says, "%s"'''%(self.character.name, " ".join(message)))
             else:

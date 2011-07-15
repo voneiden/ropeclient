@@ -88,9 +88,9 @@ class Window(object):
         self.playerbox = Listbox(self.frame,background="black",foreground="white")
         self.playerbox.grid(row=0,column=1,rowspan=3,sticky=N+S)
 
-    def displayMain(self,message):
+    def displayMain(self,message,tags=None):
         self.textboxMain.config(state=NORMAL)
-        self.textboxMain.insert(END,message)
+        self.textboxMain.insert(END,message,tags)
         self.textboxMain.insert(END,'\n')
         self.textboxMain.config(state=DISABLED)
         self.textboxMain.yview(END)
@@ -120,7 +120,11 @@ class Window(object):
         elif len(self.entryboxMessage.get()) >= 1 and not self.entryboxTyping:
             self.write("pit")
             self.entryboxTyping = True
-
+  
+    def entryboxSet(self,command):
+        self.entryboxMessage.set(command)
+        self.entrybox.icursor(END)
+        
     def textboxMainScroll(self,event):
         pass
 

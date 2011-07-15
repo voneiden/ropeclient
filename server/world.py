@@ -36,6 +36,10 @@ class World(object):
         self.locations  = [self.spawn]
         self.messages = {}
         self.memory = {}
+        self.unique = 0
+    def uniqueID(self):
+        self.unique += 1
+        return self.unique 
         
     def timestamp(self):
         timestamp = time.time()
@@ -117,15 +121,33 @@ class World(object):
                 if name == obj.name:
                     return obj
             return results
-            
+    def findOwner(self,owner,target):
+        """ 
+            Will search target list for an identity.
+            Returns None if not found, object if single
+            occurence found, or a list if multiple choices
+            were found
+        """
+        print "FINDOWNERS"
+        print target
+        print owner
+        results = []
+        for obj in target:
+            if owner.lower() in obj.owner.lower(): results.append(obj)
+        if len(results) == 0: 
+            return None
+        elif len(results) == 1: 
+            return results[0]
+        else:
+            return results     
 class Character(object):
     def __init__(self,world,name='unnamed',owner=None,description="A new character",info="A soul"):
         self.world = world
         self.owner = owner
         self.player = None
         self.name = name
-        self.description = ''
-        self.info        = ''
+        self.description = description
+        self.info        = info
         
         # TODO set location here
         self.location = None
@@ -138,6 +160,9 @@ class Character(object):
         self.read = []
         self.unread = []
         
+        self.memory = {}
+        
+        self.world.characters.append(self)
         self.move(self.world.spawn)
     def move(self,location):
         if self.location != None:
@@ -188,8 +213,10 @@ class Character(object):
         if not character: 
             print "character not found"
             return name
-        if character.name in self.memory or character == self:
+        if character.name in self.memory:
             return self.memory[character.name]
+        elif character == self:
+            return character.name
         else:
             return character.info
         

@@ -43,6 +43,10 @@
 
 '''
 
+'''
+The server should send some kind of line to the client describing a clickable event..
+clk id;color;command;text
+'''
 import cPickle, time
 
 class db:
@@ -87,7 +91,7 @@ class db:
         """
         results = []
         for obj in target:
-            if identity.lower() in obj.owner.lower(): results.append(obj)
+            if owner.lower() in obj.owner.lower(): results.append(obj)
         if len(results) == 0: 
             return None
         elif len(results) == 1: 

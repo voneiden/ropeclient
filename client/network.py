@@ -72,6 +72,19 @@ class Connection(LineReceiver):
             self.window.playerlist[ptu[0]] = ptu[1:]
             self.window.playerboxUpdate()
             
+        elif tok[0] == 'clk':
+            print "Received clk"
+            ptok = " ".join(tok[1:]).split(';')
+            tag = ptok[0]
+            color = ptok[1]
+            command = ptok[2]
+            text = ptok[3]
+            print tag,color,command,text
+            self.window.textboxMain.tag_config(tag,foreground=color)
+            self.window.textboxMain.tag_bind(tag,"<Button-1>",lambda(event): self.window.entryboxSet(command))
+            self.window.displayMain(text,tag)
+            print "Displayed"
+            
     def write(self, data):
         data = data + '\r\n'
         data = data.encode('utf-8')
