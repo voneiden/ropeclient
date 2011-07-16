@@ -30,12 +30,12 @@ if __name__ == '__main__':
     print ("Loading..")
     window = window.Window()
 
-    window.displayMain("Installing tksupport")
+    window.display("Installing tksupport")
     tksupport.install(window.root)
 
     reactor.connectTCP(window.host, 49500, network.connectionFactory(window))
 
-    window.displayMain("Starting reactor!")
+    window.display("Starting reactor!")
     reactor.run()
 
 

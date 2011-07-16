@@ -31,7 +31,7 @@ class Connection(LineReceiver):
         self.window = window
 
     def connectionMade(self):
-        self.window.displayMain("Connected!")
+        self.window.display("Connected!")
         self.write("hsk 3.0.0")
 
     def lineReceived(self, data):
@@ -41,16 +41,13 @@ class Connection(LineReceiver):
         if tok[0] == 'msg':
             timestamp = tok[1]
             message = " ".join(tok[2:])
-            if message[0] == '(':
-                self.window.displayOfftopic(message)
-            else:
-                self.window.displayMain(message)
+            self.window.display(message)
         
         elif tok[0] == 'oft':
             timestamp = float(tok[1])
             
             message   = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp))," ".join(tok[2:]))
-            self.window.displayOfftopic(message)
+            self.window.display(message)
             
         elif tok[0] == 'pwd':
             self.window.entryboxHide = True
@@ -82,7 +79,7 @@ class Connection(LineReceiver):
             print tag,color,command,text
             self.window.textboxMain.tag_config(tag,foreground=color)
             self.window.textboxMain.tag_bind(tag,"<Button-1>",lambda(event): self.window.entryboxSet(command))
-            self.window.displayMain(text,(tag,))
+            self.window.display(text,(tag,))
             print "Displayed"
             
     def write(self, data):
@@ -98,7 +95,7 @@ class connectionFactory(ReconnectingClientFactory):
         self.window = window
 
     def startedConnecting(self, connector):
-        self.window.displayMain("Connecting to server..")
+        self.window.display("Connecting to server..")
 
     def buildProtocol(self, addr):
         print ('Connected.')
@@ -111,12 +108,12 @@ class connectionFactory(ReconnectingClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         message = reason.getErrorMessage().split(':')[0]
-        self.window.displayMain("Connection failed (%s)" % (message))
+        self.window.display("Connection failed (%s)" % (message))
         self.window.connection = None
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
         message = reason.getErrorMessage().split(':')[0]
-        self.window.displayMain("Connection failed (%s)" % (message))
+        self.window.display("Connection failed (%s)" % (message))
         self.window.connection = None
         ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)

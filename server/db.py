@@ -46,6 +46,12 @@
 '''
 The server should send some kind of line to the client describing a clickable event..
 clk id;color;command;text
+
+better even! 
+
+$(clicktocommand:id;color;command;text)
+
+
 '''
 import cPickle, time
 

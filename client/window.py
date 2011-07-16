@@ -22,7 +22,7 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
 from Tkinter import N, S, E, W, WORD, DISABLED, NORMAL, END, BOTH, YES
-from Tkinter import Entry, Listbox, StringVar, Tk, Frame
+from Tkinter import Entry, Listbox, StringVar, Tk, Frame, TclError
 from ScrolledText import ScrolledText
 import time
 import re
@@ -90,25 +90,29 @@ class Window(object):
         
         # Colors that have been loaded!
         self.colors = []
-
-    def displayMain(self,message,tags=None):
+    # Todo offtopic dispaly..
+    def display(self,message,tags=None):
         if tags == None: tags = ()
+        message = self.clickParse(message)
         message = self.colorResetParse(message)
         message = self.colorTags(message)
+        if message[0] == '(':
+            self.displayOfftopic(message)
+        else:
+            self.displayMain(message)
+
+    def displayMain(self,message):
         self.textboxMain.config(state=NORMAL)
         for tag,text in message:
-            print "Adding text",text
-            print tags
-            print tag
-
-            self.textboxMain.insert(END,text,tags+tag)
+            self.textboxMain.insert(END,text,tag)
         self.textboxMain.insert(END,'\n')
         self.textboxMain.config(state=DISABLED)
         self.textboxMain.yview(END)
 
     def displayOfftopic(self,message):
-        message = self.colorResetParse(message)
         self.textboxOfftopic.config(state=NORMAL)
+        for tag,text in message:
+            self.textboxOfftopic.insert(END,text,tag)
         self.textboxOfftopic.insert(END,message)
         self.textboxOfftopic.insert(END,'\n')
         self.textboxOfftopic.config(state=DISABLED)
@@ -163,7 +167,29 @@ class Window(object):
                 self.playerbox.insert(END, "*%s (%s)"%(player,self.playerlist[player][1]))
             else:
                 self.playerbox.insert(END, "%s (%s)"%(player,self.playerlist[player][1]))
+       
+    def clickParse(self,message):
+        regex = '\$\(clk2cmd\:.+?\)'
+        for clk2cmd in re.finditer(regex,message):
+            cmd = clk2cmd.group()
+            tok = cmd.split(':')[1].split(';')
+            tag = tok[0]
+            color = tok[1]
+            command = tok[2]
+            text = tok[3][:-1]
+            if tag not in self.colors:
+                self.colors.append(tag)
+            try:
+                self.textboxMain.tag_config(tag,foreground=color)
+                self.textboxOfftopic.tag_config(tag,foreground=color)
+            except TclError:
+                self.textboxMain.tag_config(tag,foreground="white")
+                self.textboxOfftopic.tag_config(tag,foreground="white")
             
+            self.textboxMain.tag_bind(tag,"<Button-1>",lambda(event): self.entryboxSet(command))
+            self.textboxOfftopic.tag_bind(tag,"<Button-1>",lambda(event): self.entryboxSet(command))
+            message = message.replace(cmd,"<%s>%s<reset>"%(tag,text),1)
+        return message
         
     def colorResetParse(self,message):
         colorstack = []
@@ -196,8 +222,13 @@ class Window(object):
         for i,color in enumerate(colors):
             if color not in self.colors:
                 self.colors.append(color)
-                self.textboxMain.tag_config(color,foreground=color)
-                self.textboxOfftopic.tag_config(color,foreground=color)
+                try:
+                    self.textboxMain.tag_config(color,foreground=color)
+                    self.textboxOfftopic.tag_config(color,foreground=color)
+                except TclError:
+                    self.textboxMain.tag_config(color,foreground="white")
+                    self.textboxOfftopic.tag_config(color,foreground="white")
+
             message.append([(color,),parts[i]]) 
         print message
         return message

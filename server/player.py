@@ -190,17 +190,21 @@ class Player(object):
         self.world.addPlayer(self)
         self.handler = self.gameHandler
         print "Sending clk"
-        self.connection.write("clk test;yellow;/testing;Click here to test a command!")
+        #self.connection.write("clk test;yellow;/testing;Click here to test a command!")
+        self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
         
     def gameHandler(self, tok):
         if self.character:
             for command in self.commands.keys():
-                if self.account.style == 0:
-                    if re.search("^/%s"%command,tok[0]):
-                        return self.commands[command](tok)
-                elif self.account.style == 1:
+                if self.account.style == 1:
                     if re.search("^%s"%command,tok[0]):
                         return self.commands[command](tok)
+                    if re.search("/^%s"%command,tok[0]): # For compatibility with click triggers.
+                        return self.commands[command](tok)
+                elif self.account.style == 0:
+                    if re.search("^/%s"%command,tok[0]):
+                        return self.commands[command](tok)
+                
                     
             if tok[0][0] == '(':
                 return self.handleOfftopic(tok)
