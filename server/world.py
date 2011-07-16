@@ -25,7 +25,7 @@ Design some kind of nice system when loading a saved world that checks for missi
 attributes
 '''
 
-import cPickle, time, re
+import cPickle, time, re, random
 
 class World(object):
     def __init__(self,name='default'):
@@ -56,6 +56,8 @@ class World(object):
     def message(self,recipients,message):
         ''' This is the function to send messages to player. The message is given an ID which can be later retrieved! '''
         timestamp = self.timestamp()
+        # Do the dice rolling too..
+        message = self.doDice(message)
         self.messages[timestamp] = message
         print "Preparing to message"
         if isinstance(recipients,Character):
@@ -148,7 +150,55 @@ class World(object):
         for obj in target:
             if unique == obj.unique: return obj
         return None
+
+    def doDice(self,message):
+        print "REGEX DICE"
+        evalregex = "\![d0-9\+\-\*\/]+"
+        diceregex = "[0-9]*d[0-9]+"
+        resultmessage = message[:]
+        for equation in re.finditer(evalregex,message):
+            print "FOUDN EQUATION"
+            equation = equation.group()[1:]
+            resultequation = equation
+            visualize = []
+            try:
+                for dice in re.finditer(diceregex,message):
+                    dice = dice.group()
+                    tok = dice.split('d')
+                    roll = self.doRoll(tok[0],tok[1])
+                    print "You has roled",roll
+                    resultequation = resultequation.replace(dice,str(roll[0]),1)
+            except OverflowError:
+                print "OVERFLOW ERROR"
+                return message
+            total = eval(resultequation)
+            print "Total",total
+            print "Replacing",equation,"from",resultmessage
+            resultmessage = resultmessage.replace(equation,"YOU ROLL: %s"%str(total),1)
+                
+        return resultmessage
+                
+    def doRoll(self,x,y):
+        print "Rolling",x,y
+        if x == '': x = 1
+        x = int(x)
+        y = int(y)
+        print "Rolling2",x,y
+        if x > 20 or x < 1: 
+            print "True1"
+            raise OverflowError
+        if y > 100 or y < 1: 
+            print "True2"
+            raise OverflowError
         
+        total = 0
+        rolls = []
+        for i in xrange(x):
+            r = random.randint(1,y)
+            total += r
+            rolls.append(r)
+        return (total,rolls)
+    
 class Character(object):
     def __init__(self,world,owner=None,name='unnamed',info="A soul",description="A new character"):
         self.unique = world.uniqueID()

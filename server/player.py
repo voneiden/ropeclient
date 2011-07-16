@@ -19,7 +19,7 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 
 '''
-import re, db, world, time
+import re, db, world, time, random
 
 class Player(object):
     '''
@@ -268,8 +268,8 @@ class Player(object):
     def handleOfftopic(self, tok):
         if tok[-1][-1] == ')': 
             tok[-1] = tok[-1][:-1]
-        message = "%s: %s"%(self.account.name," ".join(tok)[1:])
-        self.world.offtopic(message)
+        message = "(%s: %s"%(self.account.name," ".join(tok)[1:])
+        self.world.message(self.world.characters,message)
         
     def handleSay(self, tok):
         if not self.character.mute:        
@@ -315,3 +315,5 @@ class Player(object):
         if self.account.style: return "You are now using MUD-style"
         else: return "You are now using IRC-style"
         self.db.save()
+        
+
