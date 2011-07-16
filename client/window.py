@@ -92,7 +92,7 @@ class Window(object):
         self.colors = []
     # Todo offtopic dispaly..
     def display(self,message,timestamp=None):
-        if timestamp == None: timestamp = time.time()
+        
         if message[0] == '(':
             message = message[1:]
             if message[-1] == ')':
@@ -100,6 +100,10 @@ class Window(object):
             offtopic = True
         else:
             offtopic = False
+            
+        if timestamp != None: 
+            message   = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp)), message)
+            
         message = self.clickParse(message)
         message = self.colorResetParse(message)
         message = self.colorTags(message)

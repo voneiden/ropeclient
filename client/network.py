@@ -39,16 +39,16 @@ class Connection(LineReceiver):
         tok = data.split(' ')
 
         if tok[0] == 'msg':
-            timestamp = tok[1]
-            message = " ".join(tok[2:])
-            self.window.display(message)
-        
-        elif tok[0] == 'oft':
             timestamp = float(tok[1])
-            
-            message   = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp))," ".join(tok[2:]))
-            self.window.display(message)
-            
+            message = " ".join(tok[2:])
+            self.window.display(message,timestamp)
+        
+        #elif tok[0] == 'oft':
+        #    timestamp = float(tok[1])
+        #    
+        #    message   = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp))," ".join(tok[2:]))
+        #    self.window.display(message,timestamp)
+           
         elif tok[0] == 'pwd':
             self.window.entryboxHide = True
             self.window.entrybox.config(show='*')
