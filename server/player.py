@@ -105,7 +105,8 @@ class Player(object):
         self.connection.sendMessage(message)
         
     def offtopic(self, message):
-        self.connection.write('oft %f %s'%(time.time(),message))
+        #self.connection.write('oft %f %s'%(time.time(),message))
+        self.send("(%s"%message)
         
     def loginHandler(self, message):
         '''

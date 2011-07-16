@@ -68,8 +68,10 @@ class World(object):
     
     def offtopic(self,message):
         timestamp = self.timestamp()
+        print "Sending offtopic message",message
         for player in self.players:
-            player.connection.write("oft %f %s"%(timestamp,player.character.parse(message)))
+            #player.connection.write("oft %f %s"%(timestamp,player.character.parse(message)))
+            player.send("(%s"%message)
             
     def updatePlayers(self):
         print "Updating player list.."

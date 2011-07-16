@@ -91,12 +91,20 @@ class Window(object):
         # Colors that have been loaded!
         self.colors = []
     # Todo offtopic dispaly..
-    def display(self,message,tags=None):
-        if tags == None: tags = ()
+    def display(self,message,timestamp=None):
+        if timestamp == None: timestamp = time.time()
+        if message[0] == '(':
+            message = message[1:]
+            if message[-1] == ')':
+                message = message[:-1]
+            offtopic = True
+        else:
+            offtopic = False
         message = self.clickParse(message)
         message = self.colorResetParse(message)
         message = self.colorTags(message)
-        if message[0] == '(':
+        print "Displaying",message
+        if offtopic:
             self.displayOfftopic(message)
         else:
             self.displayMain(message)
@@ -113,7 +121,6 @@ class Window(object):
         self.textboxOfftopic.config(state=NORMAL)
         for tag,text in message:
             self.textboxOfftopic.insert(END,text,tag)
-        self.textboxOfftopic.insert(END,message)
         self.textboxOfftopic.insert(END,'\n')
         self.textboxOfftopic.config(state=DISABLED)
         self.textboxOfftopic.yview(END)
