@@ -36,6 +36,7 @@ if __name__ == '__main__':
     reactor.connectTCP(window.host, 49500, network.connectionFactory(window))
 
     window.display("Starting reactor!")
+    window.reactor = reactor
     reactor.run()
 
 

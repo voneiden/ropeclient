@@ -140,6 +140,7 @@ class Player(object):
                 self.connection.disconnect()
                 
         elif self.handlerstate == 10:
+            if len(message[0]) < 1: return
             if message[0][0].lower() == 'y':
                 self.handlerstate = 11
                 self.connection.write('pwd\r\n')
@@ -196,7 +197,7 @@ class Player(object):
         self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
         
     def gameHandler(self, tok):
-        if self.character:
+        if self.character and len(tok) > 0:
             for command in self.commands.keys():
                 if self.account.style == 1:
                     if re.search("^%s"%command,tok[0]):
@@ -313,8 +314,9 @@ class Player(object):
         
     def handleStyle(self,tok):
         self.account.style = not self.account.style
+        self.db.save()
         if self.account.style: return "You are now using MUD-style"
         else: return "You are now using IRC-style"
-        self.db.save()
+        
         
 

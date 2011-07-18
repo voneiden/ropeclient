@@ -163,7 +163,12 @@ class Window(object):
         self.entrybox.icursor(END)
         
     def textboxMainScroll(self,event):
-        pass
+        print dir(event)
+        print event.keycode
+        print event.delta
+        scroll = event.delta / 10
+        self.textboxMain.yview('scroll', -scroll, 'units')
+        
 
     def textboxOfftopicScroll(self,event):
         pass
@@ -174,9 +179,11 @@ class Window(object):
 
     def stop(self):
         print "Stopping.."
+        self.reactor.stop()
 
     def focusEntrybox(self,args):
         print "Focus"
+        self.entrybox.focus_set()
         
     def playerboxUpdate(self):
         players = self.playerlist.keys()
