@@ -67,7 +67,7 @@ class Core(object):
         self.greeting = open('motd.txt', 'r').readlines()
         self.db = db.db()
         self.world = world.World()
-
+        self.gmKey = 'g'
     def __getstate__(self):
         return None
 

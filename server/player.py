@@ -43,13 +43,12 @@ class Player(object):
         self.gamemaster = False
         self.handlerstate = 1
         self.temp = {}
-        
         self.commands = {
             'chars':self.handleCharlist,
             'intro':self.handleIntroduce,
             'memorize':self.handleMemorize,
             'gm':self.handleGM,
-            'spawn':self.handleSpawn,
+            'spawn':self.handleCharacterSpawn,
             'look':self.handleLook,
             'style':self.handleStyle,
             'say':self.handleSay
@@ -215,7 +214,7 @@ class Player(object):
             if self.account.style == 0: 
                 return self.handleSay(tok)
                 
-    def gmSpawner(self,message):
+    def characterSpawner(self,message):
         ''' This is a handler for character generation '''
         self.handlerstate += 1
         if isinstance(message,list):
@@ -261,11 +260,14 @@ class Player(object):
             buffer.append("%s are here."%(", ".join([char.rename for char in chars])))
         self.send("\n".join(buffer))
         
-    def handleSpawn(self, tok):
-        self.handler = self.gmSpawner
-        self.handlerstate = 0
-        self.temp = {}
-        return self.handler(None)
+    def handleCharacterSpawn(self, tok):
+        if self.gamemaster:
+            self.handler = self.characterSpawner
+            self.handlerstate = 0
+            self.temp = {}
+            return self.handler(None)
+        else:
+            return "(Not authorized"
         
     def handleOfftopic(self, tok):
         if tok[-1][-1] == ')': 
@@ -285,8 +287,20 @@ class Player(object):
         pass
         
     def handleGM(self, tok):
-        self.gamemaster = not self.gamemaster
-        
+        if len(tok) < 2:
+            key = ''
+        else:
+            key = tok[1]
+            
+        if key == self.core.gmKey or self.gamemaster:
+            self.gamemaster = not self.gamemaster
+            self.db.save()
+            if self.gamemaster:
+                return "(GM status enabled"
+            else:
+                return "(GM status disabled"
+        else:
+            self.send("(Not authorized")
     def handleCharlist(self, tok):
         print "Listing chars"
         chars = self.world.findOwner(self.account.name,self.world.characters)
