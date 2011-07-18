@@ -1,0 +1,17 @@
+* Notes on Characters
+** TODO Make text windows clear nicely on attach
+** TODO Make attach work for targeted players properly
+** TODO Don't allow to attach on a character that's already attached
+
+* Notes on client side
+** TODO Dialogue coloring
+
+* Notes on general functionality
+** TODO Emotions
+** TODO Location creation
+** TODO Location linking
+** TODO Teleporting
+** TODO Memory effect properly
+
+
+

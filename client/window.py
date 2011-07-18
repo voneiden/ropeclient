@@ -231,7 +231,7 @@ class Window(object):
             
             self.textboxMain.tag_config(tag,foreground="green",borderwidth=1,relief=GROOVE)
             self.textboxOfftopic.tag_config(tag,foreground="green",borderwidth=1,relief=GROOVE)
-            self.textboxMain.tag_bind(tag,"<Button-1>", lambda(event): self.toggleDice(tag))
+            self.textboxMain.tag_bind(tag,"<Button-1>", lambda(event): self.toggleDice(event,tag))
             self.textboxOfftopic.tag_bind(tag,"<Button-1>", lambda(event): self.toggleDice(event,tag))
             message = message.replace(dice,"<%s>%s<reset>"%(tag,values[0]))
             
