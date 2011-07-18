@@ -201,7 +201,7 @@ class World(object):
         return (total,rolls)
     
 class Character(object):
-    def __init__(self,world,owner=None,name='unnamed',info="A soul",description="A new character"):
+    def __init__(self,world,owner=None,name='unnamed',info="A soul",description="A new character",location = None):
         self.unique = world.uniqueID()
         self.world = world
         self.owner = owner
@@ -210,14 +210,16 @@ class Character(object):
         self.rename = "$(name=%s)"%(self.name)
         self.description = description
         self.info        = info
+        self.color = "white"
         
         # TODO set location here
-        self.location = None
+        self.location = location
         
         self.invisible = False
         self.mute      = False
         self.deaf      = False
         self.blind     = False
+        self.soul      = False
         
         self.read = []
         self.unread = []
@@ -226,7 +228,8 @@ class Character(object):
         
         self.world.characters.append(self)
         self.move(self.world.spawn)
-        
+    def setRename(self):
+        self.rename = "<%s>$(name=%s)<reset>"%(self.color,self.name)    
     def move(self,location):
         if self.location != None:
             print "Left from location"
@@ -248,6 +251,7 @@ class Character(object):
             self.read.append(message)
             
     def detach(self):
+        self.player.character = None
         self.player = None
         
     def message(self,timestamp): 

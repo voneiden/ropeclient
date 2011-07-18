@@ -51,7 +51,12 @@ class Player(object):
             'spawn':self.handleCharacterSpawn,
             'look':self.handleLook,
             'style':self.handleStyle,
-            'say':self.handleSay
+            'say':self.handleSay,
+            'color':self.handleColor,
+            'attach':self.handleAttach,
+            'a':self.handleAttach,
+            'detach':self.handleDetach,
+            'd':self.handleDetach
             }
         
     def __getstate__(self): 
@@ -95,7 +100,11 @@ class Player(object):
         #self.send(None, message)
 
         
-        
+    def getName(self):
+        if self.character:
+            return "<%s>%s<reset>"%(self.character.color,self.account.name)
+        else:
+            return self.account.name    
     
         
     def send(self, message):
@@ -185,6 +194,9 @@ class Player(object):
         if character == None:
             newcharacter = world.Character(self.world,self.account.name,"Soul of %s"%(self.account.name))
             newcharacter.mute = True
+            newcharacter.invisible = True
+            newcharacter.soul = True
+            
             newcharacter.attach(self)
         elif isinstance(character,world.Character):
             character.attach(self)
@@ -238,8 +250,11 @@ class Player(object):
             return "Describe a bit longer?"
         elif self.handlerstate == 5:
             self.temp['description'] = msg
-            newchar = world.Character(self.world,self.account.name,self.temp['name'],self.temp['info'],self.temp['description'])
-            newchar.move(self.character.location)
+            newchar = world.Character(self.world,self.account.name,
+                                      self.temp['name'],self.temp['info'],
+                                      self.temp['description'],
+                                      self.character.location)
+            #newchar.move(self.character.location)
             self.handler = self.gameHandler
             return "Done"
             
@@ -272,12 +287,16 @@ class Player(object):
     def handleOfftopic(self, tok):
         if tok[-1][-1] == ')': 
             tok[-1] = tok[-1][:-1]
-        message = "(%s: %s"%(self.account.name," ".join(tok)[1:])
+        message = "(%s: %s"%(self.getName()," ".join(tok)[1:])
         self.world.message(self.world.characters,message)
         
     def handleSay(self, tok):
-        if not self.character.mute:        
-            self.character.location.announce('''%s says, "%s"'''%(self.character.name, " ".join(message)))
+        if not self.character.mute:
+            if self.account.style:
+                message = " ".join(tok[1:])
+            else:
+                message = " ".join(tok)    
+            self.character.location.announce('''%s says, "%s"'''%(self.character.name, message))
         self.offtopic("You are mute! You can't talk")
         
     def handleShout(self, tok):
@@ -332,5 +351,44 @@ class Player(object):
         if self.account.style: return "You are now using MUD-style"
         else: return "You are now using IRC-style"
         
+    def handleColor(self,tok):
+        if len(tok) < 2:
+            return "(Define the color"
+        else:
+            self.character.color = tok[1]
+            return "(Color set to %s."%tok[1]
+            
+    def handleDetach(self,tok):
+        if self.character:
+            if self.character.soul:
+                return "(You cannot detach from your soul!"
+            else:
+                self.character.detach()
+                
+                chars = self.world.findOwner(self.account.name,self.world.characters)
+                for char in chars:
+                    if char.soul:
+                        char.attach(self)
+                        return "(Your soul has left the body"
+                return "Oh god, we lost your soul. This is bad!!!!!"
+                    
+                        
+                        
+        
+    def handleAttach(self,tok):
+        if len(tok) < 2: return "(Whom do you want to attach to?"
+        
+        char = self.world.find(" ".join(tok[1:]),self.world.characters)
+        if isinstance(char,world.Character):
+            if char.owner == self.account.name:
+                if char.soul:
+                    return "(You cannot attach to a soul"
+                self.character.detach()
+                char.attach(self)
+                return "(You have attached to %s.."%char.name
+            else:
+                return "(You cannot attach to something you do not own!"
+        else:
+            return "(Please be more specific in your .. search terms"
         
 
