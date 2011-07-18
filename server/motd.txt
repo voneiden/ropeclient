@@ -6,11 +6,11 @@ Welcome to ropeclient
 | | | (_) | |_) |  __/ (__| | |  __/ | | | |_    \/'_)/ |
 |_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|    \/( | :
           |_|                                ,---=='='=`===----.
-                  Version jesus CHRIST ITS A `---==|  ;  \==---'
+    <red>I<blue>n <green>c<purple>o<brown>l<yellow>o<cyan>r<white>!<gray>     Version jesus CHRIST ITS A `---==|  ;  \==---'
                                              LION  |  ;.  \
-                                               QUI-|  `;   \
-                                                   |   ;.   \
-                                                   |   `;    \
+        Version notes                          QUI-|  `;   \
+         - Parsing engine, colors.. dices..        |   ;.   \
+         - Lal lala lalalall la                    |   `;    \
                                                    |    ;.    \
                                                    |    `;     \ 
                                                    |     ;.     \

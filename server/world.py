@@ -160,7 +160,7 @@ class World(object):
             print "FOUDN EQUATION"
             equation = equation.group()[1:]
             resultequation = equation
-            visualize = []
+            allrolls = []
             try:
                 for dice in re.finditer(diceregex,message):
                     dice = dice.group()
@@ -168,13 +168,14 @@ class World(object):
                     roll = self.doRoll(tok[0],tok[1])
                     print "You has roled",roll
                     resultequation = resultequation.replace(dice,str(roll[0]),1)
+                    allrolls.append(roll[1])
             except OverflowError:
                 print "OVERFLOW ERROR"
                 return message
             total = eval(resultequation)
             print "Total",total
             print "Replacing",equation,"from",resultmessage
-            resultmessage = resultmessage.replace(equation,"YOU ROLL: %s"%str(total),1)
+            resultmessage = resultmessage.replace("!%s"%equation,"$(dice=[%s: %i];%s)"%(equation,total,str(allrolls)),1)
                 
         return resultmessage
                 

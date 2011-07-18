@@ -21,7 +21,7 @@
 
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
-from Tkinter import N, S, E, W, WORD, DISABLED, NORMAL, END, BOTH, YES
+from Tkinter import N, S, E, W, WORD, DISABLED, NORMAL, END, BOTH, YES, SUNKEN, RAISED,GROOVE
 from Tkinter import Entry, Listbox, StringVar, Tk, Frame, TclError
 from ScrolledText import ScrolledText
 import time
@@ -90,8 +90,18 @@ class Window(object):
         
         # Colors that have been loaded!
         self.colors = []
+        self.dicetags = {}
+        
     # Todo offtopic dispaly..
     def display(self,message,timestamp=None):
+        
+        
+            
+        
+            
+        message = self.clickParse(message)
+        message = self.diceParse(message)
+        
         
         if message[0] == '(':
             message = message[1:]
@@ -100,13 +110,13 @@ class Window(object):
             offtopic = True
         else:
             offtopic = False
-            
+         
         if timestamp != None: 
             message   = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp)), message)
-            
-        message = self.clickParse(message)
+        
         message = self.colorResetParse(message)
         message = self.colorTags(message)
+        
         print "Displaying",message
         if offtopic:
             self.displayOfftopic(message)
@@ -201,7 +211,25 @@ class Window(object):
             self.textboxOfftopic.tag_bind(tag,"<Button-1>",lambda(event): self.entryboxSet(command))
             message = message.replace(cmd,"<%s>%s<reset>"%(tag,text),1)
         return message
-        
+    def diceParse(self,message):
+        regex = '\$\(dice\=.+?\)'
+        print "Searching for dice",message
+        for dice in re.finditer(regex,message):
+            print "FOUND DICE"
+            dice = dice.group()
+            values = dice.split('=')[1][:-1].split(';')
+            tag = "dice"+str(time.time())
+            self.colors.append(tag)
+            self.dicetags[tag] = [0,values[0],values[1]]
+            
+            self.textboxMain.tag_config(tag,foreground="green",borderwidth=1,relief=GROOVE)
+            self.textboxOfftopic.tag_config(tag,foreground="green",borderwidth=1,relief=GROOVE)
+            self.textboxMain.tag_bind(tag,"<Button-1>", lambda(event): self.toggleDice(tag))
+            self.textboxOfftopic.tag_bind(tag,"<Button-1>", lambda(event): self.toggleDice(event,tag))
+            message = message.replace(dice,"<%s>%s<reset>"%(tag,values[0]))
+            
+        return message
+            
     def colorResetParse(self,message):
         colorstack = []
         fallback = '<gray>'
@@ -243,3 +271,18 @@ class Window(object):
             message.append([(color,),parts[i]]) 
         print message
         return message
+
+    def toggleDice(self,event,tag):
+        widget = event.widget
+        ranges = widget.tag_ranges(tag)
+        if self.dicetags[tag][0]: 
+            text = self.dicetags[tag][1]
+        else: 
+            text = self.dicetags[tag][2]
+        self.dicetags[tag][0] = not self.dicetags[tag][0]
+        
+        widget.config(state=NORMAL)
+        widget.delete(ranges[0],ranges[1])
+        widget.insert(ranges[0],text,tag)
+        widget.config(state=DISABLED)
+       
