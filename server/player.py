@@ -297,7 +297,8 @@ class Player(object):
             else:
                 message = " ".join(tok)    
             self.character.location.announce('''%s says, "%s"'''%(self.character.name, message))
-        self.offtopic("You are mute! You can't talk")
+        else:
+            self.offtopic("You are mute! You can't talk")
         
     def handleShout(self, tok):
         pass
@@ -363,24 +364,40 @@ class Player(object):
             if self.character.soul:
                 return "(You cannot detach from your soul!"
             else:
-                self.character.detach()
+                location = self.character.location
+                
                 
                 chars = self.world.findOwner(self.account.name,self.world.characters)
                 for char in chars:
                     if char.soul:
+                        self.character.detach()
                         char.attach(self)
+                        self.character.move(location)
                         return "(Your soul has left the body"
                 return "Oh god, we lost your soul. This is bad!!!!!"
                     
                         
                         
-        
+    # Todo don't allow to attach to already attached characters..
+    # Todo attaching messages should be delivered to other players in question    
     def handleAttach(self,tok):
         if len(tok) < 2: return "(Whom do you want to attach to?"
+        targetname = " ".join(tok[1:])
+        player = self
         
-        char = self.world.find(" ".join(tok[1:]),self.world.characters)
+        if len(tok) > 3:
+            if tok[2].lower() == 'to':
+                if not self.gamemaster: return "(You're not allowed to attach others"
+                playername = tok[1]
+                player = self.world.find(playername,self.world.players)
+                targetname = " ".join(tok[3:])
+                if not isinstance(player,Player):
+                    return "(<red>The player you wanted to attach was not found"
+        print "Trying to attach %s to %s"%(player.name,targetname)
+        
+        char = self.world.find(targetname,self.world.characters)
         if isinstance(char,world.Character):
-            if char.owner == self.account.name:
+            if char.owner == self.account.name or self.gamemaster:
                 if char.soul:
                     return "(You cannot attach to a soul"
                 self.character.detach()
