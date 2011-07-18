@@ -68,6 +68,7 @@ class Player(object):
         
         print "Recv", message
         message = message.strip()
+        message = message.replace('$(','')
         tok = message.split(' ')
         if tok[0] == 'msg':
             response = self.handler(tok[1:])

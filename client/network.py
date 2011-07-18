@@ -24,7 +24,7 @@
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ReconnectingClientFactory
 import sha, time
-
+import window
 class Connection(LineReceiver):
 
     def __init__(self, window):
@@ -88,7 +88,8 @@ class Connection(LineReceiver):
         print "Writing", data
         self.transport.write(data)
 
-
+    def connectionLost(self,reason):
+        self.window.playerbox.delete(0, window.END)
 class connectionFactory(ReconnectingClientFactory):
 
     def __init__(self, window):
