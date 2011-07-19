@@ -98,10 +98,10 @@ class Window(object):
         
             
         
-            
+           
         message = self.clickParse(message)
         message = self.diceParse(message)
-        
+        message = self.talkParse(message)
         
         if message[0] == '(':
             message = message[1:]
@@ -293,3 +293,10 @@ class Window(object):
         widget.insert(ranges[0],text,tag)
         widget.config(state=DISABLED)
        
+
+    def talkParse(self,message):
+        regex = '\".+?\"'
+        for talk in re.finditer(regex,message):
+            talk = talk.group()
+            message = message.replace(talk,"<cyan>%s<reset>"%talk)
+        return message
