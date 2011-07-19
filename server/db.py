@@ -104,7 +104,7 @@ class db:
             return results[0]
         else:
             for obj in results:
-                if identity.lower() == obj.owner.lower():
+                if owner.lower() == obj.owner.lower():
                     return obj
             return results
             

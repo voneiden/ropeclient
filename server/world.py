@@ -238,17 +238,20 @@ class Character(object):
                 self.location.announce("%s has left."%(self.name))
         self.location = location
         self.location.characters.append(self)
-        self.location.announce("%s has arrived."%(self.name))
+        self.location.announce("%s has arrived."%(self.name),self)
         self.world.message(self,"You have arrived.")
         
     def attach(self,player):
         self.player = player
         self.player.character = self
-        
+        self.player.connection.write("clr main")
+        for message in self.read[-50:-1]:
+            self.message(message)
         while len(self.unread):
             message = self.unread.pop(0)
             self.message(message)
             self.read.append(message)
+        self.player.send("(<green>Attached to %s!"%self.name)
             
     def detach(self):
         self.player.character = None
