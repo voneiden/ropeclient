@@ -56,7 +56,9 @@ class Player(object):
             'attach':self.handleAttach,
             'a':self.handleAttach,
             'detach':self.handleDetach,
-            'd':self.handleDetach
+            'd':self.handleDetach,
+            'me':self.handleAction,
+            'describe':self.handleDescribe
             }
         
     def __getstate__(self): 
@@ -222,7 +224,8 @@ class Player(object):
                     
             if tok[0][0] == '(':
                 return self.handleOfftopic(tok)
-            
+            if tok[0][0] == '#':
+                return self.handleDescribe(tok)
             if self.account.style == 0: 
                 return self.handleSay(tok)
                 
@@ -414,4 +417,13 @@ class Player(object):
         else:
             return "(<red>Couldn't find %s"%targetname
         
-
+    def handleAction(self,tok):
+        if len(tok) < 2:
+            message = " ".join(tok[1:])
+            self.character.location.announce('''%s %s'''%(self.character.name, message))
+        
+    def handleDescribe(self,tok):
+        if len(tok) < 2:
+            message = " ".join(tok[1:])
+            self.character.location.announce('''%s'''%(message))
+        
