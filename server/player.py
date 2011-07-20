@@ -45,7 +45,7 @@ class Player(object):
         self.temp = {}
         self.commands = {
             'chars':self.handleCharlist,
-            'intro':self.handleIntroduce,
+            'introduce':self.handleIntroduce,
             'memorize':self.handleMemorize,
             'gm':self.handleGM,
             'spawn':self.handleCharacterSpawn,
@@ -207,7 +207,7 @@ class Player(object):
         self.handler = self.gameHandler
         print "Sending clk"
         #self.connection.write("clk test;yellow;/testing;Click here to test a command!")
-        self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
+        #self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
         
     def gameHandler(self, tok):
         if self.character and len(tok) > 0:
@@ -345,9 +345,10 @@ class Player(object):
         self.offtopic('\n'.join(buffer))
         
     def handleIntroduce(self, tok):
-        name = " ".join(message[1:])
+        if len(tok) < 2: return "Introduce as who?"
+        name = " ".join(tok[1:])
         if len(name) < 2: return "Introduce as who?"
-        pass
+        self.character.introduce(name)
         
     def handleMemorize(self, tok):
         pass

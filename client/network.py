@@ -29,7 +29,7 @@ class Connection(LineReceiver):
 
     def __init__(self, window):
         self.window = window
-
+        
     def connectionMade(self):
         self.window.display("Connected!")
         self.write("hsk 3.0.0")
