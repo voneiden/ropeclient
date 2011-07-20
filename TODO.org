@@ -1,4 +1,6 @@
 * General fixmes
+** DONE /me and # doesn't work. # crashes client
+   CLOSED: [2011-07-20 Wed 13:35]
 ** TODO Translate mute character say to offtopic?
 ** TODO user should be able to choose talk color?
 
@@ -23,8 +25,12 @@
    CLOSED: [2011-07-19 Tue 14:31]
 ** TODO Location creation
 ** TODO Location linking
+** TODO Player movement around locations
+** TODO Location listing
+** TODO Follow function
 ** TODO Teleporting
 ** TODO Memory effect properly
-
+** DONE Improve look function
+   CLOSED: [2011-07-20 Wed 13:23]
 
 
