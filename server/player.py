@@ -263,6 +263,7 @@ class Player(object):
             
             
     def handleLook(self, tok):
+        print "HandleLook"
         loc = self.character.location
         buffer = ["<purple>%s<reset>"%loc.name]
         buffer.append("<gray>%s<reset>"%loc.description)
@@ -274,11 +275,18 @@ class Player(object):
             else:
                 chars.append(char)
         
+        print "WTF"
+        print "chars",len(chars)
+        print chars
         
-        if len(char) == 1:
-            buffer.append("%s is here."%chars[0].rename)
+        if len(chars) == 0: 
+            buffer.append("<white>You are alone here.")
+            
+        elif len(chars) == 1:
+            buffer.append("<white>%s is here."%chars[0].rename)
         else:
-            buffer.append("%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
+            buffer.append("<white>%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
+            print "Penis"
         self.send("\n".join(buffer))
         
     def handleCharacterSpawn(self, tok):
