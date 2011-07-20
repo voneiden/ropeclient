@@ -264,18 +264,21 @@ class Player(object):
             
     def handleLook(self, tok):
         loc = self.character.location
-        buffer = [loc.name]
-        buffer.append(loc.description)
-        if len(loc.characters) == 1:
-            buffer.append("You're alone")
-        elif len(loc.characters) == 2:
-            chars = loc.characters[:]
-            chars.remove(self.character)
+        buffer = ["<purple>%s<reset>"%loc.name]
+        buffer.append("<gray>%s<reset>"%loc.description)
+        
+        chars = []
+        for char in loc.characters:
+            if char.invisible: continue
+            elif char == self.character: continue
+            else:
+                chars.append(char)
+        
+        
+        if len(char) == 1:
             buffer.append("%s is here."%chars[0].rename)
         else:
-            chars = loc.characters[:]
-            chars.remove(self.character)
-            buffer.append("%s are here."%(", ".join([char.rename for char in chars])))
+            buffer.append("%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
         self.send("\n".join(buffer))
         
     def handleCharacterSpawn(self, tok):
@@ -418,12 +421,17 @@ class Player(object):
             return "(<red>Couldn't find %s"%targetname
         
     def handleAction(self,tok):
-        if len(tok) < 2:
+        if len(tok) > 1:
             message = " ".join(tok[1:])
-            self.character.location.announce('''%s %s'''%(self.character.name, message))
+            self.character.location.announce('''%s %s'''%(self.character.rename, message))
         
     def handleDescribe(self,tok):
-        if len(tok) < 2:
+        if tok[0][0] == '#':
+            tok[0] = tok[0][1:]
+            message = " ".join(tok)
+        else:
             message = " ".join(tok[1:])
-            self.character.location.announce('''%s'''%(message))
+
+    
+        self.character.location.announce("""%s (%s)"""%(message, self.account.name))
         
