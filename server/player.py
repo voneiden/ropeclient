@@ -421,12 +421,17 @@ class Player(object):
             return "(<red>Couldn't find %s"%targetname
         
     def handleAction(self,tok):
-        if len(tok) < 2:
+        if len(tok) > 1:
             message = " ".join(tok[1:])
-            self.character.location.announce('''%s %s'''%(self.character.name, message))
+            self.character.location.announce('''%s %s'''%(self.character.rename, message))
         
     def handleDescribe(self,tok):
-        if len(tok) < 2:
+        if tok[0][0] == '#':
+            tok[0] = tok[0][1:]
+            message = " ".join(tok)
+        else:
             message = " ".join(tok[1:])
-            self.character.location.announce('''%s'''%(message))
+
+    
+        self.character.location.announce("""%s (%s)"""%(message, self.account.name))
         
