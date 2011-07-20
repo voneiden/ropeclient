@@ -1,13 +1,26 @@
-* Notes on Characters
-** TODO Make text windows clear nicely on attach
-** TODO Make attach work for targeted players properly
-** TODO Don't allow to attach on a character that's already attached
+* General fixmes
+** TODO Translate mute character say to offtopic?
+** TODO user should be able to choose talk color?
 
+* Notes on Characters
+** DONE Make text windows clear nicely on attach
+   CLOSED: [2011-07-19 Tue 12:59]
+** DONE Make attach work for targeted players properly
+   CLOSED: [2011-07-19 Tue 12:48]
+** DONE Don't allow to attach on a character that's already attached
+   CLOSED: [2011-07-19 Tue 12:48]
+** DONE Proper attach message recipients!
+   CLOSED: [2011-07-19 Tue 12:51]
+** DONE Double arrive message on attach?
+   CLOSED: [2011-07-19 Tue 12:51]
 * Notes on client side
-** TODO Dialogue coloring
+** DONE Dialogue coloring
+   CLOSED: [2011-07-19 Tue 13:07]
 
 * Notes on general functionality
 ** TODO Emotions
+** DONE Actions and describes
+   CLOSED: [2011-07-19 Tue 14:31]
 ** TODO Location creation
 ** TODO Location linking
 ** TODO Teleporting

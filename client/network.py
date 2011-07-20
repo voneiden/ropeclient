@@ -81,7 +81,16 @@ class Connection(LineReceiver):
             self.window.textboxMain.tag_bind(tag,"<Button-1>",lambda(event): self.window.entryboxSet(command))
             self.window.display(text,(tag,))
             print "Displayed"
-            
+           
+        elif tok[0] == 'clr':
+            if tok[1] == 'main':
+                self.window.textboxMain.config(state=window.NORMAL)
+                self.window.textboxMain.delete(1.0, window.END)
+                self.window.textboxMain.config(state=window.DISABLED)
+            else:
+                print "Unknown tok",tok
+        else: 
+            print "Unknown packet",tok
     def write(self, data):
         data = data + '\r\n'
         data = data.encode('utf-8')

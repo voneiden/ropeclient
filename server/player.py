@@ -56,7 +56,9 @@ class Player(object):
             'attach':self.handleAttach,
             'a':self.handleAttach,
             'detach':self.handleDetach,
-            'd':self.handleDetach
+            'd':self.handleDetach,
+            'me':self.handleAction,
+            'describe':self.handleDescribe
             }
         
     def __getstate__(self): 
@@ -222,7 +224,8 @@ class Player(object):
                     
             if tok[0][0] == '(':
                 return self.handleOfftopic(tok)
-            
+            if tok[0][0] == '#':
+                return self.handleDescribe(tok)
             if self.account.style == 0: 
                 return self.handleSay(tok)
                 
@@ -261,18 +264,21 @@ class Player(object):
             
     def handleLook(self, tok):
         loc = self.character.location
-        buffer = [loc.name]
-        buffer.append(loc.description)
-        if len(loc.characters) == 1:
-            buffer.append("You're alone")
-        elif len(loc.characters) == 2:
-            chars = loc.characters[:]
-            chars.remove(self.character)
+        buffer = ["<purple>%s<reset>"%loc.name]
+        buffer.append("<gray>%s<reset>"%loc.description)
+        
+        chars = []
+        for char in loc.characters:
+            if char.invisible: continue
+            elif char == self.character: continue
+            else:
+                chars.append(char)
+        
+        
+        if len(char) == 1:
             buffer.append("%s is here."%chars[0].rename)
         else:
-            chars = loc.characters[:]
-            chars.remove(self.character)
-            buffer.append("%s are here."%(", ".join([char.rename for char in chars])))
+            buffer.append("%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
         self.send("\n".join(buffer))
         
     def handleCharacterSpawn(self, tok):
@@ -381,31 +387,51 @@ class Player(object):
     # Todo don't allow to attach to already attached characters..
     # Todo attaching messages should be delivered to other players in question    
     def handleAttach(self,tok):
-        if len(tok) < 2: return "(Whom do you want to attach to?"
+        # Param verification
+        print "Handling attach:",tok
+        if len(tok) < 2: return "(<red>Whom do you want to attach to?"
         targetname = " ".join(tok[1:])
         player = self
-        
         if len(tok) > 3:
             if tok[2].lower() == 'to':
-                if not self.gamemaster: return "(You're not allowed to attach others"
+                if not self.gamemaster: return "(<red>You're not allowed to attach others"
                 playername = tok[1]
                 player = self.world.find(playername,self.world.players)
                 targetname = " ".join(tok[3:])
                 if not isinstance(player,Player):
                     return "(<red>The player you wanted to attach was not found"
+        
+        
+        
         print "Trying to attach %s to %s"%(player.name,targetname)
         
         char = self.world.find(targetname,self.world.characters)
         if isinstance(char,world.Character):
-            if char.owner == self.account.name or self.gamemaster:
+            if char.owner == player.account.name or self.gamemaster:
                 if char.soul:
-                    return "(You cannot attach to a soul"
-                self.character.detach()
-                char.attach(self)
-                return "(You have attached to %s.."%char.name
+                    return "(<red>You cannot attach to a soul"
+                if char.player:
+                    return ("<red>This character is already possessed by someone..")
+                player.character.detach()
+                char.attach(player)
+                return 
             else:
-                return "(You cannot attach to something you do not own!"
+                return "(<red>You cannot attach to something you do not own!"
         else:
-            return "(Please be more specific in your .. search terms"
+            return "(<red>Couldn't find %s"%targetname
         
+    def handleAction(self,tok):
+        if len(tok) > 1:
+            message = " ".join(tok[1:])
+            self.character.location.announce('''%s %s'''%(self.character.rename, message))
+        
+    def handleDescribe(self,tok):
+        if tok[0][0] == '#':
+            tok[0] = tok[0][1:]
+            message = " ".join(tok)
+        else:
+            message = " ".join(tok[1:])
 
+    
+        self.character.location.announce("""%s (%s)"""%(message, self.account.name))
+        
