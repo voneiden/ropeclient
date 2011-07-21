@@ -1,4 +1,8 @@
 * General fixmes
+** TODO disconnect viesti
+** TODO väli (y) kaatuu
+** TODO look at omaisuus
+** TODO Nuoli ylös history
 ** TODO allow clients to refer to their own name
 ** TODO space stripping from beginning of sentence?
 ** TODO Gender settings!
