@@ -579,10 +579,13 @@ class Player(object):
             
             if message[-2:] == ':)': 
                 says = "smiles and says"
+                message = message[:-2]
             elif message[-2:] == ':D':
                 says = "laughingly says"
+                message = message[:-2]
             elif message[-2:] == ':(':
                 says = "looks grim and says"
+                message = message[:-2]
             elif message[-1] == '!':
                 says = "exclaims"
             else:
