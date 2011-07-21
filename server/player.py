@@ -76,7 +76,7 @@ class Player(object):
         print "Recv", message
         message = message.strip()
         message = message.replace('$(','')
-        tok = message.split(' ')
+        tok = message.split()
         if tok[0] == 'msg':
             response = self.handler(tok[1:])
             print "Got resp",response
@@ -229,7 +229,8 @@ class Player(object):
                 return self.handleDescribe(tok)
             if self.account.style == 0: 
                 return self.handleSay(tok)
-                
+    
+    # Changing it so that a character is owned by whoever last was attached to it.            
     def characterSpawner(self,message):
         ''' This is a handler for character generation '''
         self.handlerstate += 1
@@ -237,22 +238,22 @@ class Player(object):
             msg = " ".join(message)
             
         if self.handlerstate  == 1:
-            return "Owner of this character (Enter=you)"
-        elif self.handlerstate == 2:
-            if msg == '':
-                self.temp['owner'] = self.account.name
-            else:
-                self.temp['owner'] = msg
-                
-            return "Name of the character?"
+            return "Name of this character ?"
+        #if self.handlerstate == 2:
+        #    if msg == '':
+        #        self.temp['owner'] = self.account.name
+        #    else:
+        #        self.temp['owner'] = msg
+        #        
+        #    return "Name of the character?"
             
-        elif self.handlerstate == 3:
+        elif self.handlerstate == 2:
             self.temp['name'] = msg
-            return "Describe with a few words?"
-        elif self.handlerstate == 4:
+            return "Describe with a few words? (SHORT! This will describe the character to players who do not know your characters name)"
+        elif self.handlerstate == 3:
             self.temp['info'] = msg
-            return "Describe a bit longer?"
-        elif self.handlerstate == 5:
+            return "Long description? You may write it later too."
+        elif self.handlerstate == 4:
             self.temp['description'] = msg
             newchar = world.Character(self.world,self.account.name,
                                       self.temp['name'],self.temp['info'],
@@ -478,31 +479,44 @@ class Player(object):
     # World related handles
     # #####################
     def handleLook(self, tok):
-        loc = self.character.location
-        buffer = ["<purple>%s<reset>"%loc.name]
-        buffer.append("<gray>%s<reset>"%loc.description)
+        regex1 = 'look(?: at)? (.+)'
+        match = re.search(regex1," ".join(tok))
+        buffer = []
         
-        chars = []
-        for char in loc.characters:
-            if char.invisible: continue
-            elif char == self.character: continue
+        if match:
+            charname = match.groups()[0]
+            char = self.world.findAny(charname,self.character.location.characters)
+            if not char or not isinstance(char,world.Character): return "(<red>There is no one with that id here (%s).."%charname
+            buffer.append("Looking at %s.."%char.rename)
+            buffer.append("%s"%char.description)
+            return "\n".join(buffer)
+            
+        else:
+            loc = self.character.location
+            buffer.append("<purple>%s<reset>"%loc.name)
+            buffer.append("<gray>%s<reset>"%loc.description)
+         
+            chars = []
+            for char in loc.characters:
+                if char.invisible: continue
+                elif char == self.character: continue
+                else:
+                    chars.append(char)
+            
+            print "Chars",len(chars)
+            if len(chars) == 0:
+                buffer.append("You are alone")
+            elif len(chars) == 1:
+                buffer.append("%s is here."%chars[0].rename)
             else:
-                chars.append(char)
-        
-        print "Chars",len(chars)
-        if len(chars) == 0:
-            buffer.append("You are alone")
-        elif len(chars) == 1:
-            buffer.append("%s is here."%chars[0].rename)
-        else:
-            buffer.append("%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
-        
-        if len(loc.exits) == 0:
-            buffer.append("<cyan>There are no obvious exits..</cyan>")
-        elif len(loc.exits) == 1:
-            buffer.append("<cyan>Only one exit: %s"%loc.exits.keys()[0])
-        else:
-            buffer.append("<cyan>Exits: %s"%", ".join(loc.exits.keys()))
+                buffer.append("%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
+            
+            if len(loc.exits) == 0:
+                buffer.append("<cyan>There are no obvious exits..</cyan>")
+            elif len(loc.exits) == 1:
+                buffer.append("<cyan>Only one exit: %s"%loc.exits.keys()[0])
+            else:
+                buffer.append("<cyan>Exits: %s"%", ".join(loc.exits.keys()))
         
         self.send("\n".join(buffer))
     
@@ -579,13 +593,13 @@ class Player(object):
             
             if message[-2:] == ':)': 
                 says = "smiles and says"
-                message = message[:-2]
+                message = message[:-2].strip()
             elif message[-2:] == ':D':
                 says = "laughingly says"
-                message = message[:-2]
+                message = message[:-2].strip()
             elif message[-2:] == ':(':
                 says = "looks grim and says"
-                message = message[:-2]
+                message = message[:-2].strip()
             elif message[-1] == '!':
                 says = "exclaims"
             else:
@@ -597,3 +611,17 @@ class Player(object):
         
     def handleShout(self, tok):
         pass
+        
+    def handleTeleport(self,tok):
+        regex1 = "(.+?) to (.+)"
+        msg = " ".join(tok[1:])
+        search = re.search(regex1,msg)
+        if search:
+            groups = search.groups()
+            charname = groups[0]
+            targetname = groups[1]
+            
+            char = self.world.findAny(self,charname,self.world.characters)
+            if not char: return ("Unable to find a character by identification: %s"%charname)
+        
+        

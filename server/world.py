@@ -100,12 +100,14 @@ class World(object):
         if player not in self.players:
             self.players.append(player)
             self.updatePlayers()
-            self.offtopic("%s has joined the game!"%player.name)
+            self.offtopic("<yellow>%s has joined the game!"%player.name)
             
     def remPlayer(self,player):
         if player in self.players:
             self.players.remove(player)
             self.updatePlayers()
+            
+            self.offtopic("<yellow>%s has left the game!"%player.name)
             
     def find(self,name,target):
         """ 
@@ -147,10 +149,21 @@ class World(object):
             return results   
             
     def findUnique(self,unique,target):
+        try: 
+            unique = int(unique)
+        except: 
+            return None
         result = []
         for obj in target:
             if unique == obj.unique: return obj
         return None
+
+    def findAny(self,key,target):
+        match = self.find(key,target)
+        if match: return match
+        match = self.findUnique(key,target)
+        if match: return match
+        
 
     def doDice(self,message):
         evalregex = "\![d0-9\+\-\*\/]+"
