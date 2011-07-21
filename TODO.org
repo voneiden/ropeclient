@@ -1,4 +1,7 @@
 * General fixmes
+** TODO allow clients to refer to their own name
+** TODO space stripping from beginning of sentence?
+** TODO Gender settings!
 ** DONE /me and # doesn't work. # crashes client
    CLOSED: [2011-07-20 Wed 13:35]
 ** TODO Translate mute character say to offtopic?
@@ -20,16 +23,22 @@
    CLOSED: [2011-07-19 Tue 13:07]
 
 * Notes on general functionality
-** TODO Emotions
+** DONE Emotions
+   CLOSED: [2011-07-21 Thu 13:40]
+** TODO More emotions
 ** DONE Actions and describes
    CLOSED: [2011-07-19 Tue 14:31]
-** TODO Location creation
-** TODO Location linking
+** DONE Location creation
+   CLOSED: [2011-07-21 Thu 14:20]
+** DONE Location linking
+   CLOSED: [2011-07-21 Thu 14:20]
 ** TODO Player movement around locations
 ** TODO Location listing
 ** TODO Follow function
 ** TODO Teleporting
 ** TODO Memory effect properly
+** DONE Introducing
+   CLOSED: [2011-07-20 Wed 21:33]
 ** DONE Improve look function
    CLOSED: [2011-07-20 Wed 13:23]
 
