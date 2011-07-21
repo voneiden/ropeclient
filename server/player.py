@@ -479,12 +479,12 @@ class Player(object):
     # World related handles
     # #####################
     def handleLook(self, tok):
-        regex1 = 'look(?: at)? (.+)'
+        regex1 = '(?<=look ).+'
         match = re.search(regex1," ".join(tok))
         buffer = []
         
         if match:
-            charname = match.groups()[0]
+            charname = match.group()
             char = self.world.findAny(charname,self.character.location.characters)
             if not char or not isinstance(char,world.Character): return "(<red>There is no one with that id here (%s).."%charname
             buffer.append("Looking at %s.."%char.rename)

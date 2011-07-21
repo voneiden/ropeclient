@@ -112,7 +112,8 @@ class Window(object):
             offtopic = False
          
         if timestamp != None: 
-            message   = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp)), message)
+            if '\n' in message:pass
+            else:  message = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp)), message) 
         
         message = self.colorResetParse(message)
         message = self.colorTags(message)

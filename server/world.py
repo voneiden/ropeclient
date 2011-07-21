@@ -265,7 +265,8 @@ class Character(object):
         print "sending message id",timestamp
         if self.player:
             self.player.send(self.parse(self.world.messages[timestamp]))
-            self.read.append(timestamp)
+            if timestamp not in self.read:
+                self.read.append(timestamp)
         else:
             self.unread.append(timestamp)
             
