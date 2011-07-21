@@ -92,6 +92,8 @@ class Window(object):
         self.colors = []
         self.dicetags = {}
         
+        self.history = []
+        
     # Todo offtopic dispaly..
     def display(self,message,timestamp=None):
         
@@ -155,10 +157,12 @@ class Window(object):
                 self.write("msg %s"%(message))
             self.entryboxMessage.set("")
             self.entryboxTyping = False
+        
         elif len(self.entryboxMessage.get()) >= 1 and not self.entryboxTyping:
             self.write("pit")
             self.entryboxTyping = True
   
+        print event.keysum
     def entryboxSet(self,command):
         self.entryboxMessage.set(command)
         self.entrybox.icursor(END)
