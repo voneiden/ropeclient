@@ -40,7 +40,7 @@ class World(object):
         
     def uniqueID(self):
         self.unique += 1
-        return self.unique 
+        return str(self.unique )
         
     def timestamp(self):
         timestamp = time.time()
@@ -153,12 +153,10 @@ class World(object):
         return None
 
     def doDice(self,message):
-        print "REGEX DICE"
         evalregex = "\![d0-9\+\-\*\/]+"
         diceregex = "[0-9]*d[0-9]+"
         resultmessage = message[:]
         for equation in re.finditer(evalregex,message):
-            print "FOUDN EQUATION"
             equation = equation.group()[1:]
             resultequation = equation
             allrolls = []
@@ -167,30 +165,22 @@ class World(object):
                     dice = dice.group()
                     tok = dice.split('d')
                     roll = self.doRoll(tok[0],tok[1])
-                    print "You has roled",roll
                     resultequation = resultequation.replace(dice,str(roll[0]),1)
                     allrolls.append(roll[1])
             except OverflowError:
-                print "OVERFLOW ERROR"
                 return message
             total = eval(resultequation)
-            print "Total",total
-            print "Replacing",equation,"from",resultmessage
             resultmessage = resultmessage.replace("!%s"%equation,"$(dice=[%s: %i];%s)"%(equation,total,str(allrolls)),1)
                 
         return resultmessage
                 
     def doRoll(self,x,y):
-        print "Rolling",x,y
         if x == '': x = 1
         x = int(x)
         y = int(y)
-        print "Rolling2",x,y
         if x > 20 or x < 1: 
-            print "True1"
             raise OverflowError
         if y > 100 or y < 1: 
-            print "True2"
             raise OverflowError
         
         total = 0
@@ -291,6 +281,12 @@ class Character(object):
             return character.name
         else:
             return character.info
+    def introduce(self,name):
+        print "Introducing.."
+        self.location.announce("%s introduces himself as %s"%
+                              (self.rename,"$(clk2cmd:%s;yellow;/identify %s %s;%s)"%
+                              (self.name,self.unique,name,name)))
+        
         
 class Location(object):
     def __init__(self,world,name="New location",description = ""):

@@ -45,7 +45,7 @@ class Player(object):
         self.temp = {}
         self.commands = {
             'chars':self.handleCharlist,
-            'intro':self.handleIntroduce,
+            'introduce':self.handleIntroduce,
             'memorize':self.handleMemorize,
             'gm':self.handleGM,
             'spawn':self.handleCharacterSpawn,
@@ -208,7 +208,7 @@ class Player(object):
         self.handler = self.gameHandler
         print "Sending clk"
         #self.connection.write("clk test;yellow;/testing;Click here to test a command!")
-        self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
+        #self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
         
     def gameHandler(self, tok):
         if self.character and len(tok) > 0:
@@ -279,6 +279,7 @@ class Player(object):
             self.temp['description'] = msg
             return "Link exitname;returnname (Enter=No linking)"
             
+
         elif self.handlerstate == 4:
             if len(msg) == 0: 
                 link = False
@@ -314,6 +315,92 @@ class Player(object):
         else:
             self.send("(Not authorized")
             
+    def handleLook(self, tok):
+        print "HandleLook"
+        loc = self.character.location
+        buffer = ["<purple>%s<reset>"%loc.name]
+        buffer.append("<gray>%s<reset>"%loc.description)
+        
+        chars = []
+        for char in loc.characters:
+            if char.invisible: continue
+            elif char == self.character: continue
+            else:
+                chars.append(char)
+        
+        print "WTF"
+        print "chars",len(chars)
+        print chars
+        
+        if len(chars) == 0: 
+            buffer.append("<white>You are alone here.")
+            
+        elif len(chars) == 1:
+            buffer.append("<white>%s is here."%chars[0].rename)
+        else:
+            buffer.append("<white>%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
+            print "Penis"
+        self.send("\n".join(buffer))
+        
+    def handleCharacterSpawn(self, tok):
+        if self.gamemaster:
+            self.handler = self.characterSpawner
+            self.handlerstate = 0
+            self.temp = {}
+            return self.handler(None)
+        else:
+            return "(Not authorized"
+        
+    def handleOfftopic(self, tok):
+        if tok[-1][-1] == ')': 
+            tok[-1] = tok[-1][:-1]
+        message = "(%s: %s"%(self.getName()," ".join(tok)[1:])
+        self.world.message(self.world.characters,message)
+        
+    def handleSay(self, tok):
+        if not self.character.mute:
+            if self.account.style:
+                message = " ".join(tok[1:])
+
+    def handleCharlist(self, tok):
+        print "Listing chars"
+        chars = self.world.findOwner(self.account.name,self.world.characters)
+        if chars == None: 
+            return "You possess no characters.."
+        
+        buffer = ["You can possess the following characters"]
+        if not isinstance(chars,list): 
+            chars = [chars]
+        
+        for char in chars:
+            if char == self.character:
+                buffer.append("** %s - %s **"%(char.name,char.info))
+            else:
+                buffer.append("%s - %s"%(char.name,char.info))
+        self.offtopic('\n'.join(buffer))
+        
+    def handleIntroduce(self, tok):
+        if len(tok) < 2: return "Introduce as who?"
+        name = " ".join(tok[1:])
+        if len(name) < 2: return "Introduce as who?"
+        self.character.introduce(name)
+        
+    def handleMemorize(self, tok):
+        pass
+        
+    def handleStyle(self,tok):
+        self.account.style = not self.account.style
+        self.db.save()
+        if self.account.style: return "You are now using MUD-style"
+        else: return "You are now using IRC-style"
+        
+    def handleColor(self,tok):
+        if len(tok) < 2:
+            return "(Define the color"
+        else:
+            self.character.color = tok[1]
+            return "(Color set to %s."%tok[1]
+          
     def handleAttach(self,tok):
         # Param verification
         print "Handling attach:",tok
