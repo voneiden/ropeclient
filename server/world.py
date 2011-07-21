@@ -30,13 +30,14 @@ import cPickle, time, re, random
 class World(object):
     def __init__(self,name='default'):
         self.name = name
+        self.unique = 0
         self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
         self.characters = []
         self.players    = []
         self.locations  = [self.spawn]
         self.messages = {}
         self.memory = {}
-        self.unique = 0
+        
     def uniqueID(self):
         self.unique += 1
         return self.unique 
@@ -277,6 +278,7 @@ class Character(object):
             message = message.replace(match.group(),name,1)
         
         return message
+    
     def memoryCheck(self,match):
         name = match.group()[7:-1]
         character = self.world.find(name,self.world.characters)
@@ -296,6 +298,8 @@ class Location(object):
         self.name = name
         self.description = description
         self.characters = []
+        self.exits = {}
+        self.unique = self.world.uniqueID()
         
     def announce(self,message,ignore=None):
         recipients = self.characters[:]
@@ -305,3 +309,22 @@ class Location(object):
             self.world.message(recipients,message)
         else:
             print "Nobody to receive this message, ignoring.."
+
+    
+    def link(self,towards,location,back):
+        if towards in self.exits: return "(<red>Local exit already exists"
+        self.exits[towards] = location
+        if back:
+            if back in location.exits: return "(<red>Destination return exit already exists"
+            location.exits[back] = self
+        
+    def unlink(self,towards,both=True):
+        if towards in self.exits:
+            if both:
+                for exit,location in self.exits[towards].exits.items():
+                    if location == self:
+                        del self.exits[towards].exits[exit]
+            del self.exits[towards]
+            return "(<green>Unlinked"
+        else:
+            return "(<red>Exit not found"

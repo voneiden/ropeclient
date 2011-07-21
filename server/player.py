@@ -58,7 +58,8 @@ class Player(object):
             'detach':self.handleDetach,
             'd':self.handleDetach,
             'me':self.handleAction,
-            'describe':self.handleDescribe
+            'describe':self.handleDescribe,
+            'create':self.handleCreate
             }
         
     def __getstate__(self): 
@@ -260,58 +261,43 @@ class Player(object):
             #newchar.move(self.character.location)
             self.handler = self.gameHandler
             return "Done"
+    
+    def locationCreator(self,tok):
+        self.handlerstate += 1
+        print "Locreator",tok
+        print type(tok)
+        msg = " ".join(tok)
+        #if len(msg) < 1: return "Answer the damn question" 
+        
+        if self.handlerstate == 1:
+            return "Name of the location?"
+        elif self.handlerstate == 2:
+            self.temp['name']= msg
+            return "Description of the location?"
             
+        elif self.handlerstate == 3:
+            self.temp['description'] = msg
+            return "Link exitname;returnname (Enter=No linking)"
             
-    def handleLook(self, tok):
-        loc = self.character.location
-        buffer = ["<purple>%s<reset>"%loc.name]
-        buffer.append("<gray>%s<reset>"%loc.description)
-        
-        chars = []
-        for char in loc.characters:
-            if char.invisible: continue
-            elif char == self.character: continue
+        elif self.handlerstate == 4:
+            if len(msg) == 0: 
+                link = False
             else:
-                chars.append(char)
-        
-        
-        if len(char) == 1:
-            buffer.append("%s is here."%chars[0].rename)
-        else:
-            buffer.append("%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
-        self.send("\n".join(buffer))
-        
-    def handleCharacterSpawn(self, tok):
-        if self.gamemaster:
-            self.handler = self.characterSpawner
-            self.handlerstate = 0
-            self.temp = {}
-            return self.handler(None)
-        else:
-            return "(Not authorized"
-        
-    def handleOfftopic(self, tok):
-        if tok[-1][-1] == ')': 
-            tok[-1] = tok[-1][:-1]
-        message = "(%s: %s"%(self.getName()," ".join(tok)[1:])
-        self.world.message(self.world.characters,message)
-        
-    def handleSay(self, tok):
-        if not self.character.mute:
-            if self.account.style:
-                message = " ".join(tok[1:])
-            else:
-                message = " ".join(tok)    
-            self.character.location.announce('''%s says, "%s"'''%(self.character.name, message))
-        else:
-            self.offtopic("You are mute! You can't talk")
-        
-    def handleShout(self, tok):
-        pass
-        
-    def handleCreate(self, tok):
-        pass
-        
+                link = msg.split(';')
+                if len(link) != 2:
+                    self.handlerstate -= 1
+                    return "Invalid answer"
+                
+            
+            newlocation = world.Location(self.world,self.temp['name'],self.temp['description'])
+            if link:
+                self.character.location.link(link[0],newlocation,link[1])
+            self.world.locations.append(newlocation)
+            self.handler = self.gameHandler
+            return "Done"
+    # ######################
+    # Player related handles
+    # ######################
     def handleGM(self, tok):
         if len(tok) < 2:
             key = ''
@@ -327,65 +313,7 @@ class Player(object):
                 return "(GM status disabled"
         else:
             self.send("(Not authorized")
-    def handleCharlist(self, tok):
-        print "Listing chars"
-        chars = self.world.findOwner(self.account.name,self.world.characters)
-        if chars == None: 
-            return "You possess no characters.."
-        
-        buffer = ["You can possess the following characters"]
-        if not isinstance(chars,list): 
-            chars = [chars]
-        
-        for char in chars:
-            if char == self.character:
-                buffer.append("** %s - %s **"%(char.name,char.info))
-            else:
-                buffer.append("%s - %s"%(char.name,char.info))
-        self.offtopic('\n'.join(buffer))
-        
-    def handleIntroduce(self, tok):
-        name = " ".join(message[1:])
-        if len(name) < 2: return "Introduce as who?"
-        pass
-        
-    def handleMemorize(self, tok):
-        pass
-        
-    def handleStyle(self,tok):
-        self.account.style = not self.account.style
-        self.db.save()
-        if self.account.style: return "You are now using MUD-style"
-        else: return "You are now using IRC-style"
-        
-    def handleColor(self,tok):
-        if len(tok) < 2:
-            return "(Define the color"
-        else:
-            self.character.color = tok[1]
-            return "(Color set to %s."%tok[1]
             
-    def handleDetach(self,tok):
-        if self.character:
-            if self.character.soul:
-                return "(You cannot detach from your soul!"
-            else:
-                location = self.character.location
-                
-                
-                chars = self.world.findOwner(self.account.name,self.world.characters)
-                for char in chars:
-                    if char.soul:
-                        self.character.detach()
-                        char.attach(self)
-                        self.character.move(location)
-                        return "(Your soul has left the body"
-                return "Oh god, we lost your soul. This is bad!!!!!"
-                    
-                        
-                        
-    # Todo don't allow to attach to already attached characters..
-    # Todo attaching messages should be delivered to other players in question    
     def handleAttach(self,tok):
         # Param verification
         print "Handling attach:",tok
@@ -400,8 +328,6 @@ class Player(object):
                 targetname = " ".join(tok[3:])
                 if not isinstance(player,Player):
                     return "(<red>The player you wanted to attach was not found"
-        
-        
         
         print "Trying to attach %s to %s"%(player.name,targetname)
         
@@ -419,7 +345,101 @@ class Player(object):
                 return "(<red>You cannot attach to something you do not own!"
         else:
             return "(<red>Couldn't find %s"%targetname
+            
+            
+    def handleStyle(self,tok):
+        self.account.style = not self.account.style
+        self.db.save()
+        if self.account.style: return "You are now using MUD-style"
+        else: return "You are now using IRC-style"
         
+    def handleDetach(self,tok):
+        if self.character:
+            if self.character.soul:
+                return "(You cannot detach from your soul!"
+            else:
+                location = self.character.location
+                
+                
+                chars = self.world.findOwner(self.account.name,self.world.characters)
+                for char in chars:
+                    if char.soul:
+                        self.character.detach()
+                        char.attach(self)
+                        self.character.move(location)
+                        return "(Your soul has left the body"
+                return "Oh god, we lost your soul. This is bad!!!!!"
+    
+    def handleCharlist(self, tok):
+        print "Listing chars"
+        chars = self.world.findOwner(self.account.name,self.world.characters)
+        if chars == None: 
+            return "You possess no characters.."
+        
+        buffer = ["You can possess the following characters"]
+        if not isinstance(chars,list): 
+            chars = [chars]
+        
+        for char in chars:
+            if char == self.character:
+                buffer.append("** %s - %s **"%(char.name,char.info))
+            else:
+                buffer.append("%s - %s"%(char.name,char.info))
+        self.offtopic('\n'.join(buffer))
+    
+    # #####################
+    # World related handles
+    # #####################
+    def handleLook(self, tok):
+        loc = self.character.location
+        buffer = ["<purple>%s<reset>"%loc.name]
+        buffer.append("<gray>%s<reset>"%loc.description)
+        
+        chars = []
+        for char in loc.characters:
+            if char.invisible: continue
+            elif char == self.character: continue
+            else:
+                chars.append(char)
+        
+        print "Chars",len(chars)
+        if len(chars) == 0:
+            buffer.append("You are alone")
+        elif len(chars) == 1:
+            buffer.append("%s is here."%chars[0].rename)
+        else:
+            buffer.append("%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
+        
+        if len(loc.exits) == 0:
+            buffer.append("<cyan>There are no obvious exits..</cyan>")
+        elif len(loc.exits) == 1:
+            buffer.append("<cyan>Only one exit: %s"%loc.exits.keys()[0])
+        else:
+            buffer.append("<cyan>Exits: %s"%", ".join(loc.exits.keys()))
+        
+        self.send("\n".join(buffer))
+    
+    def handleCharacterSpawn(self, tok):
+        if self.gamemaster:
+            self.handler = self.characterSpawner
+            self.handlerstate = 0
+            self.temp = {}
+            return self.handler(None)
+        else:
+            return "(Not authorized"
+            
+    def handleCreate(self, tok):
+        if self.gamemaster:
+            self.handler = self.locationCreator
+            self.handlerstate = 0
+            self.temp = {}
+            return self.handler([])
+        else:
+            return "(Not authorized"
+    
+    # #########################
+    # Character related handles
+    # #########################
     def handleAction(self,tok):
         if len(tok) > 1:
             message = " ".join(tok[1:])
@@ -431,7 +451,59 @@ class Player(object):
             message = " ".join(tok)
         else:
             message = " ".join(tok[1:])
-
-    
         self.character.location.announce("""%s (%s)"""%(message, self.account.name))
         
+    def handleShortDescription(self,tok):
+        pass
+        
+    def handleLongDescription(self,tok):
+        pass
+        
+    def handleGender(self,tok):
+        pass
+        
+    def handleColor(self,tok):
+        if len(tok) < 2:
+            return "(Define the color"
+        else:
+            self.character.color = tok[1]
+            return "(Color set to %s."%tok[1]
+    
+    def handleIntroduce(self, tok):
+        name = " ".join(message[1:])
+        if len(name) < 2: return "Introduce as who?"
+        pass
+        
+    def handleMemorize(self, tok):
+        pass
+        
+    def handleOfftopic(self, tok):
+        if tok[-1][-1] == ')': 
+            tok[-1] = tok[-1][:-1]
+        message = "(%s: %s"%(self.getName()," ".join(tok)[1:])
+        self.world.message(self.world.characters,message)
+        
+    def handleSay(self, tok):
+        if not self.character.mute:
+            if self.account.style:
+                message = " ".join(tok[1:])
+            else:
+                message = " ".join(tok)
+            
+            if message[-2:] == ':)': 
+                says = "smiles and says"
+            elif message[-2:] == ':D':
+                says = "laughingly says"
+            elif message[-2:] == ':(':
+                says = "looks grim and says"
+            elif message[-1] == '!':
+                says = "exclaims"
+            else:
+                says = 'says'
+                
+            self.character.location.announce('''%s %s, "%s"'''%(self.character.rename, says, message))
+        else:
+            self.offtopic("You are mute! You can't talk")
+        
+    def handleShout(self, tok):
+        pass
