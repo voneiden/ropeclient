@@ -93,6 +93,7 @@ class Window(object):
         self.dicetags = {}
         
         self.history = []
+        self.historypos = 0
         
     # Todo offtopic dispaly..
     def display(self,message,timestamp=None):
@@ -153,20 +154,41 @@ class Window(object):
                 self.write("msg %s"%(sha256(message+'r0p3s4lt').hexdigest()))
                 self.entryboxHide = False
                 self.entrybox.config(show='')
+                self.historypos = -1
             else:
                 self.write("msg %s"%(message))
+                self.history.append(message)
             self.entryboxMessage.set("")
             self.entryboxTyping = False
-        
+        elif event.keysym == "Up":
+            self.historyUp()
+        elif event.keysym == "Down":
+            self.historyDown()
+            
         elif len(self.entryboxMessage.get()) >= 1 and not self.entryboxTyping:
             self.write("pit")
             self.entryboxTyping = True
   
-        print event.keysum
+        print event.keysym
     def entryboxSet(self,command):
         self.entryboxMessage.set(command)
         self.entrybox.icursor(END)
         
+        
+    def historyUp(self):
+        if len(self.history) == 0: return
+        self.historypos += 1
+        self.historypos %= 10
+        if len(self.history) < self.historypos: 
+            self.historypos = len(self.history)
+        self.entryboxSet(self.history[self.historypos])
+    def historyDown(self):
+        if len(self.history) == 0: return
+        self.historypos -= 1
+        self.historypos %= 10
+        if len(self.history) < self.historypos:
+            self.historypos = len(self.history)
+        self.entryboxSet(self.history[self.historypos])
     def textboxMainScroll(self,event):
         print dir(event)
         print event.keycode
