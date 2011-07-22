@@ -593,7 +593,7 @@ class Player(object):
             if message[-2:] == ':)': 
                 says = "smiles and says"
                 message = message[:-2].strip()
-            elif message[-2:] == ':D':
+            elif message[-2:].upper() == ':D':
                 says = "laughingly says"
                 message = message[:-2].strip()
             elif message[-2:] == ':(':

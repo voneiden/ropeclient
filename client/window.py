@@ -154,10 +154,11 @@ class Window(object):
                 self.write("msg %s"%(sha256(message+'r0p3s4lt').hexdigest()))
                 self.entryboxHide = False
                 self.entrybox.config(show='')
-                self.historypos = -1
             else:
                 self.write("msg %s"%(message))
                 self.history.append(message)
+                if len(self.history) > 10:
+                    self.history.pop(0)
             self.entryboxMessage.set("")
             self.entryboxTyping = False
         elif event.keysym == "Up":
@@ -178,17 +179,21 @@ class Window(object):
     def historyUp(self):
         if len(self.history) == 0: return
         self.historypos += 1
-        self.historypos %= 10
-        if len(self.history) < self.historypos: 
+        print "UP",self.historypos
+        if self.historypos > len(self.history):
             self.historypos = len(self.history)
-        self.entryboxSet(self.history[self.historypos])
+        print self.history
+        print self.historypos
+        self.entryboxSet(self.history[-self.historypos])
+    
     def historyDown(self):
         if len(self.history) == 0: return
         self.historypos -= 1
-        self.historypos %= 10
-        if len(self.history) < self.historypos:
-            self.historypos = len(self.history)
-        self.entryboxSet(self.history[self.historypos])
+        if self.historypos < 0: self.historypos = 0
+        if self.historypos == 0:
+            self.entryboxSet('')
+        else:
+            self.entryboxSet(self.history[-self.historypos])
     def textboxMainScroll(self,event):
         print dir(event)
         print event.keycode

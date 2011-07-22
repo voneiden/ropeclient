@@ -287,7 +287,7 @@ class Character(object):
     def memoryCheck(self,match):
         print "Checking my memory.."
         print self.memory
-        for key in self.memory.keys:
+        for key in self.memory.keys():
             print key,type(key)
         name = match.group()[7:-1]
         character = self.world.find(name,self.world.characters)
