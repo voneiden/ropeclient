@@ -92,6 +92,9 @@ class Window(object):
         self.colors = []
         self.dicetags = {}
         
+        self.history = []
+        self.historypos = 0
+        
     # Todo offtopic dispaly..
     def display(self,message,timestamp=None):
         
@@ -112,7 +115,8 @@ class Window(object):
             offtopic = False
          
         if timestamp != None: 
-            message   = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp)), message)
+            if '\n' in message:pass
+            else:  message = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp)), message) 
         
         message = self.colorResetParse(message)
         message = self.colorTags(message)
@@ -152,16 +156,44 @@ class Window(object):
                 self.entrybox.config(show='')
             else:
                 self.write("msg %s"%(message))
+                self.history.append(message)
+                if len(self.history) > 10:
+                    self.history.pop(0)
             self.entryboxMessage.set("")
             self.entryboxTyping = False
+        elif event.keysym == "Up":
+            self.historyUp()
+        elif event.keysym == "Down":
+            self.historyDown()
+            
         elif len(self.entryboxMessage.get()) >= 1 and not self.entryboxTyping:
             self.write("pit")
             self.entryboxTyping = True
   
+        print event.keysym
     def entryboxSet(self,command):
         self.entryboxMessage.set(command)
         self.entrybox.icursor(END)
         
+        
+    def historyUp(self):
+        if len(self.history) == 0: return
+        self.historypos += 1
+        print "UP",self.historypos
+        if self.historypos > len(self.history):
+            self.historypos = len(self.history)
+        print self.history
+        print self.historypos
+        self.entryboxSet(self.history[-self.historypos])
+    
+    def historyDown(self):
+        if len(self.history) == 0: return
+        self.historypos -= 1
+        if self.historypos < 0: self.historypos = 0
+        if self.historypos == 0:
+            self.entryboxSet('')
+        else:
+            self.entryboxSet(self.history[-self.historypos])
     def textboxMainScroll(self,event):
         print dir(event)
         print event.keycode

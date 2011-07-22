@@ -100,12 +100,14 @@ class World(object):
         if player not in self.players:
             self.players.append(player)
             self.updatePlayers()
-            self.offtopic("%s has joined the game!"%player.name)
+            self.offtopic("<yellow>%s has joined the game!"%player.name)
             
     def remPlayer(self,player):
         if player in self.players:
             self.players.remove(player)
             self.updatePlayers()
+            
+            self.offtopic("<yellow>%s has left the game!"%player.name)
             
     def find(self,name,target):
         """ 
@@ -147,10 +149,21 @@ class World(object):
             return results   
             
     def findUnique(self,unique,target):
+        try: 
+            unique = int(unique)
+        except: 
+            return None
         result = []
         for obj in target:
             if unique == obj.unique: return obj
         return None
+
+    def findAny(self,key,target):
+        match = self.find(key,target)
+        if match: return match
+        match = self.findUnique(key,target)
+        if match: return match
+        
 
     def doDice(self,message):
         evalregex = "\![d0-9\+\-\*\/]+"
@@ -252,7 +265,8 @@ class Character(object):
         print "sending message id",timestamp
         if self.player:
             self.player.send(self.parse(self.world.messages[timestamp]))
-            self.read.append(timestamp)
+            if timestamp not in self.read:
+                self.read.append(timestamp)
         else:
             self.unread.append(timestamp)
             
@@ -269,14 +283,21 @@ class Character(object):
         
         return message
     
+    # Todo update these things to work with unique id's
     def memoryCheck(self,match):
+        print "Checking my memory.."
+        print self.memory
+        for key in self.memory.keys():
+            print key,type(key)
         name = match.group()[7:-1]
         character = self.world.find(name,self.world.characters)
+        print character.unique,type(character.unique)
+        
         if not character: 
             print "character not found"
             return name
-        if character.name in self.memory:
-            return self.memory[character.name]
+        if character.unique in self.memory.keys():
+            return self.memory[character.unique]
         elif character == self:
             return character.name
         else:
@@ -284,7 +305,7 @@ class Character(object):
     def introduce(self,name):
         print "Introducing.."
         self.location.announce("%s introduces himself as %s"%
-                              (self.rename,"$(clk2cmd:%s;yellow;/identify %s %s;%s)"%
+                              (self.rename,"$(clk2cmd:%s;yellow;/memorize %s %s;%s)"%
                               (self.name,self.unique,name,name)))
         
         
