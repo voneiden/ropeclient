@@ -216,7 +216,7 @@ class Player(object):
                 if self.account.style == 1:
                     if re.search("^%s"%command,tok[0]):
                         return self.commands[command](tok)
-                    if re.search("/^%s"%command,tok[0]): # For compatibility with click triggers.
+                    if re.search("^/%s"%command,tok[0]): # For compatibility with click triggers.
                         return self.commands[command](tok)
                 elif self.account.style == 0:
                     if re.search("^/%s"%command,tok[0]):
@@ -387,7 +387,12 @@ class Player(object):
         self.character.introduce(name)
         
     def handleMemorize(self, tok):
-        pass
+        if len(tok) < 3: return "(<red>Not enough arguments"
+        try: unique = int(tok[1])
+        except: return "(<red>Memorize takes only unique ID's as identifiers!"
+        name   = " ".join(tok[2:])
+        self.character.memory[unique] = name
+        return "(<green>Memorized %s"%name
         
     def handleStyle(self,tok):
         self.account.style = not self.account.style
@@ -570,13 +575,7 @@ class Player(object):
             self.character.color = tok[1]
             return "(Color set to %s."%tok[1]
     
-    def handleIntroduce(self, tok):
-        name = " ".join(message[1:])
-        if len(name) < 2: return "Introduce as who?"
-        pass
-        
-    def handleMemorize(self, tok):
-        pass
+
         
     def handleOfftopic(self, tok):
         if tok[-1][-1] == ')': 

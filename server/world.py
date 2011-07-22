@@ -283,14 +283,21 @@ class Character(object):
         
         return message
     
+    # Todo update these things to work with unique id's
     def memoryCheck(self,match):
+        print "Checking my memory.."
+        print self.memory
+        for key in self.memory.keys:
+            print key,type(key)
         name = match.group()[7:-1]
         character = self.world.find(name,self.world.characters)
+        print character.unique,type(character.unique)
+        
         if not character: 
             print "character not found"
             return name
-        if character.name in self.memory:
-            return self.memory[character.name]
+        if character.unique in self.memory.keys():
+            return self.memory[character.unique]
         elif character == self:
             return character.name
         else:
@@ -298,7 +305,7 @@ class Character(object):
     def introduce(self,name):
         print "Introducing.."
         self.location.announce("%s introduces himself as %s"%
-                              (self.rename,"$(clk2cmd:%s;yellow;/identify %s %s;%s)"%
+                              (self.rename,"$(clk2cmd:%s;yellow;/memorize %s %s;%s)"%
                               (self.name,self.unique,name,name)))
         
         
