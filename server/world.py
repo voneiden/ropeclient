@@ -50,9 +50,29 @@ class World(object):
         return timestamp
         
     def save(self):
-        f = open('worlds/%s.world','w')
+        f = open('worlds/%s.world'%self.name,'wb')
         cPickle.dump(self,f)
         f.close()
+        
+    def load(self,core,name):
+        print "Loading world..",name
+        try:
+            f = open('worlds/%s.world'%name,'rb')
+            world = cPickle.load(f)
+            f.close()
+        except:
+            print "Failed!"
+            return False
+        print "Success!"
+        #world.core = self.core
+        core.world = world
+        world.players = []
+        for player in self.players:
+            player.send("<red>### GAMEMASTER HAS LOADED A NEW WORLD ###")
+            player.world = world
+            player.login()
+            
+        return True
 
     def message(self,recipients,message):
         ''' This is the function to send messages to player. The message is given an ID which can be later retrieved! '''
@@ -244,6 +264,7 @@ class Character(object):
         self.location.characters.append(self)
         self.location.announce("%s has arrived."%(self.name),self)
         self.world.message(self,"You have arrived.")
+        if self.player: self.player.handleLook([])
         
     def attach(self,player):
         self.player = player

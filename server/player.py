@@ -56,10 +56,13 @@ class Player(object):
             'attach':self.handleAttach,
             'a':self.handleAttach,
             'detach':self.handleDetach,
-            'd':self.handleDetach,
+            'd$':self.handleDetach,
             'me':self.handleAction,
             'describe':self.handleDescribe,
-            'create':self.handleCreate
+            'create':self.handleCreate,
+            'nameworld':self.handleNameWorld,
+            'loadworld':self.handleLoadWorld,
+            'saveworld':self.handleSaveWorld
             }
         
     def __getstate__(self): 
@@ -187,9 +190,11 @@ class Player(object):
         
     def login(self):
         # We need to check for old player connections and disconnect them.
+        self.name = self.account.name
         old = self.world.find(self.account.name,self.world.players)
         print "Looking for old",old
         if isinstance(old,Player):
+            print "OLD HAS BEEN FOUND, DISCONNECTING"
             old.disconnect()
         
         self.name = self.account.name 
@@ -225,9 +230,11 @@ class Player(object):
                     
             if tok[0][0] == '(':
                 return self.handleOfftopic(tok)
-            if tok[0][0] == '#':
+            elif tok[0][0] == '#':
                 return self.handleDescribe(tok)
-            if self.account.style == 0: 
+            elif self.handleMove(tok):
+                return
+            elif self.account.style == 0: 
                 return self.handleSay(tok)
     
     # Changing it so that a character is owned by whoever last was attached to it.            
@@ -486,7 +493,7 @@ class Player(object):
     def handleLook(self, tok):
         regex1 = '(?<=look ).+'
         match = re.search(regex1," ".join(tok))
-        buffer = []
+        buffer = ['']
         
         if match:
             charname = match.group()
@@ -499,7 +506,7 @@ class Player(object):
         else:
             loc = self.character.location
             buffer.append("<purple>%s<reset>"%loc.name)
-            buffer.append("<gray>%s<reset>"%loc.description)
+            buffer.append("<light sky blue>%s<reset>"%loc.description)
          
             chars = []
             for char in loc.characters:
@@ -510,18 +517,18 @@ class Player(object):
             
             print "Chars",len(chars)
             if len(chars) == 0:
-                buffer.append("You are alone")
+                buffer.append("<turquoise>You are alone<reset>")
             elif len(chars) == 1:
-                buffer.append("%s is here."%chars[0].rename)
+                buffer.append("<turquoise>%s is here.<reset>"%chars[0].rename)
             else:
-                buffer.append("%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
+                buffer.append("<turquoise>%s and %s are here.<reset>"%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
             
             if len(loc.exits) == 0:
-                buffer.append("<cyan>There are no obvious exits..</cyan>")
+                buffer.append("<green>There are no obvious exits..</cyan>")
             elif len(loc.exits) == 1:
-                buffer.append("<cyan>Only one exit: %s"%loc.exits.keys()[0])
+                buffer.append("<green>Only one exit: %s"%loc.exits.keys()[0])
             else:
-                buffer.append("<cyan>Exits: %s"%", ".join(loc.exits.keys()))
+                buffer.append("<green>Exits: %s"%", ".join(loc.exits.keys()))
         
         self.send("\n".join(buffer))
     
@@ -546,6 +553,20 @@ class Player(object):
     # #########################
     # Character related handles
     # #########################
+    def handleMove(self,tok):
+        if len(tok) > 0:
+            print "Trying to move to",tok
+            dir = tok[0].lower()
+            for exit in self.character.location.exits.keys():
+                if dir in exit.lower():
+                    destination = self.character.location.exits[exit]
+                    self.character.move(destination)
+                    return True
+
+            return False
+        else:
+            return False
+            
     def handleAction(self,tok):
         if len(tok) > 1:
             message = " ".join(tok[1:])
@@ -624,3 +645,26 @@ class Player(object):
             if not char: return ("Unable to find a character by identification: %s"%charname)
         
         
+    def handleNameWorld(self,tok):
+        if len(tok) > 1 and self.gamemaster:
+            name = " ".join(tok[1:])
+            self.world.name = name
+            return "(Server: Name set to %s"%name
+        return "(Server: Can't do that, captain"
+    
+    def handleSaveWorld(self,tok):
+        if self.gamemaster:
+            self.world.save()
+            return "(<green>Save completed"
+        else:
+            return "(<red>You can't do that"
+    def handleLoadWorld(self,tok):
+        if len(tok) > 1 and self.gamemaster:
+            name = " ".join(tok[1:])
+            if self.world.load(self.core,name):
+                return "(<green>Load completed"
+            else:
+                return ("<red>Load failed")
+        else:
+            return "(<red>You may not do that"
+            
