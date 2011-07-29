@@ -387,6 +387,8 @@ class Player(object):
                 buffer.append("%s - %s"%(char.name,char.info))
         self.offtopic('\n'.join(buffer))
         
+    def handleLocation(self, tok):
+    
     def handleIntroduce(self, tok):
         if len(tok) < 2: return "Introduce as who?"
         name = " ".join(tok[1:])
@@ -643,7 +645,11 @@ class Player(object):
             
             char = self.world.findAny(self,charname,self.world.characters)
             if not char: return ("Unable to find a character by identification: %s"%charname)
-        
+            target = self.world.findAny(self,targetname,self.world.locations)
+            if not target: return ("Unable to find the target: %s"%targetname)
+            
+            char.move(target)
+            return ("(<green>Teleport succesful!")
         
     def handleNameWorld(self,tok):
         if len(tok) > 1 and self.gamemaster:
@@ -655,14 +661,14 @@ class Player(object):
     def handleSaveWorld(self,tok):
         if self.gamemaster:
             self.world.save()
-            return "(<green>Save completed"
+            return "(<green>Save (%s) completed"%self.world.name
         else:
             return "(<red>You can't do that"
     def handleLoadWorld(self,tok):
         if len(tok) > 1 and self.gamemaster:
             name = " ".join(tok[1:])
             if self.world.load(self.core,name):
-                return "(<green>Load completed"
+                return "(<green>Load (%s) completed"%self.world.name
             else:
                 return ("<red>Load failed")
         else:
