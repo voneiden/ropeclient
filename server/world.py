@@ -75,7 +75,7 @@ class World(object):
         return True
 
     def message(self,recipients,message):
-        ''' This is the function to send messages to player. The message is given an ID which can be later retrieved! '''
+        ''' This is the function to send messages to character. The message is given an ID which can be later retrieved! '''
         timestamp = self.timestamp()
         # Do the dice rolling too..
         message = self.doDice(message)

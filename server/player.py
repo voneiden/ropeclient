@@ -54,15 +54,18 @@ class Player(object):
             'say':self.handleSay,
             'color':self.handleColor,
             'attach':self.handleAttach,
-            'a':self.handleAttach,
             'detach':self.handleDetach,
-            'd$':self.handleDetach,
             'me':self.handleAction,
             'describe':self.handleDescribe,
             'create':self.handleCreate,
             'nameworld':self.handleNameWorld,
             'loadworld':self.handleLoadWorld,
-            'saveworld':self.handleSaveWorld
+            'saveworld':self.handleSaveWorld,
+            'tell':self.handleTell,
+            'notify':self.handleNotify,
+            'teleport':self.handleTeleport,
+            'link':self.handleLink,
+            'unlink':self.handleUnlink
             }
         
     def __getstate__(self): 
@@ -388,7 +391,8 @@ class Player(object):
         self.offtopic('\n'.join(buffer))
         
     def handleLocation(self, tok):
-    
+        return "Not implemented.."
+        
     def handleIntroduce(self, tok):
         if len(tok) < 2: return "Introduce as who?"
         name = " ".join(tok[1:])
@@ -635,22 +639,25 @@ class Player(object):
         pass
         
     def handleTeleport(self,tok):
+        print "Trying to teleport.."
         regex1 = "(.+?) to (.+)"
         msg = " ".join(tok[1:])
+        print "Command",msg
         search = re.search(regex1,msg)
         if search:
+            print "SEARCH OK"
             groups = search.groups()
             charname = groups[0]
             targetname = groups[1]
             
-            char = self.world.findAny(self,charname,self.world.characters)
+            char = self.world.findAny(charname,self.world.characters)
             if not char: return ("Unable to find a character by identification: %s"%charname)
-            target = self.world.findAny(self,targetname,self.world.locations)
+            target = self.world.findAny(targetname,self.world.locations)
             if not target: return ("Unable to find the target: %s"%targetname)
             
             char.move(target)
             return ("(<green>Teleport succesful!")
-        
+        return "Search failed"
     def handleNameWorld(self,tok):
         if len(tok) > 1 and self.gamemaster:
             name = " ".join(tok[1:])
@@ -674,3 +681,95 @@ class Player(object):
         else:
             return "(<red>You may not do that"
             
+    def handleTell(self,tok):
+        if len(tok) > 2:
+            targetname = tok[1]
+            message = " ".join(tok[2:])
+            target = self.world.findAny(targetname,self.character.location.characters)
+            if not target: return "(<red>%s is not here.."%targetname
+            self.world.message(target,'''%s whispers to you, "%s"'''%(self.character.rename, message))
+            return '''You whisper to %s, "%s"'''%(target.rename,message)
+        else:
+            return "(<red>Invalid arguments: /tell charname message"
+    
+    def handleNotify(self,tok):
+        if len(tok) > 2 and self.gamemaster:
+            targetname = tok[1]
+            message = " ".join(tok[2:])
+            target = self.world.findAny(targetname,self.character.location.characters)
+            if not target: return "(<red>%s is not here.."%targetname
+            self.world.message(target,'''<red>%s: %s'''%(self.account.name, message))
+            return '''<red>@%s: "%s"'''%(target.name,message)        
+        else:
+            return "(<red>Invalid arguments: /tell charname message, or you're not GM"
+            
+    def handleUnlink(self,tok):
+        if self.gamemaster:
+            self.handler = self.linkRemover
+            self.handlerstate = 0
+            self.temp = {}
+            return self.handler([])
+        else:
+            return "(Not authorized"
+    def linkRemover(self,tok):
+        self.handlerstate += 1
+        print "linkremover",tok
+        print type(tok)
+        msg = " ".join(tok)
+        #if len(msg) < 1: return "Answer the damn question" 
+        
+        if self.handlerstate == 1:
+            return "Name of the link to remove?"
+        elif self.handlerstate == 2:
+            self.temp['linkto']= msg
+            return "Remove return also?"
+            
+        elif self.handlerstate == 3:
+            if len(msg) == 0:
+                both = False
+            else:
+                both = True
+                
+            self.handler = self.gameHandler
+            return self.character.location.unlink(self.temp['linkto'],both)
+            
+            
+    def handleLink(self,tok):
+        if self.gamemaster:
+            self.handler = self.linkCreator
+            self.handlerstate = 0
+            self.temp = {}
+            return self.handler([])
+        else:
+            return "(Not authorized"
+    def linkCreator(self,tok):
+        self.handlerstate += 1
+        print "linkcreator",tok
+        print type(tok)
+        msg = " ".join(tok)
+        #if len(msg) < 1: return "Answer the damn question" 
+        
+        if self.handlerstate == 1:
+            return "Name of the link?"
+        elif self.handlerstate == 2:
+            self.temp['linkto']= msg
+            return "Target location?"
+            
+        elif self.handlerstate == 3:
+            self.temp['location'] = msg
+            return "Return link (Enter=No linking)"
+            
+
+        elif self.handlerstate == 4:
+            if len(msg) == 0: 
+                backlink = False
+            else:
+                backlink = msg
+                
+            self.handler = self.gameHandler
+            location = self.world.findAny(self.temp['location'],self.world.locations)
+            if not location:
+                return "(<red>Unable to link - location not found"
+            
+            self.character.location.link(self.temp['linkto'],location,backlink)
+            return "(<green>Done"
