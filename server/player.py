@@ -631,7 +631,7 @@ class Player(object):
             else:
                 says = 'says'
                 
-            self.character.location.announce('''%s %s, "%s"'''%(self.character.rename, says, message))
+            self.character.location.announce('''<#8888ff>%s %s, "%s"'''%(self.character.rename, says, message))
         else:
             self.offtopic("You are mute! You can't talk")
         
