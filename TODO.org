@@ -1,4 +1,23 @@
+* Logic
+** RopePlayer.write -> transport
+** RopePlayer.sendMessage -> RopePlayer.write msg timestamp
+** Player.send -> RopePlayer.sendMessage
+
+
+* Ideas
+** TODO moving doesnt work on exit names with spaces?
+** TODO some code cleaning plz?
+** TODO manual linking
+** TODO defocus focus fix
+** DONE tell & notify. Notify is GM only!
+   CLOSED: [2011-08-02 Tue 14:24]
+** TODO Combat map :D
 * General fixmes
+** DONE Attaching transports the char to soul, should be opposite!
+   CLOSED: [2011-08-02 Tue 14:24]
+** DONE say echoes everywhere? 
+   CLOSED: [2011-08-02 Tue 14:24]
+** TODO leave message comes silly.
 ** DONE disconnect viesti
    CLOSED: [2011-07-21 Thu 19:45]
 ** DONE väli (y) kaatuu
@@ -8,12 +27,14 @@
 ** DONE Nuoli ylös history
    CLOSED: [2011-07-22 Fri 12:54]
 ** TODO allow clients to refer to their own name
-** TODO space stripping from beginning of sentence?
+** DONE space stripping from beginning of sentence?
+   CLOSED: [2011-07-22 Fri 16:50]
 ** TODO Gender settings!
 ** DONE /me and # doesn't work. # crashes client
    CLOSED: [2011-07-20 Wed 13:35]
 ** TODO Translate mute character say to offtopic?
-** TODO user should be able to choose talk color?
+** DONE user should be able to choose talk color?
+   CLOSED: [2011-08-02 Tue 14:24]
 
 * Notes on Characters
 ** DONE Make text windows clear nicely on attach
@@ -33,17 +54,20 @@
 * Notes on general functionality
 ** DONE Emotions
    CLOSED: [2011-07-21 Thu 13:40]
-** TODO More emotions
+** DONE More emotions
+   CLOSED: [2011-08-02 Tue 14:25]
 ** DONE Actions and describes
    CLOSED: [2011-07-19 Tue 14:31]
 ** DONE Location creation
    CLOSED: [2011-07-21 Thu 14:20]
 ** DONE Location linking
    CLOSED: [2011-07-21 Thu 14:20]
-** TODO Player movement around locations
+** DONE Player movement around locations
+   CLOSED: [2011-08-02 Tue 14:25]
 ** TODO Location listing
 ** TODO Follow function
-** TODO Teleporting
+** DONE Teleporting
+   CLOSED: [2011-08-02 Tue 14:25]
 ** TODO Memory effect properly
 ** DONE Introducing
    CLOSED: [2011-07-20 Wed 21:33]
