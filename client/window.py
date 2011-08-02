@@ -330,5 +330,5 @@ class Window(object):
         regex = '\".+?\"'
         for talk in re.finditer(regex,message):
             talk = talk.group()
-            message = message.replace(talk,"<cyan>%s<reset>"%talk)
+            message = message.replace(talk,"<#70c8ff>%s<70c8ff>"%talk)
         return message

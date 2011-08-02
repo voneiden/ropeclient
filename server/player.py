@@ -54,12 +54,18 @@ class Player(object):
             'say':self.handleSay,
             'color':self.handleColor,
             'attach':self.handleAttach,
-            'a':self.handleAttach,
             'detach':self.handleDetach,
-            'd':self.handleDetach,
             'me':self.handleAction,
             'describe':self.handleDescribe,
-            'create':self.handleCreate
+            'create':self.handleCreate,
+            'nameworld':self.handleNameWorld,
+            'loadworld':self.handleLoadWorld,
+            'saveworld':self.handleSaveWorld,
+            'tell':self.handleTell,
+            'notify':self.handleNotify,
+            'teleport':self.handleTeleport,
+            'link':self.handleLink,
+            'unlink':self.handleUnlink
             }
         
     def __getstate__(self): 
@@ -187,9 +193,11 @@ class Player(object):
         
     def login(self):
         # We need to check for old player connections and disconnect them.
+        self.name = self.account.name
         old = self.world.find(self.account.name,self.world.players)
         print "Looking for old",old
         if isinstance(old,Player):
+            print "OLD HAS BEEN FOUND, DISCONNECTING"
             old.disconnect()
         
         self.name = self.account.name 
@@ -225,9 +233,11 @@ class Player(object):
                     
             if tok[0][0] == '(':
                 return self.handleOfftopic(tok)
-            if tok[0][0] == '#':
+            elif tok[0][0] == '#':
                 return self.handleDescribe(tok)
-            if self.account.style == 0: 
+            elif self.handleMove(tok):
+                return
+            elif self.account.style == 0: 
                 return self.handleSay(tok)
     
     # Changing it so that a character is owned by whoever last was attached to it.            
@@ -380,6 +390,9 @@ class Player(object):
                 buffer.append("%s - %s"%(char.name,char.info))
         self.offtopic('\n'.join(buffer))
         
+    def handleLocation(self, tok):
+        return "Not implemented.."
+        
     def handleIntroduce(self, tok):
         if len(tok) < 2: return "Introduce as who?"
         name = " ".join(tok[1:])
@@ -486,7 +499,7 @@ class Player(object):
     def handleLook(self, tok):
         regex1 = '(?<=look ).+'
         match = re.search(regex1," ".join(tok))
-        buffer = []
+        buffer = ['']
         
         if match:
             charname = match.group()
@@ -499,7 +512,7 @@ class Player(object):
         else:
             loc = self.character.location
             buffer.append("<purple>%s<reset>"%loc.name)
-            buffer.append("<gray>%s<reset>"%loc.description)
+            buffer.append("<light sky blue>%s<reset>"%loc.description)
          
             chars = []
             for char in loc.characters:
@@ -510,18 +523,18 @@ class Player(object):
             
             print "Chars",len(chars)
             if len(chars) == 0:
-                buffer.append("You are alone")
+                buffer.append("<turquoise>You are alone<reset>")
             elif len(chars) == 1:
-                buffer.append("%s is here."%chars[0].rename)
+                buffer.append("<turquoise>%s is here.<reset>"%chars[0].rename)
             else:
-                buffer.append("%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
+                buffer.append("<turquoise>%s and %s are here.<reset>"%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
             
             if len(loc.exits) == 0:
-                buffer.append("<cyan>There are no obvious exits..</cyan>")
+                buffer.append("<green>There are no obvious exits..</cyan>")
             elif len(loc.exits) == 1:
-                buffer.append("<cyan>Only one exit: %s"%loc.exits.keys()[0])
+                buffer.append("<green>Only one exit: %s"%loc.exits.keys()[0])
             else:
-                buffer.append("<cyan>Exits: %s"%", ".join(loc.exits.keys()))
+                buffer.append("<green>Exits: %s"%", ".join(loc.exits.keys()))
         
         self.send("\n".join(buffer))
     
@@ -546,6 +559,20 @@ class Player(object):
     # #########################
     # Character related handles
     # #########################
+    def handleMove(self,tok):
+        if len(tok) > 0:
+            print "Trying to move to",tok
+            dir = tok[0].lower()
+            for exit in self.character.location.exits.keys():
+                if dir in exit.lower():
+                    destination = self.character.location.exits[exit]
+                    self.character.move(destination)
+                    return True
+
+            return False
+        else:
+            return False
+            
     def handleAction(self,tok):
         if len(tok) > 1:
             message = " ".join(tok[1:])
@@ -604,7 +631,7 @@ class Player(object):
             else:
                 says = 'says'
                 
-            self.character.location.announce('''%s %s, "%s"'''%(self.character.rename, says, message))
+            self.character.location.announce('''<#8888ff>%s %s, "%s"'''%(self.character.rename, says, message))
         else:
             self.offtopic("You are mute! You can't talk")
         
@@ -612,15 +639,137 @@ class Player(object):
         pass
         
     def handleTeleport(self,tok):
+        print "Trying to teleport.."
         regex1 = "(.+?) to (.+)"
         msg = " ".join(tok[1:])
+        print "Command",msg
         search = re.search(regex1,msg)
         if search:
+            print "SEARCH OK"
             groups = search.groups()
             charname = groups[0]
             targetname = groups[1]
             
-            char = self.world.findAny(self,charname,self.world.characters)
+            char = self.world.findAny(charname,self.world.characters)
             if not char: return ("Unable to find a character by identification: %s"%charname)
+            target = self.world.findAny(targetname,self.world.locations)
+            if not target: return ("Unable to find the target: %s"%targetname)
+            
+            char.move(target)
+            return ("(<green>Teleport succesful!")
+        return "Search failed"
+    def handleNameWorld(self,tok):
+        if len(tok) > 1 and self.gamemaster:
+            name = " ".join(tok[1:])
+            self.world.name = name
+            return "(Server: Name set to %s"%name
+        return "(Server: Can't do that, captain"
+    
+    def handleSaveWorld(self,tok):
+        if self.gamemaster:
+            self.world.save()
+            return "(<green>Save (%s) completed"%self.world.name
+        else:
+            return "(<red>You can't do that"
+    def handleLoadWorld(self,tok):
+        if len(tok) > 1 and self.gamemaster:
+            name = " ".join(tok[1:])
+            if self.world.load(self.core,name):
+                return "(<green>Load (%s) completed"%self.world.name
+            else:
+                return ("<red>Load failed")
+        else:
+            return "(<red>You may not do that"
+            
+    def handleTell(self,tok):
+        if len(tok) > 2:
+            targetname = tok[1]
+            message = " ".join(tok[2:])
+            target = self.world.findAny(targetname,self.character.location.characters)
+            if not target: return "(<red>%s is not here.."%targetname
+            self.world.message(target,'''%s whispers to you, "%s"'''%(self.character.rename, message))
+            return '''You whisper to %s, "%s"'''%(target.rename,message)
+        else:
+            return "(<red>Invalid arguments: /tell charname message"
+    
+    def handleNotify(self,tok):
+        if len(tok) > 2 and self.gamemaster:
+            targetname = tok[1]
+            message = " ".join(tok[2:])
+            target = self.world.findAny(targetname,self.character.location.characters)
+            if not target: return "(<red>%s is not here.."%targetname
+            self.world.message(target,'''<red>%s: %s'''%(self.account.name, message))
+            return '''<red>@%s: "%s"'''%(target.name,message)        
+        else:
+            return "(<red>Invalid arguments: /tell charname message, or you're not GM"
+            
+    def handleUnlink(self,tok):
+        if self.gamemaster:
+            self.handler = self.linkRemover
+            self.handlerstate = 0
+            self.temp = {}
+            return self.handler([])
+        else:
+            return "(Not authorized"
+    def linkRemover(self,tok):
+        self.handlerstate += 1
+        print "linkremover",tok
+        print type(tok)
+        msg = " ".join(tok)
+        #if len(msg) < 1: return "Answer the damn question" 
         
+        if self.handlerstate == 1:
+            return "Name of the link to remove?"
+        elif self.handlerstate == 2:
+            self.temp['linkto']= msg
+            return "Remove return also?"
+            
+        elif self.handlerstate == 3:
+            if len(msg) == 0:
+                both = False
+            else:
+                both = True
+                
+            self.handler = self.gameHandler
+            return self.character.location.unlink(self.temp['linkto'],both)
+            
+            
+    def handleLink(self,tok):
+        if self.gamemaster:
+            self.handler = self.linkCreator
+            self.handlerstate = 0
+            self.temp = {}
+            return self.handler([])
+        else:
+            return "(Not authorized"
+    def linkCreator(self,tok):
+        self.handlerstate += 1
+        print "linkcreator",tok
+        print type(tok)
+        msg = " ".join(tok)
+        #if len(msg) < 1: return "Answer the damn question" 
         
+        if self.handlerstate == 1:
+            return "Name of the link?"
+        elif self.handlerstate == 2:
+            self.temp['linkto']= msg
+            return "Target location?"
+            
+        elif self.handlerstate == 3:
+            self.temp['location'] = msg
+            return "Return link (Enter=No linking)"
+            
+
+        elif self.handlerstate == 4:
+            if len(msg) == 0: 
+                backlink = False
+            else:
+                backlink = msg
+                
+            self.handler = self.gameHandler
+            location = self.world.findAny(self.temp['location'],self.world.locations)
+            if not location:
+                return "(<red>Unable to link - location not found"
+            
+            self.character.location.link(self.temp['linkto'],location,backlink)
+            return "(<green>Done"
