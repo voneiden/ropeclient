@@ -39,13 +39,23 @@ if __name__ == '__main__':
     window.display("Starting reactor!")
     window.reactor = reactor
     
-    scp = ConfigParser.SafeConfigParser()
-    scp.read('colors.txt')
-    window.colors['default'] = scp.get('colors','default')
-    window.colors['talk'] = scp.get('colors','talk')
-    window.colors['ok'] = scp.get('colors','ok')
-    window.colors['fail'] = scp.get('colors','fail')
-    window.colors['notify'] = scp.get('colors','notify')
+    #scp = ConfigParser.SafeConfigParser()
+    #scp.read('colors.txt')
+    #window.colors['default'] = scp.get('colors','default')
+    #window.colors['talk'] = scp.get('colors','talk')
+    #window.colors['ok'] = scp.get('colors','ok')
+    #window.colors['fail'] = scp.get('colors','fail')
+    #window.colors['notify'] = scp.get('colors','notify')
+    f = open('colors.txt','r')
+    print "PIIPAA"
+    for line in f.readlines():
+        print "line",line
+        tok = line.split(':')
+        if len(tok) != 2: continue
+        key = tok[0].strip()
+        value = tok[1].strip()
+        window.colors[key] = value
+        print "Saved color",key,value
     reactor.run()
 
 
