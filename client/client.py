@@ -23,6 +23,7 @@
 '''
 
 from twisted.internet import tksupport, reactor
+import ConfigParser
 import window
 import network
 
@@ -37,6 +38,14 @@ if __name__ == '__main__':
 
     window.display("Starting reactor!")
     window.reactor = reactor
+    
+    scp = ConfigParser.SafeConfigParser()
+    scp.read('colors.txt')
+    window.colors['default'] = scp.get('colors','default')
+    window.colors['talk'] = scp.get('colors','talk')
+    window.colors['ok'] = scp.get('colors','ok')
+    window.colors['fail'] = scp.get('colors','fail')
+    window.colors['notify'] = scp.get('colors','notify')
     reactor.run()
 
 

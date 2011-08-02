@@ -141,7 +141,7 @@ class Player(object):
                 self.handlerstate = 2
                 self.account = find
                 self.connection.write('pwd\r\n')
-                return "Your <red>password<reset>?"   
+                return "Your <f>password<reset>?"   
             elif find == None:
                 if re.match("^[A-Za-z]+$", message[0]):
                     self.handlerstate = 10
@@ -400,12 +400,12 @@ class Player(object):
         self.character.introduce(name)
         
     def handleMemorize(self, tok):
-        if len(tok) < 3: return "(<red>Not enough arguments"
+        if len(tok) < 3: return "(<fail>Not enough arguments"
         try: unique = int(tok[1])
-        except: return "(<red>Memorize takes only unique ID's as identifiers!"
+        except: return "(<fail>Memorize takes only unique ID's as identifiers!"
         name   = " ".join(tok[2:])
         self.character.memory[unique] = name
-        return "(<green>Memorized %s"%name
+        return "(<ok>Memorized %s"%name
         
     def handleStyle(self,tok):
         self.account.style = not self.account.style
@@ -423,17 +423,17 @@ class Player(object):
     def handleAttach(self,tok):
         # Param verification
         print "Handling attach:",tok
-        if len(tok) < 2: return "(<red>Whom do you want to attach to?"
+        if len(tok) < 2: return "(<fail>Whom do you want to attach to?"
         targetname = " ".join(tok[1:])
         player = self
         if len(tok) > 3:
             if tok[2].lower() == 'to':
-                if not self.gamemaster: return "(<red>You're not allowed to attach others"
+                if not self.gamemaster: return "(<fail>You're not allowed to attach others"
                 playername = tok[1]
                 player = self.world.find(playername,self.world.players)
                 targetname = " ".join(tok[3:])
                 if not isinstance(player,Player):
-                    return "(<red>The player you wanted to attach was not found"
+                    return "(<fail>The player you wanted to attach was not found"
         
         print "Trying to attach %s to %s"%(player.name,targetname)
         
@@ -441,16 +441,18 @@ class Player(object):
         if isinstance(char,world.Character):
             if char.owner == player.account.name or self.gamemaster:
                 if char.soul:
-                    return "(<red>You cannot attach to a soul"
+                    return "(<fail>You cannot attach to a soul"
                 if char.player:
-                    return ("<red>This character is already possessed by someone..")
+                    return ("<fail>This character is already possessed by someone..")
                 player.character.detach()
                 char.attach(player)
-                return 
+                if player != self:
+                    return "(<ok>Attached %s succesfully to %s."%(player.name,char.name)
+                return
             else:
-                return "(<red>You cannot attach to something you do not own!"
+                return "(<fail>You cannot attach to something you do not own!"
         else:
-            return "(<red>Couldn't find %s"%targetname
+            return "(<fail>Couldn't find %s"%targetname
             
             
     def handleStyle(self,tok):
@@ -465,8 +467,6 @@ class Player(object):
                 return "(You cannot detach from your soul!"
             else:
                 location = self.character.location
-                
-                
                 chars = self.world.findOwner(self.account.name,self.world.characters)
                 for char in chars:
                     if char.soul:
@@ -492,6 +492,19 @@ class Player(object):
             else:
                 buffer.append("%s - %s"%(char.name,char.info))
         self.offtopic('\n'.join(buffer))
+    def handleLoclist(self, tok):
+        print "Listing locations"
+        locs = self.world.findOwner(self.account.name,self.world.locations)
+        if locs == None: 
+            return "(<fail>Madness, no locations found!"
+        
+        buffer = ["Following locations exist"]
+        if not isinstance(locs,list): 
+            locs = [locs]
+        
+        for loc in locs:
+            buffer.append("%s - %s"%(loc.unique,loc.name))
+        self.offtopic('\n'.join(buffer))
     
     # #####################
     # World related handles
@@ -504,7 +517,7 @@ class Player(object):
         if match:
             charname = match.group()
             char = self.world.findAny(charname,self.character.location.characters)
-            if not char or not isinstance(char,world.Character): return "(<red>There is no one with that id here (%s).."%charname
+            if not char or not isinstance(char,world.Character): return "(<fail>There is no one with that id here (%s).."%charname
             buffer.append("Looking at %s.."%char.rename)
             buffer.append("%s"%char.description)
             return "\n".join(buffer)
@@ -530,11 +543,11 @@ class Player(object):
                 buffer.append("<turquoise>%s and %s are here.<reset>"%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
             
             if len(loc.exits) == 0:
-                buffer.append("<green>There are no obvious exits..</cyan>")
+                buffer.append("<ok>There are no obvious exits..</cyan>")
             elif len(loc.exits) == 1:
-                buffer.append("<green>Only one exit: %s"%loc.exits.keys()[0])
+                buffer.append("<ok>Only one exit: %s"%loc.exits.keys()[0])
             else:
-                buffer.append("<green>Exits: %s"%", ".join(loc.exits.keys()))
+                buffer.append("<ok>Exits: %s"%", ".join(loc.exits.keys()))
         
         self.send("\n".join(buffer))
     
@@ -630,8 +643,8 @@ class Player(object):
                 says = "exclaims"
             else:
                 says = 'says'
-                
-            self.character.location.announce('''<#8888ff>%s %s, "%s"'''%(self.character.rename, says, message))
+                # had color #8888ff
+            self.character.location.announce('''%s %s, "%s"'''%(self.character.rename, says, message))
         else:
             self.offtopic("You are mute! You can't talk")
         
@@ -656,52 +669,52 @@ class Player(object):
             if not target: return ("Unable to find the target: %s"%targetname)
             
             char.move(target)
-            return ("(<green>Teleport succesful!")
-        return "Search failed"
+            return ("(<ok>Teleport succesful!")
+        return "(<fail>Search failed"
     def handleNameWorld(self,tok):
         if len(tok) > 1 and self.gamemaster:
             name = " ".join(tok[1:])
             self.world.name = name
-            return "(Server: Name set to %s"%name
-        return "(Server: Can't do that, captain"
+            return "(<ok> Name set to %s"%name
+        return "(<fail> Can't do that, captain"
     
     def handleSaveWorld(self,tok):
         if self.gamemaster:
             self.world.save()
-            return "(<green>Save (%s) completed"%self.world.name
+            return "(<ok>Save (%s) completed"%self.world.name
         else:
-            return "(<red>You can't do that"
+            return "(<fail>You can't do that"
     def handleLoadWorld(self,tok):
         if len(tok) > 1 and self.gamemaster:
             name = " ".join(tok[1:])
             if self.world.load(self.core,name):
-                return "(<green>Load (%s) completed"%self.world.name
+                return "(<ok>Load (%s) completed"%self.world.name
             else:
-                return ("<red>Load failed")
+                return ("<fail>Load failed")
         else:
-            return "(<red>You may not do that"
+            return "(<fail>You may not do that"
             
     def handleTell(self,tok):
         if len(tok) > 2:
             targetname = tok[1]
             message = " ".join(tok[2:])
             target = self.world.findAny(targetname,self.character.location.characters)
-            if not target: return "(<red>%s is not here.."%targetname
+            if not target: return "(<fail>%s is not here.."%targetname
             self.world.message(target,'''%s whispers to you, "%s"'''%(self.character.rename, message))
             return '''You whisper to %s, "%s"'''%(target.rename,message)
         else:
-            return "(<red>Invalid arguments: /tell charname message"
+            return "(<fail>Invalid arguments: /tell charname message"
     
     def handleNotify(self,tok):
         if len(tok) > 2 and self.gamemaster:
             targetname = tok[1]
             message = " ".join(tok[2:])
             target = self.world.findAny(targetname,self.character.location.characters)
-            if not target: return "(<red>%s is not here.."%targetname
-            self.world.message(target,'''<red>%s: %s'''%(self.account.name, message))
-            return '''<red>@%s: "%s"'''%(target.name,message)        
+            if not target: return "(<fail>%s is not here.."%targetname
+            self.world.message(target,'''<notify>%s: %s'''%(self.account.name, message))
+            return '''<notify>@%s: "%s"'''%(target.name,message)        
         else:
-            return "(<red>Invalid arguments: /tell charname message, or you're not GM"
+            return "(<fail>Invalid arguments: /tell charname message, or you're not GM"
             
     def handleUnlink(self,tok):
         if self.gamemaster:
@@ -769,7 +782,7 @@ class Player(object):
             self.handler = self.gameHandler
             location = self.world.findAny(self.temp['location'],self.world.locations)
             if not location:
-                return "(<red>Unable to link - location not found"
+                return "(<fail>Unable to link - location not found"
             
             self.character.location.link(self.temp['linkto'],location,backlink)
-            return "(<green>Done"
+            return "(<ok>Done"

@@ -89,7 +89,8 @@ class Window(object):
         self.playerbox.grid(row=0,column=1,rowspan=3,sticky=N+S)
         
         # Colors that have been loaded!
-        self.colors = []
+        self.usedColors = []
+        self.colors = {'default': 'gray'}
         self.dicetags = {}
         
         self.history = []
@@ -104,7 +105,7 @@ class Window(object):
            
         message = self.clickParse(message)
         message = self.diceParse(message)
-        message = self.talkParse(message)
+        message = self.colorParse(message)
         
         if message[0] == '(':
             message = message[1:]
@@ -235,10 +236,12 @@ class Window(object):
             tok = cmd.split(':')[1].split(';')
             tag = tok[0]
             color = tok[1]
+            if color in self.colors:
+                color = self.colors[color]
             command = tok[2]
             text = tok[3][:-1]
-            if tag not in self.colors:
-                self.colors.append(tag)
+            if tag not in self.usedColors:
+                self.usedColors.append(tag)
             try:
                 self.textboxMain.tag_config(tag,foreground=color)
                 self.textboxOfftopic.tag_config(tag,foreground=color)
@@ -258,7 +261,7 @@ class Window(object):
             dice = dice.group()
             values = dice.split('=')[1][:-1].split(';')
             tag = "dice"+str(time.time())
-            self.colors.append(tag)
+            self.usedColors.append(tag)
             self.dicetags[tag] = [0,values[0],values[1]]
             
             self.textboxMain.tag_config(tag,foreground="green",borderwidth=1,relief=GROOVE)
@@ -271,7 +274,7 @@ class Window(object):
             
     def colorResetParse(self,message):
         colorstack = []
-        fallback = '<gray>'
+        fallback = "<%s>"%self.colors['default']#'<gray>'
         regex = '\<.*?\>'
         print "Pre-parse:",message
         for color in re.finditer(regex,message):
@@ -291,15 +294,15 @@ class Window(object):
             
     def colorTags(self,message):
         regex = '\<.*?\>'
-        colors = ['gray']+[color[1:-1] for color in re.findall(regex,message)]
+        colors = [self.colors['default']]+[color[1:-1] for color in re.findall(regex,message)]
         parts  = re.split(regex,message)
         
         print "Colors:",colors
         print "Parts:",parts
         message = []
         for i,color in enumerate(colors):
-            if color not in self.colors:
-                self.colors.append(color)
+            if color not in self.usedColors:
+                self.usedColors.append(color)
                 try:
                     self.textboxMain.tag_config(color,foreground=color)
                     self.textboxOfftopic.tag_config(color,foreground=color)
@@ -326,9 +329,12 @@ class Window(object):
         widget.config(state=DISABLED)
        
 
-    def talkParse(self,message):
+    def colorParse(self,message):
+        for definedColor in self.colors.keys():
+            message = message.replace("<%s>"%definedColor,"<%s>"%self.colors[definedColor])
+            
         regex = '\".+?\"'
         for talk in re.finditer(regex,message):
             talk = talk.group()
-            message = message.replace(talk,"<#70c8ff>%s<70c8ff>"%talk)
+            message = message.replace(talk,"<%s>%s<reset>"%(self.colors['talk'],talk))
         return message

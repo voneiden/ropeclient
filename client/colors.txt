@@ -1,0 +1,7 @@
+[colors]
+default: #aaaaff
+talk: #8888ff
+talk2:#70c8ff
+ok: green
+fail: red
+notify: orange

@@ -68,7 +68,7 @@ class World(object):
         core.world = world
         world.players = []
         for player in self.players:
-            player.send("<red>### GAMEMASTER HAS LOADED A NEW WORLD ###")
+            player.send("<fail>### GAMEMASTER HAS LOADED A NEW WORLD ###")
             player.world = world
             player.login()
             
@@ -120,14 +120,14 @@ class World(object):
         if player not in self.players:
             self.players.append(player)
             self.updatePlayers()
-            self.offtopic("<yellow>%s has joined the game!"%player.name)
+            self.offtopic("<notify>%s has joined the game!"%player.name)
             
     def remPlayer(self,player):
         if player in self.players:
             self.players.remove(player)
             self.updatePlayers()
             
-            self.offtopic("<yellow>%s has left the game!"%player.name)
+            self.offtopic("<notify>%s has left the game!"%player.name)
             
     def find(self,name,target):
         """ 
@@ -234,10 +234,10 @@ class Character(object):
         self.rename = "$(name=%s)"%(self.name)
         self.description = description
         self.info        = info
-        self.color = "white"
+        self.color = "default"
+        self.location = None
+
         
-        # TODO set location here
-        self.location = location
         
         self.invisible = False
         self.mute      = False
@@ -251,18 +251,24 @@ class Character(object):
         self.memory = {}
         
         self.world.characters.append(self)
-        self.move(self.world.spawn)
+        if location == None:
+            self.move(self.world.spawn)
+        else:
+            self.move(location)
     def setRename(self):
         self.rename = "<%s>$(name=%s)<reset>"%(self.color,self.name)    
     def move(self,location):
+        if self.location == location: return
         if self.location != None:
             print "Left from location"
             if self in self.location.characters:
+                if not self.invisible:
+                    self.location.announce("%s has left."%(self.name))
                 self.location.characters.remove(self)
-                self.location.announce("%s has left."%(self.name))
         self.location = location
         self.location.characters.append(self)
-        self.location.announce("%s has arrived."%(self.name),self)
+        if not self.invisible:
+            self.location.announce("%s has arrived."%(self.name),self)
         self.world.message(self,"You have arrived.")
         if self.player: self.player.handleLook([])
         
@@ -276,7 +282,7 @@ class Character(object):
             message = self.unread.pop(0)
             self.message(message)
             self.read.append(message)
-        self.player.send("(<green>Attached to %s!"%self.name)
+        self.player.send("(<ok>Attached to %s!"%self.name)
             
     def detach(self):
         self.player.character = None
@@ -326,7 +332,7 @@ class Character(object):
     def introduce(self,name):
         print "Introducing.."
         self.location.announce("%s introduces himself as %s"%
-                              (self.rename,"$(clk2cmd:%s;yellow;/memorize %s %s;%s)"%
+                              (self.rename,"$(clk2cmd:%s;notify;/memorize %s %s;%s)"%
                               (self.name,self.unique,name,name)))
         
         
@@ -350,10 +356,10 @@ class Location(object):
 
     
     def link(self,towards,location,back):
-        if towards in self.exits: return "(<red>Local exit already exists"
+        if towards in self.exits: return "(<fail>Local exit already exists"
         self.exits[towards] = location
         if back:
-            if back in location.exits: return "(<red>Destination return exit already exists"
+            if back in location.exits: return "(<fail>Destination return exit already exists"
             location.exits[back] = self
         
     def unlink(self,towards,both=True):
@@ -363,6 +369,6 @@ class Location(object):
                     if location == self:
                         del self.exits[towards].exits[exit]
             del self.exits[towards]
-            return "(<green>Unlinked"
+            return "(<ok>Unlinked"
         else:
-            return "(<red>Exit not found"
+            return "(<fail>Exit not found"
