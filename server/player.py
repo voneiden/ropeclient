@@ -368,11 +368,7 @@ class Player(object):
         message = "(%s: %s"%(self.getName()," ".join(tok)[1:])
         self.world.message(self.world.characters,message)
         
-    def handleSay(self, tok):
-        if not self.character.mute:
-            if self.account.style:
-                message = " ".join(tok[1:])
-
+ 
     def handleCharlist(self, tok):
         print "Listing chars"
         chars = self.world.findOwner(self.account.name,self.world.characters)
@@ -620,7 +616,9 @@ class Player(object):
     def handleOfftopic(self, tok):
         if tok[-1][-1] == ')': 
             tok[-1] = tok[-1][:-1]
-        message = "(%s: %s"%(self.getName()," ".join(tok)[1:])
+        if tok[0][0] == '(':
+            tok[0] = tok[0][1:]
+        message = "(%s: %s"%(self.getName()," ".join(tok))
         self.world.message(self.world.characters,message)
         
     def handleSay(self, tok):
@@ -646,7 +644,8 @@ class Player(object):
                 # had color #8888ff
             self.character.location.announce('''%s %s, "%s"'''%(self.character.rename, says, message))
         else:
-            self.offtopic("You are mute! You can't talk")
+            #self.offtopic("You are mute! You can't talk")
+            self.handleOfftopic(tok)
         
     def handleShout(self, tok):
         pass
