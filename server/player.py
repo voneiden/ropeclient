@@ -222,7 +222,7 @@ class Player(object):
         # style 0 is irc style, style 1 is mud style?
         if self.character and len(tok) > 0:
             if not self.account.style and tok[0] != '/': #IRC STYLE
-                return self.handleSay(tok)
+                return self.handle_say(tok)
             elif not self.account.style:
                 command = tok[0][1:]
             elif self.account.style:
@@ -234,9 +234,9 @@ class Player(object):
                 return locals()[command](tok)
                 
             elif tok[0][0] == '(':
-                return self.handleOfftopic(tok)
+                return self.handle_offtopic(tok)
             elif tok[0][0] == '#':
-                return self.handleDescribe(tok)
+                return self.handle_describe(tok)
             elif self.handleMove(tok):
                 return
 
@@ -311,7 +311,7 @@ class Player(object):
     # ######################
     # Player related handles
     # ######################
-    def handleGM(self, tok):
+    def handle_gm(self, tok):
         if len(tok) < 2:
             key = ''
         else:
@@ -327,50 +327,10 @@ class Player(object):
         else:
             self.send("(Not authorized")
             
-    def handleLook(self, tok):
-        print "HandleLook"
-        loc = self.character.location
-        buffer = ["<purple>%s<reset>"%loc.name]
-        buffer.append("<gray>%s<reset>"%loc.description)
-        
-        chars = []
-        for char in loc.characters:
-            if char.invisible: continue
-            elif char == self.character: continue
-            else:
-                chars.append(char)
-        
-        print "WTF"
-        print "chars",len(chars)
-        print chars
-        
-        if len(chars) == 0: 
-            buffer.append("<white>You are alone here.")
-            
-        elif len(chars) == 1:
-            buffer.append("<white>%s is here."%chars[0].rename)
-        else:
-            buffer.append("<white>%s and %s are here."%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
-            print "Penis"
-        self.send("\n".join(buffer))
-        
-    def handleCharacterSpawn(self, tok):
-        if self.gamemaster:
-            self.handler = self.characterSpawner
-            self.handlerstate = 0
-            self.temp = {}
-            return self.handler(None)
-        else:
-            return "(Not authorized"
-        
-    def handleOfftopic(self, tok):
-        if tok[-1][-1] == ')': 
-            tok[-1] = tok[-1][:-1]
-        message = "(%s: %s"%(self.getName()," ".join(tok)[1:])
-        self.world.message(self.world.characters,message)
-        
+
+
  
-    def handleCharlist(self, tok):
+    def handle_chars(self, tok):
         print "Listing chars"
         chars = self.world.findOwner(self.account.name,self.world.characters)
         if chars == None: 
@@ -387,16 +347,15 @@ class Player(object):
                 buffer.append("%s - %s"%(char.name,char.info))
         self.offtopic('\n'.join(buffer))
         
-    def handleLocation(self, tok):
-        return "Not implemented.."
+ 
         
-    def handleIntroduce(self, tok):
+    def handle_introduce(self, tok):
         if len(tok) < 2: return "Introduce as who?"
         name = " ".join(tok[1:])
         if len(name) < 2: return "Introduce as who?"
         self.character.introduce(name)
         
-    def handleMemorize(self, tok):
+    def handle_memorize(self, tok):
         if len(tok) < 3: return "(<fail>Not enough arguments"
         try: unique = int(tok[1])
         except: return "(<fail>Memorize takes only unique ID's as identifiers!"
@@ -404,20 +363,15 @@ class Player(object):
         self.character.memory[unique] = name
         return "(<ok>Memorized %s"%name
         
-    def handleStyle(self,tok):
-        self.account.style = not self.account.style
-        self.db.save()
-        if self.account.style: return "You are now using MUD-style"
-        else: return "You are now using IRC-style"
         
-    def handleColor(self,tok):
+    def handle_color(self,tok):
         if len(tok) < 2:
             return "(Define the color"
         else:
             self.character.color = tok[1]
             return "(Color set to %s."%tok[1]
           
-    def handleAttach(self,tok):
+    def handle_attach(self,tok):
         # Param verification
         print "Handling attach:",tok
         if len(tok) < 2: return "(<fail>Whom do you want to attach to?"
@@ -452,13 +406,13 @@ class Player(object):
             return "(<fail>Couldn't find %s"%targetname
             
             
-    def handleStyle(self,tok):
+    def handle_style(self,tok):
         self.account.style = not self.account.style
         self.db.save()
         if self.account.style: return "You are now using MUD-style"
         else: return "You are now using IRC-style"
         
-    def handleDetach(self,tok):
+    def handle_detach(self,tok):
         if self.character:
             if self.character.soul:
                 return "(You cannot detach from your soul!"
@@ -472,24 +426,8 @@ class Player(object):
                         self.character.move(location)
                         return "(Your soul has left the body"
                 return "Oh god, we lost your soul. This is bad!!!!!"
-    
-    def handleCharlist(self, tok):
-        print "Listing chars"
-        chars = self.world.findOwner(self.account.name,self.world.characters)
-        if chars == None: 
-            return "You possess no characters.."
-        
-        buffer = ["You can possess the following characters"]
-        if not isinstance(chars,list): 
-            chars = [chars]
-        
-        for char in chars:
-            if char == self.character:
-                buffer.append("** %s - %s **"%(char.name,char.info))
-            else:
-                buffer.append("%s - %s"%(char.name,char.info))
-        self.offtopic('\n'.join(buffer))
-    def handleLoclist(self, tok):
+ 
+    def handle_locs(self, tok):
         print "Listing locations"
         locs = self.world.findOwner(self.account.name,self.world.locations)
         if locs == None: 
@@ -506,7 +444,7 @@ class Player(object):
     # #####################
     # World related handles
     # #####################
-    def handleLook(self, tok):
+    def handle_look(self, tok):
         regex1 = '(?<=look ).+'
         match = re.search(regex1," ".join(tok))
         buffer = ['']
@@ -548,7 +486,9 @@ class Player(object):
         
         self.send("\n".join(buffer))
     
-    def handleCharacterSpawn(self, tok):
+          
+    def handle_spawn(self, tok):
+        ''' This command is used to spawn new characters '''
         if self.gamemaster:
             self.handler = self.characterSpawner
             self.handlerstate = 0
@@ -557,7 +497,7 @@ class Player(object):
         else:
             return "(Not authorized"
             
-    def handleCreate(self, tok):
+    def handle_create(self, tok):
         if self.gamemaster:
             self.handler = self.locationCreator
             self.handlerstate = 0
@@ -569,7 +509,7 @@ class Player(object):
     # #########################
     # Character related handles
     # #########################
-    def handleMove(self,tok):
+    def handle_move(self,tok):
         if len(tok) > 0:
             print "Trying to move to",tok
             dir = tok[0].lower()
@@ -583,12 +523,12 @@ class Player(object):
         else:
             return False
             
-    def handleAction(self,tok):
+    def handle_action(self,tok):
         if len(tok) > 1:
             message = " ".join(tok[1:])
             self.character.location.announce('''%s %s'''%(self.character.rename, message))
         
-    def handleDescribe(self,tok):
+    def handle_describe(self,tok):
         if tok[0][0] == '#':
             tok[0] = tok[0][1:]
             message = " ".join(tok)
@@ -604,17 +544,11 @@ class Player(object):
         
     def handleGender(self,tok):
         pass
-        
-    def handleColor(self,tok):
-        if len(tok) < 2:
-            return "(Define the color"
-        else:
-            self.character.color = tok[1]
-            return "(Color set to %s."%tok[1]
-    
 
+    
+    
         
-    def handleOfftopic(self, tok):
+    def handle_offtopic(self, tok):
         if tok[-1][-1] == ')': 
             tok[-1] = tok[-1][:-1]
         if tok[0][0] == '(':
@@ -622,7 +556,7 @@ class Player(object):
         message = "(%s: %s"%(self.getName()," ".join(tok))
         self.world.message(self.world.characters,message)
         
-    def handleSay(self, tok):
+    def handle_say(self, tok):
         if not self.character.mute:
             if self.account.style:
                 message = " ".join(tok[1:])
@@ -648,10 +582,10 @@ class Player(object):
             #self.offtopic("You are mute! You can't talk")
             self.handleOfftopic(tok)
         
-    def handleShout(self, tok):
+    def handle_shout(self, tok):
         pass
         
-    def handleTeleport(self,tok):
+    def handle_teleport(self,tok):
         print "Trying to teleport.."
         regex1 = "(.+?) to (.+)"
         msg = " ".join(tok[1:])
@@ -671,20 +605,22 @@ class Player(object):
             char.move(target)
             return ("(<ok>Teleport succesful!")
         return "(<fail>Search failed"
-    def handleNameWorld(self,tok):
+
+    #ToDO combine these fucking functions
+    def handle_nameworld(self,tok):
         if len(tok) > 1 and self.gamemaster:
             name = " ".join(tok[1:])
             self.world.name = name
             return "(<ok> Name set to %s"%name
         return "(<fail> Can't do that, captain"
     
-    def handleSaveWorld(self,tok):
+    def handle_SaveWorld(self,tok):
         if self.gamemaster:
             self.world.save()
             return "(<ok>Save (%s) completed"%self.world.name
         else:
             return "(<fail>You can't do that"
-    def handleLoadWorld(self,tok):
+    def handle_LoadWorld(self,tok):
         if len(tok) > 1 and self.gamemaster:
             name = " ".join(tok[1:])
             if self.world.load(self.core,name):
@@ -694,7 +630,7 @@ class Player(object):
         else:
             return "(<fail>You may not do that"
             
-    def handleTell(self,tok):
+    def handle_tell(self,tok):
         if len(tok) > 2:
             targetname = tok[1]
             message = " ".join(tok[2:])
@@ -705,7 +641,7 @@ class Player(object):
         else:
             return "(<fail>Invalid arguments: /tell charname message"
     
-    def handleNotify(self,tok):
+    def handle_notify(self,tok):
         if len(tok) > 2 and self.gamemaster:
             targetname = tok[1]
             message = " ".join(tok[2:])
@@ -716,7 +652,7 @@ class Player(object):
         else:
             return "(<fail>Invalid arguments: /tell charname message, or you're not GM"
             
-    def handleUnlink(self,tok):
+    def handle_unlink(self,tok):
         if self.gamemaster:
             self.handler = self.linkRemover
             self.handlerstate = 0
@@ -747,7 +683,7 @@ class Player(object):
             return self.character.location.unlink(self.temp['linkto'],both)
             
             
-    def handleLink(self,tok):
+    def handle_link(self,tok):
         if self.gamemaster:
             self.handler = self.linkCreator
             self.handlerstate = 0
