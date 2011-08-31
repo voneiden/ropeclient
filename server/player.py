@@ -43,36 +43,38 @@ class Player(object):
         self.gamemaster = False
         self.handlerstate = 1
         self.temp = {}
-        self.commands = {
-            'chars':self.handleCharlist,
-            'introduce':self.handleIntroduce,
-            'memorize':self.handleMemorize,
-            'gm':self.handleGM,
-            'spawn':self.handleCharacterSpawn,
-            'look':self.handleLook,
-            'style':self.handleStyle,
-            'say':self.handleSay,
-            'color':self.handleColor,
-            'attach':self.handleAttach,
-            'detach':self.handleDetach,
-            'me':self.handleAction,
-            'describe':self.handleDescribe,
-            'create':self.handleCreate,
-            'nameworld':self.handleNameWorld,
-            'loadworld':self.handleLoadWorld,
-            'saveworld':self.handleSaveWorld,
-            'tell':self.handleTell,
-            'notify':self.handleNotify,
-            'teleport':self.handleTeleport,
-            'link':self.handleLink,
-            'unlink':self.handleUnlink
-            }
+        #Deprecated!
+        #self.commands = {
+        #    'chars':self.handleCharlist,
+        #    'introduce':self.handleIntroduce,
+        #    'memorize':self.handleMemorize,
+        #    'gm':self.handleGM,
+        #    'spawn':self.handleCharacterSpawn,
+        #    'look':self.handleLook,
+        #    'style':self.handleStyle,
+        #    'say':self.handleSay,
+        #    'color':self.handleColor,
+        #    'attach':self.handleAttach,
+        #    'detach':self.handleDetach,
+        #    'me':self.handleAction,
+        #    'describe':self.handleDescribe,
+        #    'create':self.handleCreate,
+        #    'nameworld':self.handleNameWorld,
+        #    'loadworld':self.handleLoadWorld,
+        #    'saveworld':self.handleSaveWorld,
+        #    'tell':self.handleTell,
+        #    'notify':self.handleNotify,
+        #    'teleport':self.handleTeleport,
+        #    'link':self.handleLink,
+        #    'unlink':self.handleUnlink
+        #    }
         
     def __getstate__(self): 
         """ Players will never be pickled as they contain references to networking """
         return None
 
     def recvIgnore(self, message):
+        ''' This function simply ignores all received data '''
         pass
 
     def recv(self, message):
@@ -105,8 +107,6 @@ class Player(object):
                           " compatible with this server (%s)" % (tok[1],
                           self.core.version))
                 self.recv = self.recvIgnore
-
-        #self.send(None, message)
 
         
     def getName(self):
@@ -219,26 +219,27 @@ class Player(object):
         #self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
         
     def gameHandler(self, tok):
+        # style 0 is irc style, style 1 is mud style?
         if self.character and len(tok) > 0:
-            for command in self.commands.keys():
-                if self.account.style == 1:
-                    if re.search("^%s"%command,tok[0]):
-                        return self.commands[command](tok)
-                    if re.search("^/%s"%command,tok[0]): # For compatibility with click triggers.
-                        return self.commands[command](tok)
-                elif self.account.style == 0:
-                    if re.search("^/%s"%command,tok[0]):
-                        return self.commands[command](tok)
+            if not self.account.style and tok[0] != '/': #IRC STYLE
+                return self.handleSay(tok)
+            elif not self.account.style:
+                command = tok[0][1:]
+            elif self.account.style:
+                command = tok[0]
+
+            command = "handle_%s"%command
+            print "gameHandler: Searching for command",command
+            if command in locals().keys():
+                return locals()[command](tok)
                 
-                    
-            if tok[0][0] == '(':
+            elif tok[0][0] == '(':
                 return self.handleOfftopic(tok)
             elif tok[0][0] == '#':
                 return self.handleDescribe(tok)
             elif self.handleMove(tok):
                 return
-            elif self.account.style == 0: 
-                return self.handleSay(tok)
+
     
     # Changing it so that a character is owned by whoever last was attached to it.            
     def characterSpawner(self,message):

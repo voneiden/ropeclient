@@ -63,7 +63,7 @@ class Core(object):
     """ This class contains some core information.."""
 
     def __init__(self):
-        self.version = "3.0.0"
+        self.version = "0.c.a"
         self.greeting = open('motd.txt', 'r').readlines()
         self.db = db.db()
         self.world = world.World()
