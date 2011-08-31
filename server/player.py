@@ -38,8 +38,7 @@ class Player(object):
         self.password = None
         self.account = None
         self.typing = False
-        self.
-        r = self.loginHandler
+        self.r = self.loginHandler
         self.character = None
         self.gamemaster = False
         self.handlerstate = 1
