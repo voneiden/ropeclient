@@ -38,7 +38,8 @@ class Player(object):
         self.password = None
         self.account = None
         self.typing = False
-        self.handler = self.loginHandler
+        self.
+        r = self.loginHandler
         self.character = None
         self.gamemaster = False
         self.handlerstate = 1
@@ -237,7 +238,7 @@ class Player(object):
                 return self.handle_offtopic(tok)
             elif tok[0][0] == '#':
                 return self.handle_describe(tok)
-            elif self.handleMove(tok):
+            elif self.handle_move(tok):
                 return
 
     
@@ -580,7 +581,7 @@ class Player(object):
             self.character.location.announce('''%s %s, "%s"'''%(self.character.rename, says, message))
         else:
             #self.offtopic("You are mute! You can't talk")
-            self.handleOfftopic(tok)
+            self.handle_offtopic(tok)
         
     def handle_shout(self, tok):
         pass
