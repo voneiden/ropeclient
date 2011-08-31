@@ -38,7 +38,7 @@ class Window(object):
 
         # Initialize some variables
         self.connection = None
-        self.host = "ninjabox.sytes.net"
+        self.host = "localhost"
         self.entryboxTyping = False
 
         # Create the root

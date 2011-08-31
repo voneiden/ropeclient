@@ -221,7 +221,7 @@ class Player(object):
     def gameHandler(self, tok):
         # style 0 is irc style, style 1 is mud style?
         if self.character and len(tok) > 0:
-            if not self.account.style and tok[0] != '/': #IRC STYLE
+            if not self.account.style and tok[0][0] != '/': #IRC STYLE
                 return self.handle_say(tok)
             elif not self.account.style:
                 command = tok[0][1:]
@@ -230,8 +230,13 @@ class Player(object):
 
             command = "handle_%s"%command
             print "gameHandler: Searching for command",command
-            if command in locals().keys():
-                return locals()[command](tok)
+            print locals().keys()
+            try:
+                handle = getattr(self,command)
+            except AttributeError:
+                handle = False
+            if handle:
+                return handle(tok[1:]) # I assume we can drop the original trigger..
                 
             elif tok[0][0] == '(':
                 return self.handle_offtopic(tok)
