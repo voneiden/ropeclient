@@ -23,10 +23,8 @@ import re, db, world, time, random
 
 class Player(object):
     '''
-    Player is the standard class that handles basic client processing
-    Player can be attached to various characters, or if unattached, it
-    will be just a soul floating in space. Souls, unless GM's, may only
-    send offtopic messages.
+    Player class handles client input and a big
+    part of the game logic (currently)
     '''
 
     def __init__(self, connection, core):
@@ -43,44 +41,35 @@ class Player(object):
         self.gamemaster = False
         self.handlerstate = 1
         self.temp = {}
-        #Deprecated!
-        #self.commands = {
-        #    'chars':self.handleCharlist,
-        #    'introduce':self.handleIntroduce,
-        #    'memorize':self.handleMemorize,
-        #    'gm':self.handleGM,
-        #    'spawn':self.handleCharacterSpawn,
-        #    'look':self.handleLook,
-        #    'style':self.handleStyle,
-        #    'say':self.handleSay,
-        #    'color':self.handleColor,
-        #    'attach':self.handleAttach,
-        #    'detach':self.handleDetach,
-        #    'me':self.handleAction,
-        #    'describe':self.handleDescribe,
-        #    'create':self.handleCreate,
-        #    'nameworld':self.handleNameWorld,
-        #    'loadworld':self.handleLoadWorld,
-        #    'saveworld':self.handleSaveWorld,
-        #    'tell':self.handleTell,
-        #    'notify':self.handleNotify,
-        #    'teleport':self.handleTeleport,
-        #    'link':self.handleLink,
-        #    'unlink':self.handleUnlink
-        #    }
+        self.recv = self.recvHandshake
+        
         
     def __getstate__(self): 
-        """ Players will never be pickled as they contain references to networking """
+        """ Players will never be pickled when world is saved as they contain references to networking """
         return None
 
     def recvIgnore(self, message):
         ''' This function simply ignores all received data '''
         pass
-
-    def recv(self, message):
-        self.typing = False
-        self.world.updatePlayer(self)
+    
+    def recvHandshake(self,message):
+        ''' This function receives the handshake and gets angry at the client if its wrong '''
+        message = message.strip()
+        tok = message.split()
         
+        if tok[0] == 'hsk' and len(tok) > 1:
+            if tok[1] != self.core.version:
+                self.send("Your version of ropeclient (%s) is not" +
+                          " compatible with this server (%s)" % (tok[1],
+                          self.core.version))
+                self.recv = self.recvIgnore
+            else:
+                self.recv = self.recvMessage
+        else:
+            self.send("Hi, you're not supposed to be here, are you? :)")
+            self.recv = self.recvIgnore
+    
+    def recvMessage(self, message):
         print "Recv", message
         message = message.strip()
         message = message.replace('$(','')
@@ -91,6 +80,8 @@ class Player(object):
             print "Type",type(response)
             if type(response) is str or type(response) is unicode:
                 self.send(response)
+            self.typing = False
+            self.world.updatePlayer(self)
 
         elif tok[0] == 'pnt':
             self.typing = False
@@ -100,13 +91,6 @@ class Player(object):
             self.typing = True
             self.world.updatePlayer(self)
         
-        # Todo: maybe handshake should be mandatory before accepting any other comms..
-        elif tok[0] == 'hsk':
-            if tok[1] != self.core.version:
-                self.send("Your version of ropeclient (%s) is not" +
-                          " compatible with this server (%s)" % (tok[1],
-                          self.core.version))
-                self.recv = self.recvIgnore
 
         
     def getName(self):
@@ -121,7 +105,9 @@ class Player(object):
         if self.character:
             message = self.character.parse(message)
         self.connection.sendMessage(message)
-        
+    
+
+    ''' DEV: this function should possibly be removed '''    
     def offtopic(self, message):
         #self.connection.write('oft %f %s'%(time.time(),message))
         self.send("(%s"%message)
@@ -218,6 +204,7 @@ class Player(object):
         #self.connection.write("clk test;yellow;/testing;Click here to test a command!")
         #self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
         
+    ''' New dev version gameHandler '''
     def gameHandler(self, tok):
         # style 0 is irc style, style 1 is mud style?
         if self.character and len(tok) > 0:
@@ -255,13 +242,7 @@ class Player(object):
             
         if self.handlerstate  == 1:
             return "Name of this character ?"
-        #if self.handlerstate == 2:
-        #    if msg == '':
-        #        self.temp['owner'] = self.account.name
-        #    else:
-        #        self.temp['owner'] = msg
-        #        
-        #    return "Name of the character?"
+
             
         elif self.handlerstate == 2:
             self.temp['name'] = msg
