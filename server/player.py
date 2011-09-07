@@ -415,17 +415,18 @@ class Player(object):
  
     def handle_locs(self, tok):
         print "Listing locations"
-        locs = self.world.findOwner(self.account.name,self.world.locations)
-        if locs == None: 
-            return "(<fail>Madness, no locations found!"
-        
-        buffer = ["Following locations exist"]
-        if not isinstance(locs,list): 
-            locs = [locs]
-        
-        for loc in locs:
-            buffer.append("%s - %s"%(loc.unique,loc.name))
-        self.offtopic('\n'.join(buffer))
+        #locs = self.world.findOwner(self.account.name,self.world.locations)
+        #if locs == None: 
+        #    return "(<fail>Madness, no locations found!"
+        # 
+        #buffer = ["Following locations exist"]
+        #if not isinstance(locs,list): 
+        #    locs = [locs]
+        buf = []
+        for loc in self.world.locations:
+            ident = str(id(loc))
+            buf.append("<green>%s%s<grey>- <spring green>%s"%(ident," "*(10-len(ident)),loc.name))
+        self.offtopic('\n'.join(buf))
     
     # #####################
     # World related handles
