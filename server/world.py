@@ -30,18 +30,14 @@ import cPickle, time, re, random
 class World(object):
     def __init__(self,name='default'):
         self.name = name
-        self.unique = 0
-        self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
         self.characters = []
         self.players    = []
-        self.locations  = [self.spawn]
         self.messages = {}
-        self.memory = {}
-        
-    def uniqueID(self):
-        self.unique += 1
-        return str(self.unique )
-        
+        self.memory = {} # Whats this?
+        self.idents = {} # Contains all id()'s of objects   
+        self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
+        self.locations  = [self.spawn]
+       
     def timestamp(self):
         timestamp = time.time()
         print "timestamp",timestamp,self.messages.keys()
@@ -226,7 +222,7 @@ class World(object):
     
 class Character(object):
     def __init__(self,world,owner=None,name='unnamed',info="A soul",description="A new character",location = None):
-        self.unique = world.uniqueID()
+
         self.world = world
         self.owner = owner
         self.player = None
@@ -251,10 +247,30 @@ class Character(object):
         self.memory = {}
         
         self.world.characters.append(self)
+        
+        
+        ''' ID update '''
+        self.ident = str(id(self))
+        print "wat",self.world
+        self.world.idents[self.ident] = self
+        
         if location == None:
             self.move(self.world.spawn)
         else:
             self.move(location)
+            
+    def __setstate__(self): #TODO test this!
+        print "Loading saved character.."
+        print "Updating ident!"
+        if self.ident in self.world.idents.keys():
+            del self.world.idents[self.ident]
+        self.ident = str(id(self))
+        self.world.idents[self.ident] = self
+       
+    def id(self):
+        ''' Unique id of character '''
+        return (str(self.world.characters.index(self)),str(id(self)))
+        
     def setRename(self):
         self.rename = "<%s>$(name=%s)<reset>"%(self.color,self.name)    
     def move(self,location):
@@ -318,13 +334,13 @@ class Character(object):
             print key,type(key)
         name = match.group()[7:-1]
         character = self.world.find(name,self.world.characters)
-        print character.unique,type(character.unique)
+        #print character.unique,type(character.unique)
         
         if not character: 
             print "character not found"
             return name
-        if character.unique in self.memory.keys():
-            return self.memory[character.unique]
+        if character in self.memory.keys():
+            return self.memory[character]
         elif character == self:
             return character.name
         else:
@@ -343,7 +359,20 @@ class Location(object):
         self.description = description
         self.characters = []
         self.exits = {}
-        self.unique = self.world.uniqueID()
+        self.ident = str(id(self))
+        self.world.idents[self.ident] = self
+        
+    def __setstate__(self): #TODO test this!
+        print "Loading saved location.."
+        print "Updating ident!"
+        if self.ident in self.world.idents.keys():
+            del self.world.idents[self.ident]
+        self.ident = str(id(self))
+        self.world.idents[self.ident] = self
+       
+    def id(self):
+        ''' Unique id of location '''
+        return (str(self.world.locations.index(self)),str(id(self)))
         
     def announce(self,message,ignore=None):
         recipients = self.characters[:]

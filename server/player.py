@@ -341,7 +341,7 @@ class Player(object):
         if len(name) < 2: return "Introduce as who?"
         self.character.introduce(name)
         
-    def handle_memorize(self, tok):
+    def handle_memorize(self, tok): #TODO FIX
         if len(tok) < 3: return "(<fail>Not enough arguments"
         try: unique = int(tok[1])
         except: return "(<fail>Memorize takes only unique ID's as identifiers!"
@@ -415,17 +415,12 @@ class Player(object):
  
     def handle_locs(self, tok):
         print "Listing locations"
-        #locs = self.world.findOwner(self.account.name,self.world.locations)
-        #if locs == None: 
-        #    return "(<fail>Madness, no locations found!"
-        # 
-        #buffer = ["Following locations exist"]
-        #if not isinstance(locs,list): 
-        #    locs = [locs]
-        buf = []
+        buf = ["<green>Dynamic ID - Static  ID - Location name"]
         for loc in self.world.locations:
-            ident = str(id(loc))
-            buf.append("<green>%s%s<grey>- <spring green>%s"%(ident," "*(10-len(ident)),loc.name))
+            ident = loc.id()
+            dynid = ident[0] + ' '*(10-len(ident[0]))
+            staid = ident[1] + ' '*(10-len(ident[1]))
+            buf.append("<green>%s - %s <grey>- <spring green>%s"%(dynid,staid,loc.name))
         self.offtopic('\n'.join(buf))
     
     # #####################

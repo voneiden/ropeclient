@@ -43,9 +43,8 @@
 
 '''
 
-# TODO
-# Some kind of message history system so that message history can be transfered to
-# characters that have no souls attached
+# Note to self
+# 'message' should be better defined..
 
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
@@ -76,8 +75,6 @@ class RopePlayer(LineReceiver):
     def connectionMade(self):
         self.core = self.factory.core
         self.player = player.Player(self, self.core)
-        #for line in self.core.greeting:
-        #    self.sendMessage([None, None, line])
         self.sendMessage("".join(self.core.greeting))
 
     def lineReceived(self, line):
