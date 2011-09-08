@@ -325,8 +325,7 @@ class Character(object):
             print "Remembering",key,type(key)
         name = match.group()[7:-1]
         character = self.world.find(name,self.world.characters)
-        #print character.unique,type(character.unique)
-        
+       
         if not character: 
             print "character not found"
             return name
@@ -342,7 +341,7 @@ class Character(object):
         print "Introducing.."
         self.location.announce("%s introduces himself as %s"%
                               (self.rename,"$(clk2cmd:%s;notify;/memorize %s %s;%s)"%
-                              (self.name,self.unique,name,name)))
+                              (self.name,self.ident,name,name)))
         
         
 class Location(object):

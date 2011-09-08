@@ -214,7 +214,9 @@ class Player(object):
                 command = tok[0][1:]
             elif self.account.style:
                 command = tok[0]
-
+            if self.account.style and command[0] == '/': #Combatibility for /memorize command
+                command = command[1:]
+                
             command = "handle_%s"%command
             print "gameHandler: Searching for command",command
             print locals().keys()
@@ -347,17 +349,26 @@ class Player(object):
         return "\n".join(buffer)
         
     def handle_introduce(self, tok):
-        if len(tok) < 2: return "Introduce as who?"
-        name = " ".join(tok[1:])
+        if len(tok) < 1: return "Introduce as who?"
+        name = " ".join(tok)
         if len(name) < 2: return "Introduce as who?"
         self.character.introduce(name)
         
     def handle_memorize(self, tok): #TODO FIX
-        if len(tok) < 3: return "(<fail>Not enough arguments"
-        try: unique = int(tok[1])
-        except: return "(<fail>Memorize takes only unique ID's as identifiers!"
-        name   = " ".join(tok[2:])
-        self.character.memory[unique] = name
+        if len(tok) < 2: 
+            return "(<fail>Usage: memorize StaticID name"
+        
+        ident = tok[0]
+        
+        if ident not in self.world.idents.keys():
+            return "(<fail>StaticID not found."
+        
+        character = self.world.idents[ident]
+        if not isinstance(character,world.Character):
+            return "(<fail>StaticID refered to a non-character"
+            
+        name   = " ".join(tok[1:])
+        self.character.memory[character] = name
         return "(<ok>Memorized %s"%name
         
         
@@ -378,7 +389,7 @@ class Player(object):
             characterName = groups[1]
             player    = self.world.find(playerName,self.world.players)
         else:
-            player = self
+            player = [self]
             characterName = msg
         
         if not player:
@@ -392,7 +403,7 @@ class Player(object):
         else:
             character = character[0]
             
-        if character.owner is not player.account.name and not player.gamemaster:
+        if character.owner is not player.account.name and not self.gamemaster:
             return "(<fail>You may not attach to this character"
         
         if character.player:
@@ -404,38 +415,6 @@ class Player(object):
         if player is not self:
             return "(<ok>Attach succesful!"
         return
-        
-        print "Handling attachandle_attachh:",tok
-        if len(tok) < 2: return "(<fail>Whom do you want to attach to?"
-        targetname = " ".join(tok[1:])
-        player = self
-        if len(tok) > 3:
-            if tok[2].lower() == 'to':
-                if not self.gamemaster: return "(<fail>You're not allowed to attach others"
-                playername = tok[1]
-                player = self.world.find(playername,self.world.players)
-                targetname = " ".join(tok[3:])
-                if not isinstance(player,Player):
-                    return "(<fail>The player you wanted to attach was not found"
-        
-        print "Trying to attach %s to %s"%(player.name,targetname)
-        
-        char = self.world.find(targetname,self.world.characters)
-        if isinstance(char,world.Character):
-            if char.owner == player.account.name or self.gamemaster:
-                if char.soul:
-                    return "(<fail>You cannot attach to a soul"
-                if char.player:
-                    return ("<fail>This character is already possessed by someone..")
-                player.character.detach()
-                char.attach(player)
-                if player != self:
-                    return "(<ok>Attached %s succesfully to %s."%(player.name,char.name)
-                return
-            else:
-                return "(<fail>You cannot attach to something you do not own!"
-        else:
-            return "(<fail>Couldn't find %s"%targetname
             
             
     def handle_style(self,tok):
