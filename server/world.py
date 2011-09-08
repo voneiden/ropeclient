@@ -142,7 +142,7 @@ class World(object):
         else:
             for obj in results:
                 if name == obj.name:
-                    return obj
+                    return [obj]
             return results
     def findOwner(self,owner,target):
         """ 
@@ -265,18 +265,19 @@ class Character(object):
         
     def setRename(self):
         self.rename = "<%s>$(name=%s)<reset>"%(self.color,self.name)    
+    
     def move(self,location):
         if self.location == location: return
         if self.location != None:
             print "Left from location"
             if self in self.location.characters:
                 if not self.invisible:
-                    self.location.announce("%s has left."%(self.name))
+                    self.location.announce("%s has left."%(self.rename))
                 self.location.characters.remove(self)
         self.location = location
         self.location.characters.append(self)
         if not self.invisible:
-            self.location.announce("%s has arrived."%(self.name),self)
+            self.location.announce("%s has arrived."%(self.rename),self)
         self.world.message(self,"You have arrived.")
         if self.player: self.player.handleLook([])
         
@@ -306,10 +307,8 @@ class Character(object):
             self.unread.append(timestamp)
             
     def parse(self,message):
-        #nameregex = "(?<=\(name\=).+?(?=\))"
+        ''' This functions solves name-memory '''
         nameregex = "\$\(name\=.+?\)"
-        #message = re.sub(nameregex, self.memoryCheck, message)
-        #return message
         print "Parsing.."
         for match in re.finditer(nameregex,message):
             name = self.memoryCheck(match)
@@ -323,7 +322,7 @@ class Character(object):
         print "Checking my memory.."
         print self.memory
         for key in self.memory.keys():
-            print key,type(key)
+            print "Remembering",key,type(key)
         name = match.group()[7:-1]
         character = self.world.find(name,self.world.characters)
         #print character.unique,type(character.unique)

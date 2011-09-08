@@ -245,9 +245,17 @@ class Player(object):
 
             
         elif self.handlerstate == 2:
-            self.temp['name'] = msg
-            return "Describe with a few words? (SHORT! This will describe the character to players who do not know your characters name)"
+            char = self.world.find(msg,self.world.characters)
+            if not char:
+                self.temp['name'] = msg
+                return "Describe with a few words (max 5)"
+            else:
+                self.handlerstate -= 1
+                return "Character name already exists!"
         elif self.handlerstate == 3:
+            if len(message) > 5 or len(msg) < 3:
+                self.handlerstate -= 1
+                return "Try again.."
             self.temp['info'] = msg
             return "Long description? You may write it later too."
         elif self.handlerstate == 4:
@@ -469,8 +477,8 @@ class Player(object):
             else:
                 buffer.append("<ok>Exits: %s"%", ".join(loc.exits.keys()))
         
-        self.send("\n".join(buffer))
-    
+        #self.send("\n".join(buffer))
+        return "\n".join(buffer)
           
     def handle_spawn(self, tok):
         ''' This command is used to spawn new characters '''
