@@ -298,11 +298,8 @@ class Player(object):
     # Player related handles
     # ######################
     def handle_gm(self, tok):
-        if len(tok) < 2:
-            key = ''
-        else:
-            key = tok[1]
-            
+        key = " ".join(tok)
+        print "Testing",key
         if key == self.core.gmKey or self.gamemaster:
             self.gamemaster = not self.gamemaster
             self.db.save()
@@ -318,22 +315,28 @@ class Player(object):
  
     def handle_chars(self, tok):
         print "Listing chars"
-        chars = self.world.findOwner(self.account.name,self.world.characters)
-        if chars == None: 
-            return "You possess no characters.."
+        ownedchars = self.world.findOwner(self.account.name,self.world.characters)
+        buffer = []
+        if ownedchars == None: 
+            buffer.append("(You own no characters!")
+        else:
+            buffer = ["You own the following characters"]
+            for char in ownedchars:
+                name = char.name + " "*(10-len(char.name))
+                if char == self.character:
+                    buffer.append("<green>%s <talk>- %s"%(name,char.info))
+                else:
+                    buffer.append("<blue>%s <talk>- %s"%(name,char.info))
         
-        buffer = ["You can possess the following characters"]
-        if not isinstance(chars,list): 
-            chars = [chars]
-        
-        for char in chars:
-            if char == self.character:
-                buffer.append("** %s - %s **"%(char.name,char.info))
-            else:
-                buffer.append("%s - %s"%(char.name,char.info))
-        self.offtopic('\n'.join(buffer))
-        
- 
+        if self.gamemaster:
+            otherchars = set(self.world.characters)-set(ownedchars)
+            if len(otherchars) > 0:
+                buffer.append("- - - - - - - - - - - - - - - - - - - - - - - -")
+                buffer.append("In addition, following other characters exist..")    
+                for char in otherchars:
+                    name = char.name + " "*(10-len(char.name))
+                    buffer.append("<yellow>%s <talk> - %s"%(name,char.info))
+        return "\n".join(buffer)
         
     def handle_introduce(self, tok):
         if len(tok) < 2: return "Introduce as who?"
@@ -591,15 +594,15 @@ class Player(object):
     
     def handle_world(self,tok):
         if not self.gamemaster: return "(<fail>This command requires GM rights"
-        if len(tok) < 2: return "(<fail>Usage: world name/save/load"
-        if tok[1] == 'name' and len(tok) > 2: 
-            self.world.name = " ".join(tok[2:])
+        if len(tok) < 1: return "(<fail>Usage: world name/save/load"
+        if tok[0] == 'name' and len(tok) > 1: 
+            self.world.name = " ".join(tok[1:])
             return "(<ok>World name set to %s."%(self.world.name)
-        elif tok[1] == 'save':
+        elif tok[0] == 'save':
             self.world.save()
             return "(<ok>World saved."
-        elif tok[1] == 'load' and len(tok) > 2:
-            if self.world.load(self.core," ".join(tok[2:])):
+        elif tok[0] == 'load' and len(tok) > 2:
+            if self.world.load(self.core," ".join(tok[1:])):
                 return "(<ok>Load (%s) succesful."%self.world.name
             else:
                 return "(<fail>Load failed."

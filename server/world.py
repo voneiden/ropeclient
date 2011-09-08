@@ -138,7 +138,7 @@ class World(object):
         if len(results) == 0: 
             return None
         elif len(results) == 1: 
-            return results[0]
+            return results
         else:
             for obj in results:
                 if name == obj.name:
@@ -159,20 +159,12 @@ class World(object):
             if owner.lower() in obj.owner.lower(): results.append(obj)
         if len(results) == 0: 
             return None
-        elif len(results) == 1: 
-            return results[0]
+        #elif len(results) == 1: 
+        #    return results[0]
         else:
             return results   
             
-    def findUnique(self,unique,target):
-        try: 
-            unique = int(unique)
-        except: 
-            return None
-        result = []
-        for obj in target:
-            if unique == obj.unique: return obj
-        return None
+   
 
     def findAny(self,key,target):
         match = self.find(key,target)
@@ -339,6 +331,8 @@ class Character(object):
         if not character: 
             print "character not found"
             return name
+        else:
+            character = character[0] #TODO temp fix
         if character in self.memory.keys():
             return self.memory[character]
         elif character == self:
