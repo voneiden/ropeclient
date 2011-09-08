@@ -368,9 +368,44 @@ class Player(object):
             self.character.color = tok[1]
             return "(Color set to %s."%tok[1]
           
-    def handle_attach(self,tok): #TODO update to regex
-        # Param verification
-        print "Handling attach:",tok
+    def handle_attach(self,tok): 
+        regex1 = "(.+?) to (.+)"
+        msg = " ".join(tok)
+        search = re.search(regex1,msg)
+        if search:
+            groups = search.groups()
+            playerName = groups[0]
+            characterName = groups[1]
+            player    = self.world.find(playerName,self.world.players)
+        else:
+            player = self
+            characterName = msg
+        
+        if not player:
+            return "(<fail>Could not find player"
+        else:
+            player = player[0]
+            
+        character = self.world.find(characterName,self.world.characters)
+        if not character:
+            return "(<fail>Could not find character"
+        else:
+            character = character[0]
+            
+        if character.owner is not player.account.name and not player.gamemaster:
+            return "(<fail>You may not attach to this character"
+        
+        if character.player:
+            return "(<fail>Somebody is currently playing with this character. Detach them first?"
+        
+        player.character.detach()
+        character.attach(player)
+        
+        if player is not self:
+            return "(<ok>Attach succesful!"
+        return
+        
+        print "Handling attachandle_attachh:",tok
         if len(tok) < 2: return "(<fail>Whom do you want to attach to?"
         targetname = " ".join(tok[1:])
         player = self
