@@ -357,7 +357,7 @@ class Player(object):
             self.character.color = tok[1]
             return "(Color set to %s."%tok[1]
           
-    def handle_attach(self,tok):
+    def handle_attach(self,tok): #TODO update to regex
         # Param verification
         print "Handling attach:",tok
         if len(tok) < 2: return "(<fail>Whom do you want to attach to?"
@@ -588,29 +588,22 @@ class Player(object):
             return ("(<ok>Teleport succesful!")
         return "(<fail>Search failed"
 
-    #ToDO combine these fucking functions
-    def handle_nameworld(self,tok):
-        if len(tok) > 1 and self.gamemaster:
-            name = " ".join(tok[1:])
-            self.world.name = name
-            return "(<ok> Name set to %s"%name
-        return "(<fail> Can't do that, captain"
     
-    def handle_SaveWorld(self,tok):
-        if self.gamemaster:
+    def handle_world(self,tok):
+        if not self.gamemaster: return "(<fail>This command requires GM rights"
+        if len(tok) < 2: return "(<fail>Usage: world name/save/load"
+        if tok[1] == 'name' and len(tok) > 2: 
+            self.world.name = " ".join(tok[2:])
+            return "(<ok>World name set to %s."%(self.world.name)
+        elif tok[1] == 'save':
             self.world.save()
-            return "(<ok>Save (%s) completed"%self.world.name
-        else:
-            return "(<fail>You can't do that"
-    def handle_LoadWorld(self,tok):
-        if len(tok) > 1 and self.gamemaster:
-            name = " ".join(tok[1:])
-            if self.world.load(self.core,name):
-                return "(<ok>Load (%s) completed"%self.world.name
+            return "(<ok>World saved."
+        elif tok[1] == 'load' and len(tok) > 2:
+            if self.world.load(self.core," ".join(tok[2:])):
+                return "(<ok>Load (%s) succesful."%self.world.name
             else:
-                return ("<fail>Load failed")
-        else:
-            return "(<fail>You may not do that"
+                return "(<fail>Load failed."
+                
             
     def handle_tell(self,tok):
         if len(tok) > 2:
