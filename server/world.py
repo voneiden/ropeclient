@@ -212,6 +212,32 @@ class World(object):
             rolls.append(r)
         return (total,rolls)
     
+    def addObject(self,obj):
+        self.objects.append(obj)
+    def remObject(self,obj):
+        self.objects.remove(obj)
+    
+    def addLocation(self,location):
+        self.locations.append(location)
+        self.addObject(location)
+        
+    def remLocation(self,location):
+        self.locations.remove(location)
+        self.remObject(location)
+        
+    def addCharacter(self,character):
+        self.characters.append(character)
+        self.addObject(character)
+        
+    def remCharacter(self,character):
+        self.characters.remove(character)
+        self.remObject(character)
+        
+    def addExit(self,exit):
+        self.addObject(exit)
+       
+    def remExit(self,exit):
+        self.remObject(exit)
 class Character(object):
     def __init__(self,world,owner=None,name='unnamed',info="A soul",description="A new character",location = None):
 
@@ -238,12 +264,10 @@ class Character(object):
         
         self.memory = {}
         
-        self.world.characters.append(self)
-        
+        self.world.addCharacter(self)
         
         ''' ID update '''
         self.ident = str(id(self))
-        print "wat",self.world
         self.world.idents[self.ident] = self
         
         if location == None:
@@ -351,6 +375,10 @@ class Location(object):
         self.description = description
         self.characters = []
         self.exits = {}
+        self.exitlocations = []
+        
+        self.world.addLocation(self)
+        
         self.ident = str(id(self))
         self.world.idents[self.ident] = self
         
@@ -365,7 +393,9 @@ class Location(object):
     def id(self):
         ''' Unique id of location '''
         return (str(self.world.locations.index(self)),str(id(self)))
-        
+    def dynid(self):
+        return str(self.world.locations.index(self))
+          
     def announce(self,message,ignore=None):
         recipients = self.characters[:]
         print "Announcing to",recipients,message
@@ -376,7 +406,11 @@ class Location(object):
             print "Nobody to receive this message, ignoring.."
 
     
-    def link(self,towards,location,back):
+    def link(self,towards,location):
+        # First check that exit name is not yet in use
+        if towards in self.exits.keys(): return "(<fail> Local exit name already exists"
+        # Second check if there's an exit between these two locations already
+        # TODO think about this
         if towards in self.exits: return "(<fail>Local exit already exists"
         self.exits[towards] = location
         if back:
@@ -393,3 +427,9 @@ class Location(object):
             return "(<ok>Unlinked"
         else:
             return "(<fail>Exit not found"
+            
+class Exit(object):
+    def __init__(self):
+        self.locked = False
+        self.map = {}
+        

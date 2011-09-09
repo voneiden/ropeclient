@@ -275,35 +275,45 @@ class Player(object):
         print "Locreator",tok
         print type(tok)
         msg = " ".join(tok)
-        #if len(msg) < 1: return "Answer the damn question" 
+   
         
         if self.handlerstate == 1:
-            return "Name of the location?"
-        elif self.handlerstate == 2:
+            return "Location title"
+        elif self.handlerstate == 2 and len(msg) > 2:
             self.temp['name']= msg
-            return "Description of the location?"
+            return "Location description"
             
         elif self.handlerstate == 3:
             self.temp['description'] = msg
-            return "Link exitname;returnname (Enter=No linking)"
+            return "Exit name (enter for no exit)"
+        
+        elif self.handlerstate == 4:
+            if len(msg):
+                self.temp['exit'] = msg
+            else:
+                self.temp['exit'] = False
+            return "Return exit name (enter for no return exit)"
+            
             
 
-        elif self.handlerstate == 4:
-            if len(msg) == 0: 
-                link = False
+        elif self.handlerstate == 5:
+            if len(msg): 
+                rexit = msg
             else:
-                link = msg.split(';')
-                if len(link) != 2:
-                    self.handlerstate -= 1
-                    return "Invalid answer"
-                
-            
+                rexit = msg.split(';')
+                 
             newlocation = world.Location(self.world,self.temp['name'],self.temp['description'])
-            if link:
-                self.character.location.link(link[0],newlocation,link[1])
+            if self.temp['exit']:
+                self.character.location.link(self.temp['exit'],newlocation)
+            if rexit:
+                newlocation.link(rexit,self.character.location)
+                
             self.world.locations.append(newlocation)
             self.handler = self.gameHandler
-            return "Done"
+            return "<ok>Location created (dynid: %s | staid: %s)"%(newlocation.dynid(),newlocation.ident)
+            
+        else:
+            return "<fail>Not enough information"
     # ######################
     # Player related handles
     # ######################
