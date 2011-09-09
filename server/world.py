@@ -30,13 +30,16 @@ import cPickle, time, re, random
 class World(object):
     def __init__(self,name='default'):
         self.name = name
-        self.characters = []
         self.players    = []
         self.messages = {}
         self.memory = {} # Whats this?
         self.idents = {} # Contains all id()'s of objects   
+        
+        self.locations = []
+        self.characters = []
+        self.objects   = []
         self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
-        self.locations  = [self.spawn]
+        
        
     def timestamp(self):
         timestamp = time.time()
@@ -302,8 +305,8 @@ class Character(object):
         self.location.characters.append(self)
         if not self.invisible:
             self.location.announce("%s has arrived."%(self.rename),self)
-        self.world.message(self,"You have arrived.")
-        if self.player: self.player.handleLook([])
+        self.world.message(self,"You have arrived.") #TODO decide whether send on world.message
+        if self.player: self.player.send(self.player.handle_look([]))
         
     def attach(self,player):
         self.player = player
@@ -374,8 +377,8 @@ class Location(object):
         self.name = name
         self.description = description
         self.characters = []
-        self.exitNames = {}
-        self.exitLocations = {}
+        self.links = []
+        
         
         self.world.addLocation(self)
         
@@ -406,27 +409,19 @@ class Location(object):
             print "Nobody to receive this message, ignoring.."
 
     
-    def link(self,towards,destination):
-        # exits require at least two lookup tables..
-        # exit name and location.
+    def link(self,name,destination):
         
         # First check that exit name is not yet in use
-        if towards in self.exitNames.keys(): return "(<fail> Local exit name already exists"
+        if self.findLink(name=name):
+            return "(<fail>Exit name exists already"
         # Second check if there's an exit between these two locations already
-        if destination in self.exitLocations.keys():
+        elif self.findLink(destination=destination):
             return "(<fail>Only one exit to destination is allowed.."
-        elif self in destination.exitLocations.keys():
-            exit = destination.exitLocations[self]
+        
         else:
-            exit = Exit()
-            
-        asdihsadihusadiuhsadiuhads
-        # TODO think about this
-        if towards in self.exits: return "(<fail>Local exit already exists"
-        self.exits[towards] = location
-        if back:
-            if back in location.exits: return "(<fail>Destination return exit already exists"
-            location.exits[back] = self
+            link = Link(name,destination)
+            self.links.append(link)
+            return "(<ok>Exit created from %s (->%s->) %s"%(self.ident,name,destination.ident)
         
     def unlink(self,towards,both=True):
         if towards in self.exits:
@@ -438,9 +433,28 @@ class Location(object):
             return "(<ok>Unlinked"
         else:
             return "(<fail>Exit not found"
+           
+    def findLink(self,**kwargs):
+        if 'name' in kwargs.keys():
+             for link in self.links:
+                if link.name == kwargs['name']: 
+                    return link
+             else:
+                return False
+                
+        elif 'destination' in kwargs.keys():
+            for link in self.links:
+                if link.destination == kwargs['destination']:
+                    return link
+            else:
+                return False
+
+        else:
+            return False
             
-class Exit(object):
-    def __init__(self):
-        self.locked = False
-        self.map = {}
+class Link:
+    def __init__(self,name,destination,locked=False):
+        self.name = name
+        self.destination = destination
+        self.locked = locked
         

@@ -200,7 +200,8 @@ class Player(object):
         # Todo handle disconnects properly..
         self.world.addPlayer(self)
         self.handler = self.gameHandler
-        print "Sending clk"
+        #print "Sending clk"
+        self.send(self.handle_look([]))
         #self.connection.write("clk test;yellow;/testing;Click here to test a command!")
         #self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
         
@@ -475,31 +476,31 @@ class Player(object):
             return "\n".join(buffer)
             
         else:
-            loc = self.character.location
-            buffer.append("<purple>%s<reset>"%loc.name)
-            buffer.append("<light sky blue>%s<reset>"%loc.description)
+            location = self.character.location
+            buffer.append("<purple>%s<reset>"%location.name)
+            buffer.append("<light sky blue>%s<reset>"%location.description)
          
-            chars = []
-            for char in loc.characters:
-                if char.invisible: continue
-                elif char == self.character: continue
+            characters = []
+            for character in location.characters:
+                if character.invisible: continue
+                elif character == self.character: continue
                 else:
-                    chars.append(char)
+                    characters.append(chararcter)
             
-            print "Chars",len(chars)
-            if len(chars) == 0:
+            print "Chars",len(characters)
+            if len(characters) == 0:
                 buffer.append("<turquoise>You are alone<reset>")
-            elif len(chars) == 1:
-                buffer.append("<turquoise>%s is here.<reset>"%chars[0].rename)
+            elif len(characters) == 1:
+                buffer.append("<turquoise>%s is here.<reset>"%characters[0].rename)
             else:
-                buffer.append("<turquoise>%s and %s are here.<reset>"%(", ".join([char.rename for char in chars[:-1]]),chars[-1].rename))
+                buffer.append("<turquoise>%s and %s are here.<reset>"%(", ".join([character.rename for character in characters[:-1]]),characters[-1].rename))
             
-            if len(loc.exits) == 0:
-                buffer.append("<ok>There are no obvious exits..</cyan>")
-            elif len(loc.exits) == 1:
-                buffer.append("<ok>Only one exit: %s"%loc.exits.keys()[0])
+            if len(location.links) == 0:
+                buffer.append("<ok>There are is no obvious way out from here..</cyan>")
+            elif len(location.links) == 1:
+                buffer.append("<ok>This is a dead end, only one way out: %s"%location.links[0].name)
             else:
-                buffer.append("<ok>Exits: %s"%", ".join(loc.exits.keys()))
+                buffer.append("<ok>Exits: %s"%", ".join([link.name for link in location.links]))
         
         #self.send("\n".join(buffer))
         return "\n".join(buffer)
@@ -529,14 +530,20 @@ class Player(object):
     def handle_move(self,tok):
         if len(tok) > 0:
             print "Trying to move to",tok
-            dir = tok[0].lower()
-            for exit in self.character.location.exits.keys():
-                if dir in exit.lower():
-                    destination = self.character.location.exits[exit]
-                    self.character.move(destination)
-                    return True
+            name = tok[0].lower()
+            link = self.character.location.findLink(name=name)
+            if link:
+                self.character.move(link.destination)
+                return True
+            else:
+                return False
+            #for exit in self.character.location.exits.keys():
+            #    if dir in exit.lower():
+            #        destination = self.character.location.exits[exit]
+            #        self.character.move(destination)
+            #        return True
 
-            return False
+            #return False
         else:
             return False
             
