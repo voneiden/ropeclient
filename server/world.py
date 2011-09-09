@@ -374,8 +374,8 @@ class Location(object):
         self.name = name
         self.description = description
         self.characters = []
-        self.exits = {}
-        self.exitlocations = []
+        self.exitNames = {}
+        self.exitLocations = {}
         
         self.world.addLocation(self)
         
@@ -406,10 +406,21 @@ class Location(object):
             print "Nobody to receive this message, ignoring.."
 
     
-    def link(self,towards,location):
+    def link(self,towards,destination):
+        # exits require at least two lookup tables..
+        # exit name and location.
+        
         # First check that exit name is not yet in use
-        if towards in self.exits.keys(): return "(<fail> Local exit name already exists"
+        if towards in self.exitNames.keys(): return "(<fail> Local exit name already exists"
         # Second check if there's an exit between these two locations already
+        if destination in self.exitLocations.keys():
+            return "(<fail>Only one exit to destination is allowed.."
+        elif self in destination.exitLocations.keys():
+            exit = destination.exitLocations[self]
+        else:
+            exit = Exit()
+            
+        asdihsadihusadiuhsadiuhads
         # TODO think about this
         if towards in self.exits: return "(<fail>Local exit already exists"
         self.exits[towards] = location
