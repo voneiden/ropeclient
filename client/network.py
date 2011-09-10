@@ -87,6 +87,10 @@ class Connection(LineReceiver):
                 self.window.textboxMain.config(state=window.NORMAL)
                 self.window.textboxMain.delete(1.0, window.END)
                 self.window.textboxMain.config(state=window.DISABLED)
+                
+                self.window.offtopicMain.config(state=window.NORMAL)
+                self.window.offtopicMain.delete(1.0,window.END)
+                self.window.offtopicMain.config(state=window.DISABLED)
             else:
                 print "Unknown tok",tok
         else: 
