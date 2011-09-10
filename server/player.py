@@ -311,7 +311,7 @@ class Player(object):
                 
             self.world.locations.append(newlocation)
             self.handler = self.gameHandler
-            return "<ok>Location created (dynid: %s | staid: %s)"%(newlocation.dynid(),newlocation.ident)
+            return "(<ok>Location created (dynid: %s | staid: %s)"%(newlocation.dynid(),newlocation.ident)
             
         else:
             return "<fail>Not enough information"
@@ -610,11 +610,47 @@ class Player(object):
         pass
         
     def handle_teleport(self,tok):
-        print "Trying to teleport.."
-        regex1 = "(.+?) to (.+)"
+        ''' TP function, allows chars to be moved to locations '''
+        ''' ex1: tp 0 --- Teleport to location with dynid 0 '''
+        ''' ex2: tp xxx to yyy --- Teleport character xxx to location with name/id yyy'''
+        aregex = '^\d+$'   # tp 0
+        bregex = '^(.+?) to (\d+)$'
+        cregex = '^(.+?) to (.+)$'
+        
+        if re.search(aregex,msg):
+            character = self.character
+            location  = int(msg)
+            
+        else:
+            bsearch = re.search(bregex,msg)
+            csearch = re.search(cregex,msg)
+            if bsearch:
+                groups = bsearch.groups()
+                character = groups[0]
+                location = groups[1]
+            elif csearch:
+                groups = csearch.groups()
+                character = groups[0]
+                location = groups[1]
+            else:
+                return "(<fail>Usage: teleport [locationid] OR teleport [charactername] to [locationid/locationname]
+        
+        if isinstance(character,str):
+            se #TODO FINDANY FINDANY FINDANY
         msg = " ".join(tok[1:])
-        print "Command",msg
-        search = re.search(regex1,msg)
+        print "TP request",msg
+        if re.search(sregex,msg):
+            print "Destination is an id number"
+            character = self.character
+            i = int(msg)
+            if i < len(self.world.locations):
+                location = self.world.locations[i]
+            else:
+                if i in self.world.idents:
+                    location = self.world.idents[i]
+                    if not isinstance(location,world.Location):
+                        return "(<fail>Destination does 
+        search = re.search(lregex,msg)
         if search:
             print "SEARCH OK"
             groups = search.groups()
@@ -630,6 +666,8 @@ class Player(object):
             return ("(<ok>Teleport succesful!")
         return "(<fail>Search failed"
 
+    def handle_tp(self,tok):
+        return self.handle_teleport(tok)
     
     def handle_world(self,tok):
         if not self.gamemaster: return "(<fail>This command requires GM rights"
