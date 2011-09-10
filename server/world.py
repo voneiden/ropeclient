@@ -133,6 +133,7 @@ class World(object):
             occurence found, or a list if multiple choices
             were found
         """
+        # TODO check that the object has .name attribute?
         results = []
         for obj in target:
             if name.lower() in obj.name.lower(): results.append(obj)
@@ -164,14 +165,38 @@ class World(object):
         #    return results[0]
         else:
             return results   
-            
+      
+    def findId(self,ident,objects):
+        print "findID",ident
+        try:
+            int(ident)
+        except ValueError:
+            return False
+        
+        if int(ident) < len(objects):
+            return [objects[int(ident)]]
+        else:
+            print "Searching for static id"
+            print self.idents.keys()
+            if ident in self.idents.keys():
+                obj = self.idents[ident]
+                print "obj found"
+                if obj in objects:
+                    return [obj]
+                else:
+                    print "Not in objects"
+                    return False
+            else:
+                print "not found"
+                return False
    
 
     def findAny(self,key,target):
+        match = self.findId(key,target)
+        if match: return match
         match = self.find(key,target)
         if match: return match
-        match = self.findUnique(key,target)
-        if match: return match
+        
         
 
     def doDice(self,message):

@@ -301,7 +301,7 @@ class Player(object):
             if len(msg): 
                 rexit = msg
             else:
-                rexit = msg.split(';')
+                rexit = False
                  
             newlocation = world.Location(self.world,self.temp['name'],self.temp['description'])
             if self.temp['exit']:
@@ -309,7 +309,6 @@ class Player(object):
             if rexit:
                 newlocation.link(rexit,self.character.location)
                 
-            self.world.locations.append(newlocation)
             self.handler = self.gameHandler
             return "(<ok>Location created (dynid: %s | staid: %s)"%(newlocation.dynid(),newlocation.ident)
             
@@ -616,10 +615,10 @@ class Player(object):
         aregex = '^\d+$'   # tp 0
         bregex = '^(.+?) to (\d+)$'
         cregex = '^(.+?) to (.+)$'
-        
+        msg = " ".join(tok)
         if re.search(aregex,msg):
-            character = self.character
-            location  = int(msg)
+            character = self.character.ident
+            location  = msg
             
         else:
             bsearch = re.search(bregex,msg)
@@ -633,38 +632,23 @@ class Player(object):
                 character = groups[0]
                 location = groups[1]
             else:
-                return "(<fail>Usage: teleport [locationid] OR teleport [charactername] to [locationid/locationname]
+                return "(<fail>Usage: teleport [locationid] OR teleport [charactername] to [locationid/locationname]"
         
-        if isinstance(character,str):
-            se #TODO FINDANY FINDANY FINDANY
-        msg = " ".join(tok[1:])
-        print "TP request",msg
-        if re.search(sregex,msg):
-            print "Destination is an id number"
-            character = self.character
-            i = int(msg)
-            if i < len(self.world.locations):
-                location = self.world.locations[i]
-            else:
-                if i in self.world.idents:
-                    location = self.world.idents[i]
-                    if not isinstance(location,world.Location):
-                        return "(<fail>Destination does 
-        search = re.search(lregex,msg)
-        if search:
-            print "SEARCH OK"
-            groups = search.groups()
-            charname = groups[0]
-            targetname = groups[1]
-            
-            char = self.world.findAny(charname,self.world.characters)
-            if not char: return ("Unable to find a character by identification: %s"%charname)
-            target = self.world.findAny(targetname,self.world.locations)
-            if not target: return ("Unable to find the target: %s"%targetname)
-            
-            char.move(target)
-            return ("(<ok>Teleport succesful!")
-        return "(<fail>Search failed"
+
+        character = self.world.findAny(character,self.world.characters)
+        location  = self.world.findAny(location,self.world.locations)
+        
+        if not character:
+            return "(<fail>Character could not be resolved"
+        if not location:
+            return "(<fail>Location could not be resolved"
+       
+        character[0].move(location[0])
+        if self.character != character[0]:
+            if character[0].player:
+                character[0].player.send("(<ok>You have been teleported")
+        return "(<ok>Teleport succesful"
+        
 
     def handle_tp(self,tok):
         return self.handle_teleport(tok)
