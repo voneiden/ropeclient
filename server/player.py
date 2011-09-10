@@ -278,21 +278,21 @@ class Player(object):
    
         
         if self.handlerstate == 1:
-            return "Location title"
+            return "(Location title:"
         elif self.handlerstate == 2 and len(msg) > 2:
             self.temp['name']= msg
-            return "Location description"
+            return "(Location description:"
             
         elif self.handlerstate == 3:
             self.temp['description'] = msg
-            return "Exit name (enter for no exit)"
+            return "(Exit name (enter for no exit):"
         
         elif self.handlerstate == 4:
             if len(msg):
                 self.temp['exit'] = msg
             else:
                 self.temp['exit'] = False
-            return "Return exit name (enter for no return exit)"
+            return "(Return exit name (enter for no return exit):"
             
             
 

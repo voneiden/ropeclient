@@ -30,13 +30,14 @@ import cPickle, time, re, random
 class World(object):
     def __init__(self,name='default'):
         self.name = name
+        self.objects = []
+        self.locations = []
         self.characters = []
         self.players    = []
         self.messages = {}
         self.memory = {} # Whats this?
         self.idents = {} # Contains all id()'s of objects   
         self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
-        self.locations  = [self.spawn]
        
     def timestamp(self):
         timestamp = time.time()
