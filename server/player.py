@@ -19,6 +19,9 @@
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 
 '''
+
+# Todo avoid deleting of souls somehow.. :D
+
 import re, db, world, time, random
 
 class Player(object):
@@ -330,9 +333,22 @@ class Player(object):
         else:
             self.send("(Not authorized")
             
-
-
- 
+    def handle_del(self,tok):
+        if not self.gamemaster:
+            return "(<fail>Not authorized"
+        character = " ".join(tok)
+        if len(character) == 0:
+            return "(<fail>Usage: del charid"
+        character = self.world.findAny(character,self.world.characters)
+        if not character:
+            return "(<fail>Character not found"
+        else:
+            character = character[0]
+        if character.player:
+            character.player.send("(<fail>Your character has been terminated!")
+            character.detach()
+        self.world.remCharacter(character)
+        return "(<ok>Done."
     def handle_chars(self, tok):
         print "Listing chars"
         ownedchars = self.world.findOwner(self.account.name,self.world.characters)
@@ -343,10 +359,14 @@ class Player(object):
             buffer = ["You own the following characters"]
             for char in ownedchars:
                 name = char.name + " "*(10-len(char.name))
+                info = char.info[:20] + " "*(20-len(char.info[:20]))
+                ident = char.id()
+                dynid = ident[0] + ' '*(10-len(ident[0]))
+                staid = ident[1] + ' '*(10-len(ident[1]))
                 if char == self.character:
-                    buffer.append("<green>%s <talk>- %s"%(name,char.info))
+                    buffer.append("<green>%s<talk>- %s - %s - %s"%(name,info,dynid,staid))
                 else:
-                    buffer.append("<blue>%s <talk>- %s"%(name,char.info))
+                    buffer.append("<blue>%s<talk>- %s - %s - %s"%(name,info,staid,staid))
         
         if self.gamemaster:
             otherchars = set(self.world.characters)-set(ownedchars)

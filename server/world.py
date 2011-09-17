@@ -25,6 +25,10 @@ Design some kind of nice system when loading a saved world that checks for missi
 attributes
 '''
 
+# NOTE character deleting has potential memory leak issue: memorize function might
+#contain a reference to the character? too lazy to check right now
+
+
 import cPickle, time, re, random
 
 class World(object):
@@ -254,10 +258,15 @@ class World(object):
     def addCharacter(self,character):
         self.characters.append(character)
         self.addObject(character)
-        
+        if character.location == None:
+            character.move(self.spawn)
+        else:
+            character.move(location)
     def remCharacter(self,character):
         self.characters.remove(character)
         self.remObject(character)
+        character.location.announce("%s has been terminated."%(self.name))
+        character.location.characters.remove(character)
         
     def addExit(self,exit):
         self.addObject(exit)
@@ -296,10 +305,7 @@ class Character(object):
         self.ident = str(id(self))
         self.world.idents[self.ident] = self
         
-        if location == None:
-            self.move(self.world.spawn)
-        else:
-            self.move(location)
+        
             
     def __setstate__(self): #TODO test this!
         print "Loading saved character.."
