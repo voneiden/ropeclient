@@ -1,6 +1,11 @@
 0.0 Development notes
+Current development focuses on the branch 'reddit'. The aim is to produce
+a version ready for serious playtesting before October ends. 
+
 This program is in totally unstable development. If you want to try a stable result, check out 
 https://github.com/voneiden/ropeclient/tree/0.B-RC1
+
+
 
 CURRENT STATE OF SOFTWARE IS COMPELTELY DIFFERENT FROM 0.B-RC1
 
