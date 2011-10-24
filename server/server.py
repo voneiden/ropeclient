@@ -55,21 +55,46 @@ import time
 import os
 import sys
 import player
-import db
 import world
+import cPickle
 
 class Core(object):
     """ This class contains some core information.."""
 
+    # I'm gonna improve the core to be a container for the
+    # new multiworld thingy that I have on my mind.
+    
     def __init__(self):
-        self.version = "0.c.a"
+        self.version = "0.d.alpha"
         self.greeting = open('motd.txt', 'r').readlines()
-        self.db = db.db()
-        self.world = world.World()
-        self.gmKey = 'g'
+        self.worlds = []
+        self.loadAccounts()
+        self.loadWorlds()
+        
     def __getstate__(self):
         return None
-
+        
+    def loadAccounts(self):
+        try:
+            f = open('accounts.db', 'rb')
+            self.accounts = cPickle.load(f)
+            f.close()
+            if type(self.accounts) != dict:
+                print "Accounts have invalid type, clearing"
+                self.accounts = {}
+        except IOError:
+            self.accounts = {}
+    
+    def saveAccounts(self):
+        f = open('accounts.db','wb')
+        cPickle.dump(self.accounts,f)
+        f.close()
+        
+    def loadWorlds(self):
+        pass #To be implemented
+        
+    def saveWorlds(self):
+        pass #To be 
 class RopePlayer(LineReceiver):
 
     def connectionMade(self):
@@ -126,6 +151,11 @@ class TelnetNetwork(Factory):
         self.protocol = TelnetPlayer
         self.core = core
 
+class Account:
+    def __init__(self,name,password):
+        self.name = name
+        self.password = password
+        self.style = 0
 
 if __name__ == '__main__':
     core = Core()

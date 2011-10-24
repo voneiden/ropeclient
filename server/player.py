@@ -22,7 +22,7 @@
 
 # Todo avoid deleting of souls somehow.. :D
 
-import re, db, world, time, random
+import re, world, time, random
 
 class Player(object):
     '''
@@ -31,20 +31,18 @@ class Player(object):
     '''
 
     def __init__(self, connection, core):
-        self.connection = connection
-        self.core = core
-        self.world = self.core.world
-        self.db = self.core.db
-        self.name = "Undefined!"
-        self.password = None
-        self.account = None
-        self.typing = False
-        self.handler = self.loginHandler
-        self.character = None
-        self.gamemaster = False
-        self.handlerstate = 1
-        self.temp = {}
-        self.recv = self.recvHandshake
+        self.connection = connection    # RopePlayer class
+        self.core = core                # Core class
+        self.world = None               # Current world, None = menu
+        self.name = None                # 
+        self.account = None             # ?
+        self.typing = False              
+        self.handler = self.loginHandler# Current function that handles all input
+        self.character = None           # Current character
+        self.gamemaster = False         # Is gamemaster
+        self.handlerstate = 1           # A counter used by some handlers
+        self.temp = {}                  # Temporary storage for handlers
+        self.recv = self.recvHandshake  # Function that parses & feeds handler
         
         
     def __getstate__(self): 
@@ -62,14 +60,14 @@ class Player(object):
         
         if tok[0] == 'hsk' and len(tok) > 1:
             if tok[1] != self.core.version:
-                self.send("Your version of ropeclient (%s) is not" +
-                          " compatible with this server (%s)" % (tok[1],
-                          self.core.version))
+                self.send("Your version of ropeclient ({clientversion}) is not compatible with this server ({version})".format(clientversion=tok[1],version=self.core.version))
                 self.recv = self.recvIgnore
             else:
+                self.send("Version up to date")
                 self.recv = self.recvMessage
         else:
-            self.send("Hi, you're not supposed to be here, are you? :)")
+            self.send("Hi, you're not supposed to be here, are you? :)" +
+                      "Currently logins are only supported by the official client")
             self.recv = self.recvIgnore
     
     def recvMessage(self, message):
@@ -96,7 +94,7 @@ class Player(object):
         
 
         
-    def getName(self):
+    def getName(self): # Obsolete?
         if self.character:
             return "<%s>%s<reset>"%(self.character.color,self.account.name)
         else:
@@ -125,16 +123,16 @@ class Player(object):
         '''
         if self.handlerstate == 1:
             self.temp['name'] = message[0]
-            find = self.db.find(message[0],self.db.accounts)
-            if isinstance(find,db.Account):
+            if self.temp['name'].lower() in self.core.accounts:
                 self.handlerstate = 2
-                self.account = find
+                self.account = self.core.accounts[self.temp['name'].lower()]
+                
                 self.connection.write('pwd\r\n')
                 return "Your <f>password<reset>?"   
-            elif find == None:
+            else:
                 if re.match("^[A-Za-z]+$", message[0]):
                     self.handlerstate = 10
-                    return "Would you like to create a new account under the name '%s' yes/no?"%message[0]
+                    return "Would you like to create a new account under the name '{name}' yes/no?".format(name=message[0])
                 else:
                     return "This account name contains invalid characters - Try again"
              
@@ -164,9 +162,9 @@ class Player(object):
         elif self.handlerstate == 12:
             if self.temp['password'] == message[0]:
                 print "New accont with",self.temp['name'],self.temp['password']
-                self.account = db.Account(self.temp['name'],self.temp['password'])
-                self.db.accounts.append(self.account)
-                self.db.save()
+                self.account = self.core.Account(self.temp['name'],self.temp['password'])
+                self.core.accounts.append(self.account)
+                self.core.saveAccounts()
                 self.login()
             else:
                 self.handlerstate = 11
