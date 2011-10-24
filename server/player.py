@@ -73,24 +73,29 @@ class Player(object):
     def recvMessage(self, message):
         print "Recv", message
         message = message.strip()
+        
+        # To avoid players being able to create their own variables.. remove $(
         message = message.replace('$(','')
         tok = message.split()
         if tok[0] == 'msg':
+            
             response = self.handler(tok[1:])
+            
+            
             print "Got resp",response
             print "Type",type(response)
             if type(response) is str or type(response) is unicode:
                 self.send(response)
             self.typing = False
-            self.world.updatePlayer(self)
+            #self.world.updatePlayer(self)
 
         elif tok[0] == 'pnt':
             self.typing = False
-            self.world.updatePlayer(self)
+            #self.world.updatePlayer(self)
 
         elif tok[0] == 'pit':
             self.typing = True
-            self.world.updatePlayer(self)
+            #self.world.updatePlayer(self)
         
 
         
@@ -174,7 +179,7 @@ class Player(object):
     
     def disconnect(self):
         if self.character: self.character.detach()
-        self.world.remPlayer(self)
+        #self.world.remPlayer(self)
         self.send("You are being logged out because you logged in elsewhere.")
         self.connection.transport.loseConnection()
         

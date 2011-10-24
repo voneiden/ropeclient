@@ -50,6 +50,8 @@ from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 from twisted.protocols.telnet import Telnet
+from twisted.internet import defer
+
 
 import time
 import os
@@ -95,6 +97,7 @@ class Core(object):
         
     def saveWorlds(self):
         pass #To be 
+
 class RopePlayer(LineReceiver):
 
     def connectionMade(self):
@@ -105,7 +108,11 @@ class RopePlayer(LineReceiver):
     def lineReceived(self, line):
         line = line.decode('utf-8')
         line = line.strip()
-        self.player.recv(line)
+        print "Testing new defer!"
+        d = defer.Deferred()
+        d.addCallback(self.player.recv)
+        d.callback(line)
+        #self.player.recv(line)
 
     def write(self, data, newline=True):
         if newline:
