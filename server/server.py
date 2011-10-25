@@ -111,6 +111,7 @@ class RopePlayer(LineReceiver):
         print "Testing new defer!"
         d = defer.Deferred()
         d.addCallback(self.player.recv)
+        d.addErrback(self.failure)
         d.callback(line)
         #self.player.recv(line)
 
@@ -129,6 +130,33 @@ class RopePlayer(LineReceiver):
     def disconnect(self):
         self.transport.loseConnection()
 
+
+    def failure(self,failure):
+        ''' Failure handles any exceptions '''
+        #print "Got an exception!"
+        #print type(failure)
+        #print dir(failure)
+        #failure.printDetailedTraceback()
+        dtb = failure.getTraceback(detail='verbose')
+        tb = failure.getTraceback(detail='brief')
+        print "!"*30
+        print failure.getErrorMessage()
+        print "?"*30
+        print tb
+        print "!"*30
+        logid = str(int(time.time())) + "-" + str(self.player.name)
+        f=open('failures/{logid}.txt'.format(logid=logid),'w')
+        f.write(dtb)
+        f.close()
+        
+        self.sendMessage("<fail>[ERROR] Something you did caused an exception" +
+                         " on the server. This is probably a bug. The problem" +
+                         " has been logged with id {logid}.".format(logid=logid)+
+                         " You may help to solve the problem by filing an issue"+
+                         " at www.github.com/voneiden/ropeclient - Please mention"+
+                         " this log id and what you were writing/doing when the"+
+                         " error happened. Thank you!")
+        
 
 class TelnetPlayer(Telnet):
 

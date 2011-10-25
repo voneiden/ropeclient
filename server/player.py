@@ -91,11 +91,11 @@ class Player(object):
 
         elif tok[0] == 'pnt':
             self.typing = False
-            #self.world.updatePlayer(self)
+            self.world.updatePlayer(self)
 
         elif tok[0] == 'pit':
             self.typing = True
-            #self.world.updatePlayer(self)
+            self.world.updatePlayer(self)
         
 
         
