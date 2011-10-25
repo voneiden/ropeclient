@@ -46,7 +46,8 @@ class Player(object):
         
         
     def __getstate__(self): 
-        """ Players will never be pickled when world is saved as they contain references to networking """
+        """ Players will never be pickled when world is 
+            saved as they contain references to networking """
         return None
 
     def recvIgnore(self, message):
@@ -54,20 +55,27 @@ class Player(object):
         pass
     
     def recvHandshake(self,message):
-        ''' This function receives the handshake and gets angry at the client if its wrong '''
+        ''' This function receives the handshake and gets 
+            angry at the client if its wrong '''
         message = message.strip()
         tok = message.split()
         
         if tok[0] == 'hsk' and len(tok) > 1:
             if tok[1] != self.core.version:
-                self.send("Your version of ropeclient ({clientversion}) is not compatible with this server ({version})".format(clientversion=tok[1],version=self.core.version))
+                buf = ["<fail>Your version of ropeclient ({clientversion}) is ",
+                       "not compatible with this server ({version}). Please ",
+                       "get the latest updates from http://www.github.com",
+                       "/voneiden/ropecilent - thanks!"]
+                self.send("".join(buf).format(clientversion=tok[1],
+                                              version=self.core.version))
                 self.recv = self.recvIgnore
             else:
-                self.send("Version up to date")
+                self.send("Version up to date!")
+                self.send("".join(self.core.greeting))
                 self.recv = self.recvMessage
         else:
-            self.send("Hi, you're not supposed to be here, are you? :)" +
-                      "Currently logins are only supported by the official client")
+            self.send("Hi, you're not supposed to be here, are you? :) Curren" +
+                      "tly logins are only supported by the official client")
             self.recv = self.recvIgnore
     
     def recvMessage(self, message):
@@ -181,39 +189,74 @@ class Player(object):
     
     def disconnect(self):
         if self.character: self.character.detach()
-        #self.world.remPlayer(self)
-        self.send("You are being logged out because you logged in elsewhere.")
+        if self.world: pass #TODO: world disconnected
+        if self.name in self.core.players:
+            del self.core.players[self.name]
+            
+        self.send("Disconnecting you, bye bye. (Either you quit or " +
+                  "you may have logged in elsewhere).")
         self.connection.transport.loseConnection()
         
     def login(self):
         # We need to check for old player connections and disconnect them.
         # TODO: Needs to be remade.
-        self.name = self.account.name
-        old = self.world.find(self.account.name,self.world.players)
-        print "Looking for old",old
-        if isinstance(old,Player):
-            print "OLD HAS BEEN FOUND, DISCONNECTING"
-            old.disconnect()
-        
-        self.name = self.account.name 
-        character = self.db.findOwner(self.account.name,self.core.world.characters)
-        if character == None:
-            newcharacter = world.Character(self.world,self.account.name,"Soul of %s"%(self.account.name))
-            newcharacter.mute = True
-            newcharacter.invisible = True
-            newcharacter.soul = True
+        #self.name = self.account.name
+        #old = self.world.find(self.account.name,self.world.players)
+        #print "Looking for old",old
+        #if isinstance(old,Player):
+        #    print "OLD HAS BEEN FOUND, DISCONNECTING"
+        #    old.disconnect()
+        if self.name in self.core.players:
+            print "Disconnecting old player"
+            self.core.players[self.name].disconnect()
             
-            newcharacter.attach(self)
-        elif isinstance(character,world.Character):
-            character.attach(self)
+        return self.displayWorldMenu()
+            
+        #self.name = self.account.name 
+        #character = self.db.findOwner(self.account.name,self.core.world.characters)
+        #if character == None:
+        #    newcharacter = world.Character(self.world,self.account.name,"Soul of %s"%(self.account.name))
+        #    newcharacter.mute = True
+        #    newcharacter.invisible = True
+        #    newcharacter.soul = True
+        #    
+        #    newcharacter.attach(self)
+        #elif isinstance(character,world.Character):
+        #    character.attach(self)
         # Todo handle disconnects properly..
-        self.world.addPlayer(self)
-        self.handler = self.gameHandler
+        #self.world.addPlayer(self)
+        #self.handler = self.gameHandler
         #print "Sending clk"
-        self.send(self.handle_look([]))
+        #self.send(self.handle_look([]))
         #self.connection.write("clk test;yellow;/testing;Click here to test a command!")
         #self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
         
+        
+        
+        
+        
+    def displayWorldMenu(self):
+        buf = []
+        buf.append("Welcome to the edge of the universe. " + 
+                   "Where is your soul headed to?")
+        buf.append("")
+        
+        iw = len(self.core.worlds)
+        if iw == 0:
+            buf.append("Nobody has created a world yet..")
+        else:
+            # This is a crazy generator. Not for the weak of mind :-D
+            x=["{name}{pw}{players}".format(
+             name=world.name,
+             pw=" [password]" if world.pw else "",
+             players= " ({0} players online)".format(len(world.players)) 
+             if len(world.players) > 1 else 
+             " (1 player online)" 
+             if len(world.players) else 
+             " (No players online)") for world in self.core.worlds]
+            print x
+            
+            
     ''' New dev version gameHandler '''
     def gameHandler(self, tok):
         # style 0 is irc style, style 1 is mud style?

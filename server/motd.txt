@@ -6,10 +6,10 @@ Welcome to ropeclient
 | | | (_) | |_) |  __/ (__| | |  __/ | | | |_    \/'_)/ |
 |_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|    \/( | :
           |_|                                ,---=='='=`===----.
-    <red>I<blue>n <green>c<purple>o<brown>l<yellow>o<cyan>r<white>!<default>     Version jesus CHRIST ITS A `---==|  ;  \==---'
-                                             LION  |  ;.  \
-        Version notes                          QUI-|  `;   \
-         - 0.C beta release. Expect bugs!          |   ;.   \
+    <red>I<blue>n <green>c<purple>o<brown>l<yellow>o<cyan>r<white>!<default>     Version 0.D.alpha!         `---==|  ;  \==---'
+                                                   |  ;.  \
+        Version notes                              |  `;   \
+         - 0.D alpha release, dragons ahead!       |   ;.   \
          - Remember, you can configure your        |   `;    \
            prefered colors from colors.txt file    |    ;.    \
            in your ropeclient folder!              |    `;     \ 
@@ -18,4 +18,4 @@ Welcome to ropeclient
                                                    `--..._ `  _.-'
                                                           `--'
 
-What be your name? 
+What be your name? (Account name, anything is fine. No spaces though!)

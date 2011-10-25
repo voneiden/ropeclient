@@ -69,9 +69,10 @@ class Core(object):
     def __init__(self):
         self.version = "0.d.alpha"
         self.greeting = open('motd.txt', 'r').readlines()
-        self.worlds = []
+        self.worlds = [world.World()]
         self.loadAccounts()
         self.loadWorlds()
+        self.players = {}
         
     def __getstate__(self):
         return None
@@ -103,7 +104,7 @@ class RopePlayer(LineReceiver):
     def connectionMade(self):
         self.core = self.factory.core
         self.player = player.Player(self, self.core)
-        self.sendMessage("".join(self.core.greeting))
+        
 
     def lineReceived(self, line):
         line = line.decode('utf-8')

@@ -34,6 +34,7 @@ import cPickle, time, re, random
 class World(object):
     def __init__(self,name='default'):
         self.name = name
+        self.pw = None
         self.objects = []
         self.locations = []
         self.characters = []
