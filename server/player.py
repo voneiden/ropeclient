@@ -22,7 +22,7 @@
 
 # Todo avoid deleting of souls somehow.. :D
 
-import re, world, time, random
+import server,re, world, time, random
 
 class Player(object):
     '''
@@ -91,11 +91,13 @@ class Player(object):
 
         elif tok[0] == 'pnt':
             self.typing = False
-            self.world.updatePlayer(self)
+            if self.world:
+                self.world.updatePlayer(self)
 
         elif tok[0] == 'pit':
             self.typing = True
-            self.world.updatePlayer(self)
+            if self.world:
+                self.world.updatePlayer(self)
         
 
         
@@ -167,8 +169,8 @@ class Player(object):
         elif self.handlerstate == 12:
             if self.temp['password'] == message[0]:
                 print "New accont with",self.temp['name'],self.temp['password']
-                self.account = self.core.Account(self.temp['name'],self.temp['password'])
-                self.core.accounts.append(self.account)
+                self.account = server.Account(self.temp['name'],self.temp['password'])
+                self.core.accounts[self.account.name] = self.account
                 self.core.saveAccounts()
                 self.login()
             else:
@@ -185,6 +187,7 @@ class Player(object):
         
     def login(self):
         # We need to check for old player connections and disconnect them.
+        # TODO: Needs to be remade.
         self.name = self.account.name
         old = self.world.find(self.account.name,self.world.players)
         print "Looking for old",old

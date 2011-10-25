@@ -171,7 +171,7 @@ class Window(object):
             self.write("pit")
             self.entryboxTyping = True
   
-        print event.keysym
+        #print event.keysym
     def entryboxSet(self,command):
         self.entryboxMessage.set(command)
         self.entrybox.icursor(END)
