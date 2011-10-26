@@ -295,7 +295,10 @@ class Player(object):
                 # TODO join the player to this world
                 choice.addPlayer(self)
                 self.world = choice
+                self.handler = self.handlerGame
+                
                 return "Joined to world {0} - {1}".format(x,choice.name)
+                
                
        
     def creatorWorld(self,tok): # TODO This requires abuse protection obviously.
@@ -342,12 +345,12 @@ class Player(object):
             
             
     ''' New dev version gameHandler '''
-    def gameHandler(self, tok):
+    def handlerGame(self, tok):
         # style 0 is irc style, style 1 is mud style?
         if self.character and len(tok) > 0:
-            if not self.account.style and tok[0][0] != '/': #IRC STYLE
+            if self.account.style == 'irc' and tok[0][0] != '/': #IRC STYLE
                 return self.handle_say(tok)
-            elif not self.account.style:
+            elif self.account.style == 'irc':
                 command = tok[0][1:]
             elif self.account.style:
                 command = tok[0]
