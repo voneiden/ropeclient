@@ -115,20 +115,23 @@ class World(object):
              #else: typinglist.append("%s:0:$(name=%s)"%(player.name,player.character.name))
         lop = ";".join(typinglist)
         for player in self.players:
-            if player.character:
-                player.connection.write("plu %s"%player.character.parse(lop))
-            else:
-                pass #TODO fix
+            player.connection.write("plu %s"%player.replaceCharacterNames(lop))
             
+             
     def updatePlayer(self,player):
         print "Updating just one player"
-        if not player.character: return
-        if player.typing: 
-            buffer = "%s:1:$(name=%s)"%(player.name,player.character.name)
-        else: 
-            buffer = "%s:0:$(name=%s)"%(player.name,player.character.name)
+        #if not player.character: return
+        buffer = "{name}:{typing}:{charname}".format(
+            name=player.name,
+            typing=player.typing,
+            charname=player.character.name if player.character else "None")
+        print "Got buffer as",buffer
+        #if player.typing: 
+        #    buffer = "%s:1:$(name=%s)"%(player.name,player.character.name)
+        #else: 
+        #    buffer = "%s:0:$(name=%s)"%(player.name,player.character.name)
         for player in self.players:
-            player.connection.write("ptu %s"%player.character.parse(buffer))
+            player.connection.write("ptu %s"%player.replaceCharacterNames(buffer))
             
     def addPlayer(self,player):
         if player not in self.players:
@@ -375,37 +378,37 @@ class Character(object):
         else:
             self.unread.append(timestamp)
             
-    def parse(self,message):
-        ''' This functions solves name-memory '''
-        nameregex = "\$\(name\=.+?\)"
-        print "Parsing.."
-        for match in re.finditer(nameregex,message):
-            name = self.memoryCheck(match)
-            print "Replacing..",match.group(),name
-            message = message.replace(match.group(),name,1)
-        
-        return message
+    #def parse(self,message):
+    #    ''' This functions solves name-memory '''
+    #    nameregex = "\$\(name\=.+?\)"
+    #    print "Parsing.."
+    #    for match in re.finditer(nameregex,message):
+    #        name = self.memoryCheck(match)
+    #        print "Replacing..",match.group(),name
+    #        message = message.replace(match.group(),name,1)
+    #    
+    #    return message
     
     # Todo update these things to work with unique id's
-    def memoryCheck(self,match):
-        print "Checking my memory.."
-        print self.memory
-        for key in self.memory.keys():
-            print "Remembering",key,type(key)
-        name = match.group()[7:-1]
-        character = self.world.find(name,self.world.characters)
-       
-        if not character: 
-            print "character not found"
-            return name
-        else:
-            character = character[0] #TODO temp fix
-        if character in self.memory.keys():
-            return self.memory[character]
-        elif character == self:
-            return character.name
-        else:
-            return character.info
+    #def memoryCheck(self,match):
+    #    print "Checking my memory.."
+    #    print self.memory
+    #    for key in self.memory.keys():
+    #        print "Remembering",key,type(key)
+    #    name = match.group()[7:-1]
+    #    character = self.world.find(name,self.world.characters)
+    #   
+    #    if not character: 
+    #        print "character not found"
+    #        return name
+    #    else:
+    #        character = character[0] #TODO temp fix
+    #    if character in self.memory.keys():
+    #        return self.memory[character]
+    #    elif character == self:
+    #        return character.name
+    #    else:
+    #        return character.info
     def introduce(self,name):
         print "Introducing.."
         self.location.announce("%s introduces himself as %s"%

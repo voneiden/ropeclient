@@ -225,6 +225,7 @@ class Window(object):
         
         self.playerbox.delete(0, END)
         for player in players:
+            print "typecheck",player,self.playerlist[player]
             pline = "{typing}{name} {charname}".format(
                 typing="*" if self.playerlist[player][0] == "1" else "",
                 name=player,

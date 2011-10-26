@@ -54,6 +54,7 @@ class Connection(LineReceiver):
             self.window.entrybox.config(show='*')
         
         elif tok[0] == 'plu': 
+            print "plu",tok
             # Player list update
             lop = " ".join(tok[1:]).split(';')
             playerlist = {}
@@ -65,6 +66,7 @@ class Connection(LineReceiver):
             self.window.playerboxUpdate()
             
         elif tok[0] == 'ptu':
+            print "ptu",tok
             ptu = " ".join(tok[1:]).split(':')
             self.window.playerlist[ptu[0]] = ptu[1:]
             self.window.playerboxUpdate()

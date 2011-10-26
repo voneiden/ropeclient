@@ -94,16 +94,17 @@ class Player(object):
             print "Type",type(response)
             if type(response) is str or type(response) is unicode:
                 self.send(response)
-            self.typing = False
-            #self.world.updatePlayer(self)
+            self.typing = 0
+            if self.world:
+                self.world.updatePlayer(self)
 
         elif tok[0] == 'pnt':
-            self.typing = False
+            self.typing = 0
             if self.world:
                 self.world.updatePlayer(self)
 
         elif tok[0] == 'pit':
-            self.typing = True
+            self.typing = 1
             if self.world:
                 self.world.updatePlayer(self)
         
@@ -154,6 +155,7 @@ class Player(object):
         
         elif self.handlerstate == 2:
             if message[0] == self.account.password:
+                self.name = self.account.name
                 return self.login()
             else:
                 self.connection.disconnect()
@@ -202,6 +204,7 @@ class Player(object):
             self.account = server.Account(self.temp['name'],self.temp['password'],self.temp['style'])
             self.core.accounts[self.account.name] = self.account
             self.core.saveAccounts()
+            self.name = self.account.name
             return self.login()
     
     
@@ -368,7 +371,44 @@ class Player(object):
             elif self.handle_move(tok):
                 return
 
+
+    def replaceCharacterNames(self,message):
+        ''' This functions solves name-memory '''
+        nameregex = "\$\(name\=.+?\)"
+        print "Parsing.."
+        for match in re.finditer(nameregex,message):
+            name = self.getCharacterName(match)
+            print "Replacing..",match.group(),name
+            message = message.replace(match.group(),name,1)
+        
+        return message
     
+    # Todo update these things to work with unique id's
+    def getCharacterName(self,match):
+        name = match.group()[7:-1]
+        print "Checking my memory.."
+        if not self.character:
+            return name #TODO return actually character short description, just a quick hack
+            
+        else: #TODO needs fixing srsly
+            print self.character.memory
+            for key in self.character.memory.keys():
+                print "Remembering",key,type(key)
+            
+            character = self.world.find(name,self.world.characters)
+           
+            if not character: 
+                print "character not found"
+                return name
+            else:
+                character = character[0] #TODO temp fix
+            if character in self.memory.keys():
+                return self.memory[character]
+            elif character == self:
+                return character.name
+            else:
+                return character.info
+        
     # Changing it so that a character is owned by whoever last was attached to it.            
     def characterSpawner(self,message):
         ''' This is a handler for character generation '''
