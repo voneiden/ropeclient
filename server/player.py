@@ -37,7 +37,7 @@ class Player(object):
         self.name = None                # 
         self.account = None             # ?
         self.typing = False              
-        self.handler = self.loginHandler# Current function that handles all input
+        self.handler = self.handlerLogin# Current function that handles all input
         self.character = None           # Current character
         self.gamemaster = False         # Is gamemaster
         self.handlerstate = 1           # A counter used by some handlers
@@ -128,7 +128,7 @@ class Player(object):
         #self.connection.write('oft %f %s'%(time.time(),message))
         self.send("(%s"%message)
         
-    def loginHandler(self, message):
+    def handlerLogin(self, message):
         '''
         State 1 - asking for name
         State 2 - asking for password
@@ -217,37 +217,14 @@ class Player(object):
         
     def login(self):
         # We need to check for old player connections and disconnect them.
-        # TODO: Needs to be remade.
-        #self.name = self.account.name
-        #old = self.world.find(self.account.name,self.world.players)
-        #print "Looking for old",old
-        #if isinstance(old,Player):
-        #    print "OLD HAS BEEN FOUND, DISCONNECTING"
-        #    old.disconnect()
         if self.name in self.core.players:
             print "Disconnecting old player"
             self.core.players[self.name].disconnect()
             
-        self.clearMain()
-        self.handler = self.menuHandler
+        
+        self.handler = self.handlerWorldMenu
         return self.displayWorldMenu()
-            
-        #self.name = self.account.name 
-        #character = self.db.findOwner(self.account.name,self.core.world.characters)
-        #if character == None:
-        #    newcharacter = world.Character(self.world,self.account.name,"Soul of %s"%(self.account.name))
-        #    newcharacter.mute = True
-        #    newcharacter.invisible = True
-        #    newcharacter.soul = True
-        #    
-        #    newcharacter.attach(self)
-        #elif isinstance(character,world.Character):
-        #    character.attach(self)
-        # Todo handle disconnects properly..
-        #self.world.addPlayer(self)
-        #self.handler = self.gameHandler
-        #print "Sending clk"
-        #self.send(self.handle_look([]))
+    
         #self.connection.write("clk test;yellow;/testing;Click here to test a command!")
         #self.send("Howabout $(clk2cmd:test;yellow;/testing;you click here)?")
         
@@ -261,6 +238,7 @@ class Player(object):
             
         
     def displayWorldMenu(self):
+        self.clearMain()
         buf = []
         buf.append("Welcome to the edge of the universe. " + 
                    "Where is your soul headed to?")
@@ -271,7 +249,7 @@ class Player(object):
             buf.append("Nobody has created a world yet..")
         else:
             # This is a crazy generator. Not for the weak of mind :-D
-            buf+=["{i}) {name}{pw}{players}".format(
+            buf+=["{i}) {name}<default>{pw}{players}".format(
              i=self.core.worlds.index(world)+1,
              name=world.name,
              pw=" [password]" if world.pw else "",
@@ -287,13 +265,76 @@ class Player(object):
         choice = []
         for i in range(len(self.core.worlds)): choice.append(str(i+1))
         choice.append("create")
+        choice.append("refresh")
         buf.append("To create a new world, type <white>create<reset>. To join, type the number of the world.")
         buf.append("[{0}]".format(", ".join(choice)))
         return "\n".join(buf)
             
-    def menuHandler(self, tok):
-        pass
-        
+    def handlerWorldMenu(self, tok):
+        if tok[0] == 'create':
+            self.handler = self.creatorWorld
+            self.handlerstate = 0
+            self.temp = {}
+            return self.handler([])
+        elif tok[0] == 'refresh':
+            return self.displayWorldMenu()
+            
+        else:
+            try:
+                x = int(tok[0])
+            except ValueError:
+                return "Invalid choice."
+            if x < 1 or x > len(self.core.worlds):
+                return "Invalid choice."
+            else:
+                choice = self.core.worlds[x-1]
+                # TODO join the player to this world
+                return "Joining you to world {0} - {1}".format(x,choice.name)
+               
+       
+    def creatorWorld(self,tok): # TODO This requires abuse protection obviously.
+        if self.handlerstate == 0:
+            self.handlerstate = 1
+            return "Name of your new game world? Keep it below 40 chars."
+        elif self.handlerstate == 1:
+            s = " ".join(tok)
+            if len(s) > 40: 
+                return "That name is too long, keep it shorter! Try again.."
+                 
+            self.temp['name'] = s
+            self.handlerstate = 2
+            return "Set a password for joining? (yes/no)"
+            
+        elif self.handlerstate == 2:
+            if tok[0][0].lower() == 'y':
+                self.handlerstate = 10
+                self.connection.write('pwd\r\n')
+                return "Type password for joining the world"
+            elif tok[0][0].lower() == 'n': #TODO create new world
+                newworld = world.World(self.temp['name'],None)
+                self.core.worlds.append(newworld)
+                self.handler = self.handlerWorldMenu
+                return self.handler(['refresh'])
+                
+        elif self.handlerstate == 10:
+            self.handlerstate = 11
+            self.temp['password'] = tok[0]
+            self.connection.write('pwd\r\n')
+            return "Please retype"
+            
+        elif self.handlerstate == 11:
+            if self.temp['password'] == tok[0]:
+                newworld = world.World(self.temp['name'],self.temp['password'])
+                self.core.worlds.append(newworld)
+                # TODO save
+                self.handler = self.handlerWorldMenu
+                return self.handler(['refresh'])
+                
+            else:
+                self.handlerstate = 2
+                return "Mismatch. Set a password for joining? (yes/no)"
+            
+            
     ''' New dev version gameHandler '''
     def gameHandler(self, tok):
         # style 0 is irc style, style 1 is mud style?

@@ -32,9 +32,9 @@ attributes
 import cPickle, time, re, random
 
 class World(object):
-    def __init__(self,name='default'):
+    def __init__(self,name='default',pw=None):
         self.name = name
-        self.pw = None
+        self.pw = pw
         self.objects = []
         self.locations = []
         self.characters = []
