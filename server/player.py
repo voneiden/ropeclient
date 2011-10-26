@@ -176,15 +176,33 @@ class Player(object):
             
         elif self.handlerstate == 12:
             if self.temp['password'] == message[0]:
-                print "New accont with",self.temp['name'],self.temp['password']
-                self.account = server.Account(self.temp['name'],self.temp['password'])
-                self.core.accounts[self.account.name] = self.account
-                self.core.saveAccounts()
-                self.login()
+                self.handlerstate = 13
+                f = open('text/stylehelp.txt','r')
+                buf = [f.read()]
+                buf.append("Choose your style (can be changed later!): irc/mud")
+                f.close()
+                
+                return "\n".join(buf)                
+                
             else:
                 self.handlerstate = 11
                 self.connection.write('pwd\r\n')
                 return "Password mismatch, try again! Your password?"
+                
+        elif self.handlerstate == 13:
+            if message[0].lower() == 'irc':
+                self.temp['style'] = 'irc'
+            elif message[0].lower() == 'mud':
+                self.temp['style'] = 'mud'
+            else:
+                return "Please choose <white>irc<reset> or <white>mud<reset>!"
+            
+            print "New accont with",self.temp['name'],self.temp['password']
+            
+            self.account = server.Account(self.temp['name'],self.temp['password'],self.temp['style'])
+            self.core.accounts[self.account.name] = self.account
+            self.core.saveAccounts()
+            return self.login()
     
     
     def disconnect(self):
@@ -210,6 +228,8 @@ class Player(object):
             print "Disconnecting old player"
             self.core.players[self.name].disconnect()
             
+        self.clearMain()
+        self.handler = self.menuHandler
         return self.displayWorldMenu()
             
         #self.name = self.account.name 
@@ -233,7 +253,12 @@ class Player(object):
         
         
         
+    def clearMain(self):
+        self.connection.write("clr main")
         
+    def clearOfftopic(self):
+        self.connection.write("clr offtopic")
+            
         
     def displayWorldMenu(self):
         buf = []
@@ -246,7 +271,8 @@ class Player(object):
             buf.append("Nobody has created a world yet..")
         else:
             # This is a crazy generator. Not for the weak of mind :-D
-            x=["{name}{pw}{players}".format(
+            buf+=["{i}) {name}{pw}{players}".format(
+             i=self.core.worlds.index(world)+1,
              name=world.name,
              pw=" [password]" if world.pw else "",
              players= " ({0} players online)".format(len(world.players)) 
@@ -254,9 +280,20 @@ class Player(object):
              " (1 player online)" 
              if len(world.players) else 
              " (No players online)") for world in self.core.worlds]
-            print x
+             
+            #for i,world in enumerate(worlds):
+            #    buf.append("{0}) {1}".format(i,world))
+        buf.append('')
+        choice = []
+        for i in range(len(self.core.worlds)): choice.append(str(i+1))
+        choice.append("create")
+        buf.append("To create a new world, type <white>create<reset>. To join, type the number of the world.")
+        buf.append("[{0}]".format(", ".join(choice)))
+        return "\n".join(buf)
             
-            
+    def menuHandler(self, tok):
+        pass
+        
     ''' New dev version gameHandler '''
     def gameHandler(self, tok):
         # style 0 is irc style, style 1 is mud style?

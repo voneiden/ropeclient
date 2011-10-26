@@ -134,10 +134,6 @@ class RopePlayer(LineReceiver):
 
     def failure(self,failure):
         ''' Failure handles any exceptions '''
-        #print "Got an exception!"
-        #print type(failure)
-        #print dir(failure)
-        #failure.printDetailedTraceback()
         dtb = failure.getTraceback(detail='verbose')
         tb = failure.getTraceback(detail='brief')
         print "!"*30
@@ -188,10 +184,10 @@ class TelnetNetwork(Factory):
         self.core = core
 
 class Account:
-    def __init__(self,name,password):
+    def __init__(self,name,password,style):
         self.name = name
         self.password = password
-        self.style = 0
+        self.style = style
 
 if __name__ == '__main__':
     core = Core()

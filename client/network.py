@@ -82,12 +82,12 @@ class Connection(LineReceiver):
             self.window.display(text,(tag,))
             print "Displayed"
            
-        elif tok[0] == 'clr':
+        elif tok[0] == 'clr': #TODO player list clear?
             if tok[1] == 'main':
                 self.window.textboxMain.config(state=window.NORMAL)
                 self.window.textboxMain.delete(1.0, window.END)
                 self.window.textboxMain.config(state=window.DISABLED)
-                
+            elif tok[1] == 'offtopic':
                 self.window.textboxOfftopic.config(state=window.NORMAL)
                 self.window.textboxOfftopic.delete(1.0,window.END)
                 self.window.textboxOfftopic.config(state=window.DISABLED)

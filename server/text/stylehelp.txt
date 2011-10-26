@@ -1,0 +1,12 @@
+Ropeclient supports two input styles while in-game:
+
+<white>IRC-style<reset> assumes that all commands must be prefixed by a slash '/'.
+If there is no slash, then the default action is to 'speak'. If you're used
+to roleplaying on IRC, you might prefer this style. To look around, you would
+type '/look'
+
+<white>MUD-style<reset> assumes that there is no default action. To speak you have
+to write 'say Whatever you want to say'. But you do not need to prefix your commands
+with a slash. To look around, you would type 'look'.
+
+The exception is offtopic, which is always prefixed by an opening bracket '('
