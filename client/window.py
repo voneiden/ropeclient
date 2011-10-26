@@ -219,15 +219,21 @@ class Window(object):
         self.entrybox.focus_set()
         
     def playerboxUpdate(self):
+        ''' playerlist[playername] = [bTyping,bCharname?] '''
         players = self.playerlist.keys()
         players.sort()
         
         self.playerbox.delete(0, END)
         for player in players:
-            if self.playerlist[player][0] == "1": 
-                self.playerbox.insert(END, "*%s (%s)"%(player,self.playerlist[player][1]))
-            else:
-                self.playerbox.insert(END, "%s (%s)"%(player,self.playerlist[player][1]))
+            pline = "{typing}{name} {charname}".format(
+                typing="*" if self.playerlist[player][0] == "1" else "",
+                name=player,
+                charname="" if self.playerlist[player][1] == 'None' else self.playerlist[player][1])
+                
+            #if self.playerlist[player][0] == "1": 
+            #    self.playerbox.insert(END, "*%s (%s)"%(player,self.playerlist[player][1]))
+            #else:
+            self.playerbox.insert(END, pline)
        
     def clickParse(self,message):
         regex = '\$\(clk2cmd\:.+?\)'

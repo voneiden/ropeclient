@@ -101,12 +101,24 @@ class World(object):
     def updatePlayers(self):
         print "Updating player list.."
         typinglist = []
-        for player in self.players:
-             if player.typing: typinglist.append("%s:1:$(name=%s)"%(player.name,player.character.name))
-             else: typinglist.append("%s:0:$(name=%s)"%(player.name,player.character.name))
+        for player in self.players: #TODO update here
+            typinglist.append(
+                "{name}:{typing}:$(name={charname})".format(
+                    name=player.name,
+                    typing="1" if player.typing else "0",
+                    charname=player.character.name if player.character else "None"))
+        
+        
+        
+        
+             #if player.typing: typinglist.append("%s:1:$(name=%s)"%(player.name,player.character.name))
+             #else: typinglist.append("%s:0:$(name=%s)"%(player.name,player.character.name))
         lop = ";".join(typinglist)
         for player in self.players:
-            player.connection.write("plu %s"%player.character.parse(lop))
+            if player.character:
+                player.connection.write("plu %s"%player.character.parse(lop))
+            else:
+                pass #TODO fix
             
     def updatePlayer(self,player):
         print "Updating just one player"

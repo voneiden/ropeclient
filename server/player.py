@@ -271,6 +271,7 @@ class Player(object):
         return "\n".join(buf)
             
     def handlerWorldMenu(self, tok):
+        if len(tok) == 0: return 
         if tok[0] == 'create':
             self.handler = self.creatorWorld
             self.handlerstate = 0
@@ -289,7 +290,9 @@ class Player(object):
             else:
                 choice = self.core.worlds[x-1]
                 # TODO join the player to this world
-                return "Joining you to world {0} - {1}".format(x,choice.name)
+                choice.addPlayer(self)
+                self.world = choice
+                return "Joined to world {0} - {1}".format(x,choice.name)
                
        
     def creatorWorld(self,tok): # TODO This requires abuse protection obviously.
