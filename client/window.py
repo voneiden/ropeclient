@@ -78,6 +78,7 @@ class Window(object):
         self.entrybox.bind("<MouseWheel>", func=self.textboxMainScroll)
         self.entrybox.bind("<Button-4>", func=self.textboxMainScroll)
         self.entrybox.bind("<Button-5>", func=self.textboxMainScroll)
+        self.entrybox.bind("<Control-a>",func=self.entrySelectAll)
         #self.widget.bind(sequence="<Up>", func=self.browseHistory)
         #self.widget.bind(sequence="<Down>", func=self.browseHistory)
         self.entrybox.focus_set()
@@ -144,6 +145,10 @@ class Window(object):
         self.textboxOfftopic.config(state=DISABLED)
         self.textboxOfftopic.yview(END)
 
+    def entrySelectAll(self,event):
+        print "ctrl+a"
+        self.entrybox.selection_range(0, END)
+        return "break"
     def entryboxKeypress(self,event):
         ''' Handles the input on entrybox. Slightly hacky, maybe..! '''
         message = self.entryboxMessage.get()
