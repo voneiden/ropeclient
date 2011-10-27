@@ -1,8 +1,14 @@
 0.0 Development notes
-Fully stable branch can be found at https://github.com/voneiden/ropeclient/tree/0.B-RC1
-Please note that development goals have drastically changed since the release of 0.B-RC1.
 
-Currently developing version 0.C
+Current development focuses on the branch 'reddit'. The aim is to produce
+a version ready for serious playtesting before October ends. 
+
+This program is in totally unstable development. If you want to try a stable result, check out 
+https://github.com/voneiden/ropeclient/tree/0.B-RC1 - but it really doesn't represent the current
+features and design principle.
+
+CURRENT STATE OF SOFTWARE IS COMPELTELY DIFFERENT FROM 0.B-RC1
+
 
 1.0 Installation notes
 Ropeclient runs on any nix system that has python 2.x and the following 
