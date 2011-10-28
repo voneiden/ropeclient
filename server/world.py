@@ -32,7 +32,7 @@ attributes
 import cPickle, time, re, random
 
 class World(object):
-    def __init__(self,name='default',pw=None):
+    def __init__(self,name='default',pw=None,gamemasters=[]):
         self.name = name
         self.pw = pw
         self.objects = []
@@ -40,6 +40,7 @@ class World(object):
         self.characters = []
         self.players    = []
         self.messages = {}
+        self.gamemasters = gamemasters
         self.memory = {} # Whats this?
         self.idents = {} # Contains all id()'s of objects   
         self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
@@ -145,6 +146,12 @@ class World(object):
         self.offtopic("<notify>%s has joined the game!"%player.name)
         if not player.character:
             player.character = Soul(self,player)
+        if player.name in self.gamemasters:
+            player.gamemaster = True
+            player.sendOfftopic("<notify>GM mode enabled!")
+        
+        print "Do looky"
+        player.sendMessage(player.handle_look([]))
             
     def remPlayer(self,player):
         print "REMOVING player"
@@ -153,6 +160,8 @@ class World(object):
             self.updatePlayers()
             
             self.offtopic("<notify>%s has left the game!"%player.name)
+        if player.gamemaster:
+            player.gamemaster = False
             
     def find(self,name,target):
         """ 
@@ -378,6 +387,7 @@ class Character(object):
             self.message(message)
             self.read.append(message)
         self.player.sendOfftopic("<ok>Attached to %s!"%self.name)
+        
             
     def detach(self):
         self.player.character = None

@@ -69,7 +69,7 @@ class Core(object):
     def __init__(self):
         self.version = "0.d.alpha"
         self.greeting = open('motd.txt', 'r').readlines()
-        self.worlds = [world.World()]
+        self.worlds = [world.World("Official sandbox",None,['voneiden'])]
         self.loadAccounts()
         self.loadWorlds()
         self.players = {}

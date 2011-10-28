@@ -66,16 +66,16 @@ class Player(object):
                        "not compatible with this server ({version}). Please ",
                        "get the latest updates from http://www.github.com",
                        "/voneiden/ropecilent - thanks!"]
-                self.send("".join(buf).format(clientversion=tok[1],
+                self.sendMessage("".join(buf).format(clientversion=tok[1],
                                               version=self.core.version))
                 self.recv = self.recvIgnore
             else:
                 self.clearOfftopic()
-                self.send("Version up to date!")
-                self.send("".join(self.core.greeting))
+                self.sendMessage("Version up to date!")
+                self.sendMessage("".join(self.core.greeting))
                 self.recv = self.recvMessage
         else:
-            self.send("Hi, you're not supposed to be here, are you? :) Curren" +
+            self.sendMessage("Hi, you're not supposed to be here, are you? :) Curren" +
                       "tly logins are only supported by the official client")
             self.recv = self.recvIgnore
     
@@ -94,7 +94,7 @@ class Player(object):
             print "Got resp",response
             print "Type",type(response)
             if type(response) is str or type(response) is unicode:
-                self.send(response)
+                self.sendMessage(response)
             self.typing = 0
             if self.world:
                 self.world.updatePlayer(self)
@@ -118,7 +118,7 @@ class Player(object):
             return self.account.name    
     
         
-    def send(self, message): #TODO remove this function
+    def sendMessage(self, message): #TODO remove this function
         ''' This function will also do some parsing stuff! '''
         #if self.character: #TODO fix
         #    message = self.character.parse(message)
@@ -127,10 +127,7 @@ class Player(object):
     def sendOfftopic(self,message,timestamp=None):
         self.connection.sendOfftopic(message,timestamp)
 
-    ''' DEV: this function should possibly be removed '''    
-    def offtopic(self, message):
-        #self.connection.write('oft %f %s'%(time.time(),message))
-        self.send("(%s"%message)
+
         
     def handlerLogin(self, message):
         '''
@@ -219,7 +216,7 @@ class Player(object):
         if self.name in self.core.players:
             del self.core.players[self.name]
             
-        self.send("Disconnecting you, bye bye. (Either you quit or " +
+        self.sendMessage("<fail>Disconnecting you, bye bye. (Either you quit or " +
                   "you may have logged in elsewhere).")
         self.connection.transport.loseConnection()
         
@@ -279,13 +276,18 @@ class Player(object):
         return "\n".join(buf)
             
     def handlerWorldMenu(self, tok):
-        if len(tok) == 0: return 
-        if tok[0] == 'create':
+        print "worldmenu",tok
+        if len(tok) == 0: return
+        elif len(tok[0]) == 0: 
+            print "my god",tok
+            return #This probably shouldn't happen? 
+        if tok[0][0].lower() == 'c':
             self.handler = self.creatorWorld
             self.handlerstate = 0
             self.temp = {}
             return self.handler([])
-        elif tok[0] == 'refresh':
+        
+        elif tok[0][0].lower() == 'r':
             return self.displayWorldMenu()
             
         else:
@@ -298,15 +300,17 @@ class Player(object):
             else:
                 choice = self.core.worlds[x-1]
                 # TODO join the player to this world
+                self.clearMain()
                 choice.addPlayer(self)
                 self.world = choice
                 self.handler = self.handlerGame
-                self.clearMain()
+                
                 return "Joined to world {0} - {1}".format(x,choice.name)
                 
                
        
     def creatorWorld(self,tok): # TODO This requires abuse protection obviously.
+        
         if self.handlerstate == 0:
             self.handlerstate = 1
             return "Name of your new game world? Keep it below 40 chars."
@@ -320,12 +324,13 @@ class Player(object):
             return "Set a password for joining? (yes/no)"
             
         elif self.handlerstate == 2:
-            if tok[0][0].lower() == 'y':
+            if len(tok[0]) == 0: return
+            elif tok[0][0].lower() == 'y':
                 self.handlerstate = 10
                 self.connection.write('pwd\r\n')
                 return "Type password for joining the world"
-            elif tok[0][0].lower() == 'n': #TODO create new world
-                newworld = world.World(self.temp['name'],None)
+            elif tok[0][0].lower() == 'n': 
+                newworld = world.World(self.temp['name'],None,[self.name])
                 self.core.worlds.append(newworld)
                 self.handler = self.handlerWorldMenu
                 return self.handler(['refresh'])
@@ -338,7 +343,7 @@ class Player(object):
             
         elif self.handlerstate == 11:
             if self.temp['password'] == tok[0]:
-                newworld = world.World(self.temp['name'],self.temp['password'])
+                newworld = world.World(self.temp['name'],self.temp['password'],[self.name])
                 self.core.worlds.append(newworld)
                 # TODO save
                 self.handler = self.handlerWorldMenu
@@ -420,7 +425,7 @@ class Player(object):
         #        return character.info
         
     # Changing it so that a character is owned by whoever last was attached to it.            
-    def characterSpawner(self,message):
+    def creatorCharacter(self,message):
         ''' This is a handler for character generation '''
         self.handlerstate += 1
         if isinstance(message,list):
@@ -454,7 +459,7 @@ class Player(object):
             self.handler = self.gameHandler
             return "Done"
     
-    def locationCreator(self,tok):
+    def creatorLocation(self,tok):
         self.handlerstate += 1
         print "Locreator",tok
         print type(tok)
@@ -678,14 +683,9 @@ class Player(object):
             location = self.character.location
             buffer.append("<purple>%s<reset>"%location.name)
             buffer.append("<light sky blue>%s<reset>"%location.description)
-         
-            characters = []
-            for character in location.characters:
-                if character.invisible: continue
-                elif character == self.character: continue
-                else:
-                    characters.append(chararcter)
             
+            characters = [character for character in location.characters if not 
+                          isinstance(character,world.Soul) and character != self.character]
             print "Chars",len(characters)
             if len(characters) == 0:
                 buffer.append("<turquoise>You are alone<reset>")
@@ -701,13 +701,12 @@ class Player(object):
             else:
                 buffer.append("<ok>Exits: %s"%", ".join([link.name for link in location.links]))
         
-        #self.send("\n".join(buffer))
         return "\n".join(buffer)
           
     def handle_spawn(self, tok):
         ''' This command is used to spawn new characters '''
         if self.gamemaster:
-            self.handler = self.characterSpawner
+            self.handler = self.creatorCharacter
             self.handlerstate = 0
             self.temp = {}
             return self.handler(None)
@@ -716,7 +715,7 @@ class Player(object):
             
     def handle_create(self, tok):
         if self.gamemaster:
-            self.handler = self.locationCreator
+            self.handler = self.creatorLocation
             self.handlerstate = 0
             self.temp = {}
             return self.handler([])
