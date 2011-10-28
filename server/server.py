@@ -129,7 +129,8 @@ class RopePlayer(LineReceiver):
         self.write('msg %f %s' % (time.time(),message))
 
     def disconnect(self):
-        self.transport.loseConnection()
+        pass
+        #self.transport.loseConnection()
 
 
     def failure(self,failure):

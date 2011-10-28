@@ -92,10 +92,12 @@ class World(object):
                 recipient.message(timestamp)
     
     def offtopic(self,message):
+        # TODO all offtopic needs to be logged, and upon player
+        # connecting, the last.. say, 50 lines will be sent.
         timestamp = self.timestamp()
         print "Sending offtopic message",message
         for player in self.players:
-            #player.connection.write("oft %f %s"%(timestamp,player.character.parse(message)))
+            #player.connection.write("oft %f %s"%(timestamp,player.character.parse(message))) #TODO
             player.send("(%s"%message)
             
     def updatePlayers(self):
@@ -134,12 +136,17 @@ class World(object):
             player.connection.write("ptu %s"%player.replaceCharacterNames(buffer))
             
     def addPlayer(self,player):
-        if player not in self.players:
-            self.players.append(player)
-            self.updatePlayers()
-            self.offtopic("<notify>%s has joined the game!"%player.name)
+        if [p for p in self.players if p.name == player.name]:
+            p.disconnect() #This will automatically call remPlayer etc.
+        
+        self.players.append(player)
+        self.updatePlayers()
+        self.offtopic("<notify>%s has joined the game!"%player.name)
+        if not player.character:
+            player.character = Soul(self,player)
             
     def remPlayer(self,player):
+        print "REMOVING player"
         if player in self.players:
             self.players.remove(player)
             self.updatePlayers()
@@ -289,6 +296,12 @@ class World(object):
        
     def remExit(self,exit):
         self.remObject(exit)
+        
+
+        
+        
+        
+        
 class Character(object):
     def __init__(self,world,owner=None,name='unnamed',info="A soul",description="A new character",location = None):
 
@@ -372,7 +385,7 @@ class Character(object):
     def message(self,timestamp): 
         print "sending message id",timestamp
         if self.player:
-            self.player.send(self.parse(self.world.messages[timestamp]))
+            #self.player.send(self.parse(self.world.messages[timestamp])) #TODO
             if timestamp not in self.read:
                 self.read.append(timestamp)
         else:
@@ -415,7 +428,24 @@ class Character(object):
                               (self.rename,"$(clk2cmd:%s;notify;/memorize %s %s;%s)"%
                               (self.name,self.ident,name,name)))
         
+class Soul(Character):
+    ''' Souls are temporary invisible characters '''
+    def __init__(self,world,player,location=None):
+        Character.__init__(self,world)
+        self.world = world
+        self.owner = player.name
+        self.name  = "Soul"
+        self.description = "Soul"
+        self.info = "Soul"
         
+        self.attach(player)
+        if location:
+            self.location = location
+        else:
+            self.location = self.world.spawn
+
+        #TODO detach should destroy the soul
+  
 class Location(object):
     def __init__(self,world,name="New location",description = ""):
         self.world = world
@@ -496,7 +526,11 @@ class Location(object):
 
         else:
             return False
-            
+
+
+
+
+        
 class Link:
     def __init__(self,name,destination,locked=False):
         self.name = name

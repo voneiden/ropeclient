@@ -70,6 +70,7 @@ class Player(object):
                                               version=self.core.version))
                 self.recv = self.recvIgnore
             else:
+                self.clearOfftopic()
                 self.send("Version up to date!")
                 self.send("".join(self.core.greeting))
                 self.recv = self.recvMessage
@@ -119,8 +120,8 @@ class Player(object):
         
     def send(self, message):
         ''' This function will also do some parsing stuff! '''
-        if self.character:
-            message = self.character.parse(message)
+        #if self.character: #TODO fix
+        #    message = self.character.parse(message)
         self.connection.sendMessage(message)
     
 
@@ -158,7 +159,7 @@ class Player(object):
                 self.name = self.account.name
                 return self.login()
             else:
-                self.connection.disconnect()
+                self.disconnect() #TODO
                 
         elif self.handlerstate == 10:
             if len(message[0]) < 1: return
@@ -210,7 +211,9 @@ class Player(object):
     
     def disconnect(self):
         if self.character: self.character.detach()
-        if self.world: pass #TODO: world disconnected
+        if self.world:
+            self.world.remPlayer(self)
+            
         if self.name in self.core.players:
             del self.core.players[self.name]
             
@@ -296,7 +299,7 @@ class Player(object):
                 choice.addPlayer(self)
                 self.world = choice
                 self.handler = self.handlerGame
-                
+                self.clearMain()
                 return "Joined to world {0} - {1}".format(x,choice.name)
                 
                
@@ -346,16 +349,17 @@ class Player(object):
             
     ''' New dev version gameHandler '''
     def handlerGame(self, tok):
-        # style 0 is irc style, style 1 is mud style?
-        if self.character and len(tok) > 0:
+        print "Handlering"
+        print "style is",self.account.style
+        if len(tok) > 0:
             if self.account.style == 'irc' and tok[0][0] != '/': #IRC STYLE
                 return self.handle_say(tok)
             elif self.account.style == 'irc':
                 command = tok[0][1:]
-            elif self.account.style:
+            elif self.account.style == 'mud':
                 command = tok[0]
-            if self.account.style and command[0] == '/': #Combatibility for /memorize command
-                command = command[1:]
+            if self.account.style == 'mud' and command[0] == '/': #Combatibility for /memorize command
+                command = command[1:] #TODO this could be part of elif
                 
             command = "handle_%s"%command
             print "gameHandler: Searching for command",command
@@ -392,25 +396,26 @@ class Player(object):
         print "Checking my memory.."
         if not self.character:
             return name #TODO return actually character short description, just a quick hack
-            
-        else: #TODO needs fixing srsly
-            print self.character.memory
-            for key in self.character.memory.keys():
-                print "Remembering",key,type(key)
-            
-            character = self.world.find(name,self.world.characters)
+        return name
            
-            if not character: 
-                print "character not found"
-                return name
-            else:
-                character = character[0] #TODO temp fix
-            if character in self.memory.keys():
-                return self.memory[character]
-            elif character == self:
-                return character.name
-            else:
-                return character.info
+        #else: #TODO needs fixing srsly
+        #    print self.character.memory
+        #    for key in self.character.memory.keys():
+        #        print "Remembering",key,type(key)
+        #    
+        #    character = self.world.find(name,self.world.characters)
+        #   
+        #    if not character: 
+        #        print "character not found"
+        #        return name
+        #    else:
+        #        character = character[0] #TODO temp fix
+        #    if character in self.memory.keys():
+        #        return self.memory[character]
+        #    elif character == self:
+        #        return character.name
+        #    else:
+        #        return character.info
         
     # Changing it so that a character is owned by whoever last was attached to it.            
     def characterSpawner(self,message):
