@@ -91,14 +91,15 @@ class World(object):
             for recipient in recipients:
                 recipient.message(timestamp)
     
-    def offtopic(self,message):
+    def offtopic(self,message,recipients=None):
         # TODO all offtopic needs to be logged, and upon player
         # connecting, the last.. say, 50 lines will be sent.
+        if not recipients: 
+            recipients = self.players
         timestamp = self.timestamp()
         print "Sending offtopic message",message
-        for player in self.players:
-            #player.connection.write("oft %f %s"%(timestamp,player.character.parse(message))) #TODO
-            player.send("(%s"%message)
+        for player in recipients:
+            player.sendOfftopic(message,timestamp)
             
     def updatePlayers(self):
         print "Updating player list.."
@@ -376,7 +377,7 @@ class Character(object):
             message = self.unread.pop(0)
             self.message(message)
             self.read.append(message)
-        self.player.send("(<ok>Attached to %s!"%self.name)
+        self.player.sendOfftopic("<ok>Attached to %s!"%self.name)
             
     def detach(self):
         self.player.character = None

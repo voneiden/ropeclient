@@ -118,12 +118,14 @@ class Player(object):
             return self.account.name    
     
         
-    def send(self, message):
+    def send(self, message): #TODO remove this function
         ''' This function will also do some parsing stuff! '''
         #if self.character: #TODO fix
         #    message = self.character.parse(message)
         self.connection.sendMessage(message)
     
+    def sendOfftopic(self,message,timestamp=None):
+        self.connection.sendOfftopic(message,timestamp)
 
     ''' DEV: this function should possibly be removed '''    
     def offtopic(self, message):
@@ -774,8 +776,8 @@ class Player(object):
             tok[-1] = tok[-1][:-1]
         if tok[0][0] == '(':
             tok[0] = tok[0][1:]
-        message = "(%s: %s"%(self.getName()," ".join(tok))
-        self.world.message(self.world.characters,message)
+        message = "%s: %s"%(self.getName()," ".join(tok))
+        self.world.offtopic(message) #TODO we want seperate function for sending offtopic?
         
     def handle_say(self, tok):
         if not self.character.mute:

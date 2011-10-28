@@ -38,16 +38,18 @@ class Connection(LineReceiver):
         data = data.decode('utf-8').strip()
         tok = data.split(' ')
 
+        # 0.D update mandates offtopic to use oft packet header
+        # I don't quite know why I changed it in the first place..
+        
         if tok[0] == 'msg':
             timestamp = float(tok[1])
             message = " ".join(tok[2:])
             self.window.display(message,timestamp)
         
-        #elif tok[0] == 'oft':
-        #    timestamp = float(tok[1])
-        #    
-        #    message   = "[%s] %s"%(time.strftime("%H:%M",time.localtime(timestamp))," ".join(tok[2:]))
-        #    self.window.display(message,timestamp)
+        elif tok[0] == 'oft':
+            timestamp = float(tok[1])
+            message = " ".join(tok[2:])
+            self.window.display(message,timestamp,True)
            
         elif tok[0] == 'pwd':
             self.window.entryboxHide = True

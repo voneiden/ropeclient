@@ -97,24 +97,14 @@ class Window(object):
         self.history = []
         self.historypos = 0
         
-    # Todo offtopic dispaly..
-    def display(self,message,timestamp=None):
-        
-        
-            
-        
+    # TODO update
+    def display(self,message,timestamp=None,offtopic=False):
+          
            
         message = self.clickParse(message)
         message = self.diceParse(message)
         message = self.colorParse(message)
         
-        if message[0] == '(':
-            message = message[1:]
-            if message[-1] == ')':
-                message = message[:-1]
-            offtopic = True
-        else:
-            offtopic = False
          
         if timestamp != None: 
             if '\n' in message:pass

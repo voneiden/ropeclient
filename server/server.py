@@ -128,6 +128,10 @@ class RopePlayer(LineReceiver):
     def sendMessage(self, message):
         self.write('msg %f %s' % (time.time(),message))
 
+    def sendOfftopic(self,message,timestamp):
+        if not timestamp: timestamp = time.time()
+        self.write("oft {timestamp} {message}".format(timestamp=timestamp,message=message))
+
     def disconnect(self):
         pass
         #self.transport.loseConnection()
