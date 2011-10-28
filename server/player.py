@@ -425,39 +425,47 @@ class Player(object):
         #        return character.info
         
     # Changing it so that a character is owned by whoever last was attached to it.            
-    def creatorCharacter(self,message):
+    def creatorCharacter(self,tok):
         ''' This is a handler for character generation '''
-        self.handlerstate += 1
-        if isinstance(message,list):
-            msg = " ".join(message)
+        msg = " ".join(tok)
+        if msg.lower() == 'abort':
+            self.handler = self.handlerGame
+            return "Aborted"
             
-        if self.handlerstate  == 1:
-            return "Name of this character ?"
+        elif self.handlerstate  == 0:
+            self.handlerstate = 1
+            return "Character name [type 'abort' to abort process]:"
 
             
+        elif self.handlerstate == 1:
+            matched = [character for character in self.world.characters if character.name == msg]
+            if matched:
+                self.sendMessage("<fail>Warning, a character with that name already exists!")
+            
+            self.temp['name'] = msg
+            self.handlerstate = 2
+            return "Short description [max 5 words OR blank to set same as name]:"
+           
         elif self.handlerstate == 2:
-            char = self.world.find(msg,self.world.characters)
-            if not char:
-                self.temp['name'] = msg
-                return "Describe with a few words (max 5)"
+            if len(tok) > 6:
+                return "Too long, keep it brief.."
+            if len(tok) == 0:
+                self.temp['info'] = self.temp['name']
             else:
-                self.handlerstate -= 1
-                return "Character name already exists!"
+                self.temp['info'] = msg
+            
+            self.handlerstate = 3
+            return "Long description?"
+        
         elif self.handlerstate == 3:
-            if len(message) > 5 or len(msg) < 3:
-                self.handlerstate -= 1
-                return "Try again.."
-            self.temp['info'] = msg
-            return "Long description? You may write it later too."
-        elif self.handlerstate == 4:
             self.temp['description'] = msg
-            newchar = world.Character(self.world,self.account.name,
+            newchar = world.Character(self.world,self.name,
                                       self.temp['name'],self.temp['info'],
                                       self.temp['description'],
                                       self.character.location)
             #newchar.move(self.character.location)
-            self.handler = self.gameHandler
-            return "Done"
+            self.handler = self.handlerGame
+            return "Character created succesfully!"
     
     def creatorLocation(self,tok):
         self.handlerstate += 1
@@ -709,7 +717,7 @@ class Player(object):
             self.handler = self.creatorCharacter
             self.handlerstate = 0
             self.temp = {}
-            return self.handler(None)
+            return self.handler([])
         else:
             return "(Not authorized"
             
