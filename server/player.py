@@ -790,20 +790,25 @@ class Player(object):
     
         
     def handle_offtopic(self, tok):
+        if len(tok) == 0: return
         if tok[-1][-1] == ')': 
             tok[-1] = tok[-1][:-1]
         if tok[0][0] == '(':
             tok[0] = tok[0][1:]
-        message = "%s: %s"%(self.getName()," ".join(tok))
+        message = "{name}: {message}".format(name=self.name, message=" ".join(tok))
         self.world.offtopic(message) #TODO we want seperate function for sending offtopic?
         
     def handle_say(self, tok):
-        if not self.character.mute:
-            if self.account.style:
-                message = " ".join(tok[1:])
-            else:
-                message = " ".join(tok)
+        if not self.character.mute and not isinstance(self.character,world.Soul):
+            #if self.account.style == 'mud':
+            #    message = " ".join(tok[1:])
+            #else:
+            #    message = " ".join(tok)
+            message = " ".join(tok)
+            if len(message) == 0: return "<fail>Say what?"
             
+            print "Attempting to say",message
+            print tok
             if message[-2:] == ':)': 
                 says = "smiles and says"
                 message = message[:-2].strip()
@@ -817,8 +822,11 @@ class Player(object):
                 says = "exclaims"
             else:
                 says = 'says'
-                # had color #8888ff
-            self.character.location.announce('''%s %s, "%s"'''%(self.character.rename, says, message))
+                # had color #8888ff #TODO rename()
+            self.character.location.sendMessage('{name} {says}, "<talk>{text}<reset>"'.format(
+                                                       name=self.character.name,
+                                                       says=says,
+                                                       text=message))
         else:
             #self.offtopic("You are mute! You can't talk")
             self.handle_offtopic(tok)

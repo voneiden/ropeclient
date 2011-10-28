@@ -27,7 +27,7 @@ attributes
 
 # NOTE character deleting has potential memory leak issue: memorize function might
 #contain a reference to the character? too lazy to check right now
-
+#FIXME
 
 import cPickle, time, re, random
 
@@ -41,11 +41,12 @@ class World(object):
         self.players    = []
         self.messages = {}
         self.gamemasters = gamemasters
-        self.memory = {} # Whats this? 
-        self.idents = {} # Contains all id()'s of objects    OBSOLETE?
+        #self.memory = {} # Whats this? 
+        #self.idents = {} # Contains all id()'s of objects    OBSOLETE?
         self.unique = 0
         self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
-    
+        self.offtopicHistory = []
+        
     def timestamp(self):
         timestamp = time.time()
         print "timestamp",timestamp,self.messages.keys()
@@ -78,7 +79,7 @@ class World(object):
             
         return True
 
-    def message(self,recipients,message):
+    def sendMessage(self,recipients,message):
         ''' This is the function to send messages to character. The message is given an ID which can be later retrieved! '''
         timestamp = self.timestamp()
         # Do the dice rolling too..
@@ -98,6 +99,8 @@ class World(object):
         # connecting, the last.. say, 50 lines will be sent.
         if not recipients: 
             recipients = self.players
+            self.offtopicHistory.append(message)
+            
         timestamp = self.timestamp()
         print "Sending offtopic message",message
         for player in recipients:
@@ -144,6 +147,8 @@ class World(object):
         
         self.players.append(player)
         self.updatePlayers()
+        for line in self.offtopicHistory[-20:]:
+            player.sendOfftopic(line)
         self.offtopic("<notify>%s has joined the game!"%player.name)
         if not player.character:
             player.character = Soul(self,player)
@@ -376,9 +381,9 @@ class Character(object):
                 self.location.characters.remove(self)
         self.location = location
         self.location.characters.append(self)
-        if not self.invisible:
-            self.location.announce("%s has arrived."%(self.rename),self)
-        self.world.message(self,"You have arrived.") #TODO decide whether send on world.message
+        if not self.invisible and not isinstance(self,Soul):
+            self.location.sendMessage("%s has arrived."%(self.rename),self)
+        self.world.sendMessage(self,"You have arrived.") #TODO decide whether send on world.message
         if self.player: self.player.send(self.player.handle_look([]))
         
     def attach(self,player):
@@ -401,7 +406,7 @@ class Character(object):
     def message(self,timestamp): 
         print "sending message id",timestamp
         if self.player:
-            #self.player.send(self.parse(self.world.messages[timestamp])) #TODO
+            self.player.sendMessage(self.world.messages[timestamp]) #TODO
             if timestamp not in self.read:
                 self.read.append(timestamp)
         else:
@@ -473,8 +478,8 @@ class Location(object):
         
         self.world.addLocation(self)
         
-        self.ident = str(id(self))
-        self.world.idents[self.ident] = self
+        #self.ident = str(id(self))
+        #self.world.idents[self.ident] = self
         
     def __setstate__(self): #TODO test this!
         print "Loading saved location.."
@@ -490,12 +495,12 @@ class Location(object):
     def dynid(self):
         return str(self.world.locations.index(self))
           
-    def announce(self,message,ignore=None):
+    def sendMessage(self,message,ignore=None): #TODO improve
         recipients = self.characters[:]
         print "Announcing to",recipients,message
-        if ignore in recipients: recipients.remove(ignore)
+        #if ignore in recipients: recipients.remove(ignore)
         if len(recipients) > 0: 
-            self.world.message(recipients,message)
+            self.world.sendMessage(recipients,message)
         else:
             print "Nobody to receive this message, ignoring.."
 
