@@ -41,8 +41,9 @@ class World(object):
         self.players    = []
         self.messages = {}
         self.gamemasters = gamemasters
-        self.memory = {} # Whats this?
-        self.idents = {} # Contains all id()'s of objects   
+        self.memory = {} # Whats this? 
+        self.idents = {} # Contains all id()'s of objects    OBSOLETE?
+        self.unique = 0
         self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
     
     def timestamp(self):
@@ -277,6 +278,9 @@ class World(object):
     
     def addObject(self,obj):
         self.objects.append(obj)
+        self.unique += 1
+        obj.unique = self.unique
+        
     def remObject(self,obj):
         self.objects.remove(obj)
     
@@ -294,7 +298,8 @@ class World(object):
         if character.location == None:
             character.move(self.spawn)
         else:
-            character.move(location)
+            character.move(character.location)
+            
     def remCharacter(self,character):
         self.characters.remove(character)
         self.remObject(character)
@@ -319,11 +324,11 @@ class Character(object):
         self.owner = owner
         self.player = None
         self.name = name
-        self.rename = "$(name=%s)"%(self.name)
+        self.rename = "$(name=%s)"%(self.name) #TODO
         self.description = description
         self.info        = info
-        self.color = "default"
-        self.location = None
+        #self.color = "default"
+        self.location = location
 
         
         
@@ -339,10 +344,11 @@ class Character(object):
         self.memory = {}
         
         self.world.addCharacter(self)
+        print "Added character",self.location.characters
         
-        ''' ID update '''
-        self.ident = str(id(self))
-        self.world.idents[self.ident] = self
+        #''' ID update '''
+        #self.ident = str(id(self))
+        #self.world.idents[self.ident] = self
         
         
             
@@ -362,8 +368,7 @@ class Character(object):
         self.rename = "<%s>$(name=%s)<reset>"%(self.color,self.name)    
     
     def move(self,location):
-        if self.location == location: return
-        if self.location != None:
+        if self.location != None and location != location:
             print "Left from location"
             if self in self.location.characters:
                 if not self.invisible:
@@ -400,7 +405,7 @@ class Character(object):
             if timestamp not in self.read:
                 self.read.append(timestamp)
         else:
-            self.unread.append(timestamp)
+            self.unread.append(timestamp) 
             
     #def parse(self,message):
     #    ''' This functions solves name-memory '''

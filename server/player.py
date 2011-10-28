@@ -94,7 +94,10 @@ class Player(object):
             print "Got resp",response
             print "Type",type(response)
             if type(response) is str or type(response) is unicode:
-                self.sendMessage(response)
+                if response[0] == '(':
+                    self.sendOfftopic(response[1:])
+                else:
+                    self.sendMessage(response)
             self.typing = 0
             if self.world:
                 self.world.updatePlayer(self)
@@ -122,10 +125,10 @@ class Player(object):
         ''' This function will also do some parsing stuff! '''
         #if self.character: #TODO fix
         #    message = self.character.parse(message)
-        self.connection.sendMessage(message)
+        self.connection.sendMessage(self.replaceCharacterNames(message))
     
     def sendOfftopic(self,message,timestamp=None):
-        self.connection.sendOfftopic(message,timestamp)
+        self.connection.sendOfftopic(self.replaceCharacterNames(message),timestamp)
 
 
         
@@ -139,9 +142,10 @@ class Player(object):
         '''
         if self.handlerstate == 1:
             self.temp['name'] = message[0]
-            if self.temp['name'].lower() in self.core.accounts:
+            account = [account for account in self.core.accounts if self.temp['name'].lower() == account.name.lower()]
+            if account:
                 self.handlerstate = 2
-                self.account = self.core.accounts[self.temp['name'].lower()]
+                self.account = account[0]
                 
                 self.connection.write('pwd\r\n')
                 return "Your <f>password<reset>?"   
@@ -202,7 +206,7 @@ class Player(object):
             print "New accont with",self.temp['name'],self.temp['password']
             
             self.account = server.Account(self.temp['name'],self.temp['password'],self.temp['style'])
-            self.core.accounts[self.account.name] = self.account
+            self.core.accounts.append(self.account)
             self.core.saveAccounts()
             self.name = self.account.name
             return self.login()
@@ -441,7 +445,8 @@ class Player(object):
             matched = [character for character in self.world.characters if character.name == msg]
             if matched:
                 self.sendMessage("<fail>Warning, a character with that name already exists!")
-            
+            elif len(msg) < 2:
+                return("That's a too short name..! Try again:")
             self.temp['name'] = msg
             self.handlerstate = 2
             return "Short description [max 5 words OR blank to set same as name]:"
@@ -605,24 +610,30 @@ class Player(object):
     def handle_attach(self,tok): 
         regex1 = "(.+?) to (.+)"
         msg = " ".join(tok)
-        search = re.search(regex1,msg)
-        if search:
+        special = re.search(regex1,msg)
+        if special:
             groups = search.groups()
-            playerName = groups[0]
-            characterName = groups[1]
-            player    = self.world.find(playerName,self.world.players)
+            playerName = groups[0].lower()
+            characterName = groups[1].lower()
+            #player    = self.world.find(playerName,self.world.players)
+            player = [player for player in self.world.players if player.name.lower() == playerName]
         else:
             player = [self]
             characterName = msg
         
         if not player:
-            return "(<fail>Could not find player"
+            return "(<fail>Unable to find a player named '{0}'.".format(playerName)
         else:
             player = player[0]
             
-        character = self.world.find(characterName,self.world.characters)
+        #TODO handle characters with the same name
+        #TODO wildcards?
+        
+        character = [character for character in self.world.characters if character.name.lower() == characterName.lower()]
         if not character:
-            return "(<fail>Could not find character"
+            return "(<fail>Unable to find a character named '{0}'.".format(characterName)
+        elif len(character) > 1:
+            return ("<fail>Found multiple characters with the same name..")
         else:
             character = character[0]
             

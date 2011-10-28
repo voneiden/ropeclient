@@ -72,7 +72,7 @@ class Core(object):
         self.worlds = [world.World("Official sandbox",None,['voneiden'])]
         self.loadAccounts()
         self.loadWorlds()
-        self.players = {}
+        self.players = []
         
     def __getstate__(self):
         return None
@@ -82,11 +82,11 @@ class Core(object):
             f = open('accounts.db', 'rb')
             self.accounts = cPickle.load(f)
             f.close()
-            if type(self.accounts) != dict:
+            if type(self.accounts) != list:
                 print "Accounts have invalid type, clearing"
-                self.accounts = {}
+                self.accounts = []
         except IOError:
-            self.accounts = {}
+            self.accounts = []
     
     def saveAccounts(self):
         f = open('accounts.db','wb')
