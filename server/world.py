@@ -63,7 +63,7 @@ class World(object):
         pass #TODO should also modify the world save location!
         
     def setup(self,core):
-        print "Setting up loaded world '{0}'".format(name)
+        print "Setting up loaded world '{0}'".format(self.name)
         self.players = []
         
         oldworld = [world for world in core.worlds if world.name.lower() == self.name.lower()]

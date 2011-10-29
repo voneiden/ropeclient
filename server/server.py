@@ -100,6 +100,7 @@ class Core(object):
                     f = open("{0}/{1}".format(path,fname),'rb')
                     world = cPickle.load(f)
                     f.close()
+                    world.setup(self)
                     
         
     def saveWorlds(self):
