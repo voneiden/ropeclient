@@ -113,7 +113,7 @@ class World(object):
                 "{name}:{typing}:$(name={unique})".format(
                     name=player.name,
                     typing="1" if player.typing else "0",
-                    unique=player.character.name if player.character else "-1"))
+                    unique=player.character.unique if player.character else "-1"))
         
         
         

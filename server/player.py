@@ -330,7 +330,7 @@ class Player(object):
                 return "That name is too long, keep it shorter! Try again.."
             
             # Make sure name is not a duplicate
-            elif [world for world in self.core.worlds if world.name.lower() == s.lower()]:
+            elif [w for w in self.core.worlds if w.name.lower() == s.lower()]:
                 return "That name already exists. Duplicate world names are not allowed.."
                 
             elif not re.match("^[ \w-]+$",s,re.UNICODE):
@@ -737,7 +737,7 @@ class Player(object):
           
     def handle_spawn(self, tok):
         ''' This command is used to spawn new characters '''
-        if self.gamemaster:
+        if self.gamemaster or not self.world.limitSpawn:
             self.handler = self.creatorCharacter
             self.handlerstate = 0
             self.temp = {}
