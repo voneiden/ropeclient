@@ -291,6 +291,17 @@ class Player(object):
         elif len(tok[0]) == 0: 
             print "my god",tok
             return #This probably shouldn't happen? 
+        if self.handlerstate == 10:
+            if tok[0] == self.temp['choice'].pw:
+                self.clearMain()
+                self.world = self.temp['choice']
+                self.temp['choice'].addPlayer(self)
+                self.handler = self.handlerGame
+                return
+            else:
+                self.handlerstate = 0
+                return "<fail>Invalid password"
+                
         if tok[0][0].lower() == 'c':
             self.handler = self.creatorWorld
             self.handlerstate = 0
@@ -309,7 +320,12 @@ class Player(object):
                 return "Invalid choice."
             else:
                 choice = self.core.worlds[x-1]
-                # TODO join the player to this world
+                if choice.pw:
+                    self.connection.write('pwd\r\n')
+                    self.handlerstate = 10
+                    self.temp['choice'] = choice
+                    return "This world is password protected. You should have received a password from your game master. Type in the password now"
+                    
                 self.clearMain()
                 self.world = choice
                 choice.addPlayer(self)
