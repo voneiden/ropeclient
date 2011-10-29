@@ -311,8 +311,8 @@ class Player(object):
                 choice = self.core.worlds[x-1]
                 # TODO join the player to this world
                 self.clearMain()
-                choice.addPlayer(self)
                 self.world = choice
+                choice.addPlayer(self)
                 self.handler = self.handlerGame
                 
                 return "Joined to world {0} - {1}".format(x,choice.name)
@@ -334,7 +334,7 @@ class Player(object):
                 return "That name already exists. Duplicate world names are not allowed.."
                 
             elif not re.match("^[ \w-]+$",s,re.UNICODE):
-                return "This name contains inavlid characters. Unicode alphanumerics and hyphen are OK"
+                return "This name contains invalid characters. Unicode alphanumerics and hyphen are OK"
                      
             self.temp['name'] = s
             self.handlerstate = 2
@@ -415,12 +415,16 @@ class Player(object):
         return message
     
     # Todo update these things to work with unique id's
-    def getCharacterName(self,match):
-        name = match.group()[7:-1]
+    def getCharacterName(self,match): #unique should always be int..
+        unique = int(match.group()[7:-1])
+        character = [character for character in self.world.characters if character.unique == unique]
+        if not character:
+            return "AMAZINGBUG"
         print "Checking my memory.."
+        
         if not self.character:
-            return name #TODO return actually character short description, just a quick hack
-        return name
+            return character[0].name #TODO return actually character short description, just a quick hack
+        return character[0].name
            
         #else: #TODO needs fixing srsly
         #    print self.character.memory
@@ -486,32 +490,37 @@ class Player(object):
             return "Character created succesfully!"
     
     def creatorLocation(self,tok):
-        self.handlerstate += 1
         print "Locreator",tok
         print type(tok)
         msg = " ".join(tok)
-   
+        if msg.lower() == 'abort':
+            self.handler = self.handlerGame
+            return "Aborted"
         
-        if self.handlerstate == 1:
+        if self.handlerstate == 0:
+            self.handlerstate = 1
             return "(Location title:"
-        elif self.handlerstate == 2 and len(msg) > 2:
+        elif self.handlerstate == 1 and len(msg) > 2:
             self.temp['name']= msg
+            self.handlerstate = 2
             return "(Location description:"
             
-        elif self.handlerstate == 3:
+        elif self.handlerstate == 2:
             self.temp['description'] = msg
+            self.handlerstate = 3
             return "(Exit name (enter for no exit):"
         
-        elif self.handlerstate == 4:
+        elif self.handlerstate == 3:
             if len(msg):
                 self.temp['exit'] = msg
             else:
                 self.temp['exit'] = False
+            self.handlerstate = 4
             return "(Return exit name (enter for no return exit):"
             
             
 
-        elif self.handlerstate == 5:
+        elif self.handlerstate == 4:
             if len(msg): 
                 rexit = msg
             else:
@@ -523,27 +532,27 @@ class Player(object):
             if rexit:
                 newlocation.link(rexit,self.character.location)
                 
-            self.handler = self.gameHandler
-            return "(<ok>Location created (dynid: %s | staid: %s)"%(newlocation.dynid(),newlocation.ident)
+            self.handler = self.handlerGame
+            return "(<ok>Location created (unique: %i)"%(newlocation.unique)
             
         else:
             return "<fail>Not enough information"
     # ######################
     # Player related handles
     # ######################
-    def handle_gm(self, tok):
-        key = " ".join(tok)
-        print "Testing",key
-        if key == self.core.gmKey or self.gamemaster:
-            self.gamemaster = not self.gamemaster
-            self.db.save()
-            if self.gamemaster:
-                return "(GM status enabled"
-            else:
-                return "(GM status disabled"
-        else:
-            self.send("(Not authorized")
-            
+    #def handle_gm(self, tok):
+    #    key = " ".join(tok)
+    #    print "Testing",key
+    #    if key == self.core.gmKey or self.gamemaster:
+    #        self.gamemaster = not self.gamemaster
+    #        self.db.save()
+    #        if self.gamemaster:
+    #            return "(GM status enabled"
+    #        else:
+    #            return "(GM status disabled"
+    #    else:
+    #        self.send("(Not authorized")
+    '''        
     def handle_del(self,tok):
         if not self.gamemaster:
             return "(<fail>Not authorized"
@@ -560,7 +569,7 @@ class Player(object):
             character.detach()
         self.world.remCharacter(character)
         return "(<ok>Done."
-    
+    '''
     def handle_chars(self, tok):
         print "Listing chars"
         ownedchars = [character for character in self.world.characters if character.owner == self.name]
@@ -574,17 +583,6 @@ class Player(object):
                 buffer.append("<{color}>{character.unique:<10} - {character.name}".format(
                     color="green" if character == self.character else "blue",
                     character=character))
-                    
-            #for char in ownedchars:
-            #    name = char.name + " "*(10-len(char.name))
-            #    info = char.info[:20] + " "*(20-len(char.info[:20]))
-            #    ident = char.id()
-            #    dynid = ident[0] + ' '*(10-len(ident[0]))
-            #    staid = ident[1] + ' '*(10-len(ident[1]))
-            #    if char == self.character:
-            #        buffer.append("<green>%s<talk>- %s - %s - %s"%(name,info,dynid,staid))
-            #    else:
-            #        buffer.append("<blue>%s<talk>- %s - %s - %s"%(name,info,staid,staid))
         
         if self.gamemaster:
             otherchars = set(self.world.characters)-set(ownedchars)
@@ -596,13 +594,14 @@ class Player(object):
                     buffer.append("<yellow>{character.unique:<10} - {character.name:<15} - ".format(
                         character=character))
         return "\n".join(buffer)
-        
+    '''    
     def handle_introduce(self, tok):
         if len(tok) < 1: return "Introduce as who?"
         name = " ".join(tok)
         if len(name) < 2: return "Introduce as who?"
         self.character.introduce(name)
-        
+    '''
+    '''    
     def handle_memorize(self, tok): #TODO FIX
         if len(tok) < 2: 
             return "(<fail>Usage: memorize StaticID name"
@@ -619,15 +618,15 @@ class Player(object):
         name   = " ".join(tok[1:])
         self.character.memory[character] = name
         return "(<ok>Memorized %s"%name
-        
-        
+    '''    
+    '''    
     def handle_color(self,tok):
         if len(tok) < 2:
             return "(Define the color"
         else:
             self.character.color = tok[1]
             return "(Color set to %s."%tok[1]
-          
+    '''      
     def handle_attach(self,tok): 
         regex1 = "(.+?) to (.+)"
         msg = " ".join(tok)
@@ -673,9 +672,9 @@ class Player(object):
             
             
     def handle_style(self,tok): #FIXME
-        self.account.style = not self.account.style
-        self.db.save()
-        if self.account.style: return "You are now using MUD-style"
+        self.account.style = "irc" if self.account.style == 'mud' else 'mud'
+        self.core.saveAccounts()
+        if self.account.style == 'mud': return "You are now using MUD-style"
         else: return "You are now using IRC-style"
         
     def handle_detach(self,tok): #FIXME
@@ -708,7 +707,7 @@ class Player(object):
             charname = match.group()
             char = self.world.findAny(charname,self.character.location.characters)
             if not char or not isinstance(char,world.Character): return "(<fail>There is no one with that id here (%s).."%charname
-            buffer.append("Looking at %s.."%char.rename)
+            buffer.append("Looking at %s.."%char.rename())
             buffer.append("%s"%char.description)
             return "\n".join(buffer)
             
@@ -717,18 +716,18 @@ class Player(object):
             buffer.append("<purple>%s<reset>"%location.name)
             buffer.append("<light sky blue>%s<reset>"%location.description)
             
-            characters = [character for character in location.characters if not 
+            characters = [character.rename() for character in location.characters if not 
                           isinstance(character,world.Soul) and character != self.character]
-            print "Chars",len(characters)
+            print "Chars",len(characters),characters
             if len(characters) == 0:
                 buffer.append("<turquoise>You are alone<reset>")
             elif len(characters) == 1:
-                buffer.append("<turquoise>%s is here.<reset>"%characters[0].rename)
+                buffer.append("<turquoise>%s is here.<reset>"%characters[0])
             else:
-                buffer.append("<turquoise>%s and %s are here.<reset>"%(", ".join([character.rename for character in characters[:-1]]),characters[-1].rename))
+                buffer.append("<turquoise>%s and %s are here.<reset>"%(", ".join([character.rename() for character in characters[:-1]]),characters[-1].rename()))
             
             if len(location.links) == 0:
-                buffer.append("<ok>There are is no obvious way out from here..</cyan>")
+                buffer.append("<ok>There is no obvious way out from here..</cyan>")
             elif len(location.links) == 1:
                 buffer.append("<ok>This is a dead end, only one way out: %s"%location.links[0].name)
             else:
@@ -779,28 +778,19 @@ class Player(object):
             return False
             
     def handle_action(self,tok):
-        if len(tok) > 1:
-            message = " ".join(tok[1:])
-            self.character.location.announce('''%s %s'''%(self.character.rename, message))
+        if len(tok) > 0 and not isinstance(self.character,world.Soul):
+            message = " ".join(tok)
+            self.character.location.sendMessage('''%s %s'''%(self.character.rename(), message))
+            
+    def handle_me(self,tok):
+        self.handle_action(tok)
         
     def handle_describe(self,tok):
-        if tok[0][0] == '#':
-            tok[0] = tok[0][1:]
-            message = " ".join(tok)
-        else:
-            message = " ".join(tok[1:])
-        self.character.location.announce("""%s (%s)"""%(message, self.account.name))
+        if len(tok) > 0:
+            if not isinstance(self.character,world.Soul) or self.gamemaster:
+                message = " ".join(tok)
+                self.character.location.sendMessage("""%s (%s)"""%(message, self.account.name))
         
-    def handleShortDescription(self,tok):
-        pass
-        
-    def handleLongDescription(self,tok):
-        pass
-        
-    def handleGender(self,tok):
-        pass
-
-    
     
         
     def handle_offtopic(self, tok):
@@ -844,10 +834,12 @@ class Player(object):
         else:
             #self.offtopic("You are mute! You can't talk")
             self.handle_offtopic(tok)
-        
+    
+    '''    
     def handle_shout(self, tok):
         pass
-        
+    '''
+    """   
     def handle_teleport(self,tok):
         ''' TP function, allows chars to be moved to locations '''
         ''' ex1: tp 0 --- Teleport to location with dynid 0 '''
@@ -889,25 +881,65 @@ class Player(object):
                 character[0].player.send("(<ok>You have been teleported")
         return "(<ok>Teleport succesful"
         
-
+    """
+    '''
     def handle_tp(self,tok):
         return self.handle_teleport(tok)
+    '''
     
     def handle_world(self,tok): #FIXME
-        if not self.gamemaster: return "(<fail>This command requires GM rights"
-        if len(tok) < 1: return "(<fail>Usage: world name/save/load"
+        if not self.gamemaster: return "(<fail>This command requires GM rights."
+        if len(tok) < 1: return "(<fail>Usage: world rename/save/load"
         if tok[0] == 'name' and len(tok) > 1: 
-            self.world.name = " ".join(tok[1:])
+            name = " ".join(tok[1:])
+            if 3 > len(name) or len(name) > 60:
+                return "(<fail>World name should be no more than 60 characters"
+            elif [world for world in self.core.worlds if world.name.lower() == name.lower()]:
+                return "(<fail>That name already exists. Duplicate world names are not allowed.."
+                
+            self.world.name = name
+            
             return "(<ok>World name set to %s."%(self.world.name)
         elif tok[0] == 'save':
-            self.world.save()
+            self.world.saveWorld()
             return "(<ok>World saved."
-        elif tok[0] == 'load' and len(tok) > 2:
-            if self.world.load(self.core," ".join(tok[1:])):
-                return "(<ok>Load (%s) succesful."%self.world.name
+            
+        elif tok[0] == 'load':
+            return "(<fail>Loading is disabled!"
+            
+        elif tok[0] == 'limitspawn':
+            self.world.limitSpawn = not self.world.limitSpawn
+            if self.world.limitSpawn:
+                return "(<ok>Spawns are now limited to GM only."
             else:
-                return "(<fail>Load failed."
+                return "(<ok>Spawns are now unlimited."
                 
+            #if self.world.load(self.core," ".join(tok[1:])):
+            #    return "(<ok>Load (%s) succesful."%self.world.name
+            #else:
+            #    return "(<fail>Load failed."
+                
+            
+    def handle_loc(self,tok):
+        if not self.gamemaster: 
+            return "(<fail>This command requires GM rights."
+        
+        elif len(tok) == 0:
+            return "(<fail>Usage: loc name/describe [text]"
+        
+        elif tok[0] == 'name':
+            name = " ".join(tok[1:])
+            if 3 > len(name) or len(name) > 60:
+                return "(<fail>Please limit your location name to 60 characters (min 3)"
+            self.character.location.name = name
+            return "(<ok>Location renamed!"
+        
+        elif tok[0][0] == 'd':
+            desc = " ".join(tok[1:])
+            if 3 > len(desc) or len(desc) > 5000:
+                return "(<fail>Please limit your title to 5000 characters (min 3)"
+            self.character.location.description = desc
+            return "(<ok>Location renamed!"
             
     def handle_tell(self,tok):
         if len(tok) > 2:
@@ -964,40 +996,58 @@ class Player(object):
             
     def handle_link(self,tok):
         if self.gamemaster:
-            self.handler = self.linkCreator
+            self.handler = self.creatorLink
             self.handlerstate = 0
             self.temp = {}
             return self.handler([])
         else:
             return "(Not authorized"
-    def linkCreator(self,tok):
-        self.handlerstate += 1
+    def creatorLink(self,tok):
+        #self.handlerstate += 1
         print "linkcreator",tok
         print type(tok)
         msg = " ".join(tok)
+        if msg.lower() == 'abort':
+            self.handler = self.handlerGame
+            return "Aborted"
         #if len(msg) < 1: return "Answer the damn question" 
         
-        if self.handlerstate == 1:
+        if self.handlerstate == 0:
+            self.handlerstate = 1
             return "Name of the link?"
-        elif self.handlerstate == 2:
-            self.temp['linkto']= msg
-            return "Target location?"
+        elif self.handlerstate == 1:
+        
+            self.temp['name']= msg       
+            self.handlerstate = 2
+            return "Target location (unique ID)?"
             
-        elif self.handlerstate == 3:
-            self.temp['location'] = msg
+        elif self.handlerstate == 2:
+            try:
+                target = int(msg)
+            except ValueError:
+                return "<fail>Unique ID required (or abort)"
+                
+            location = [location for location in self.world.locations if location.unique == target]
+            #self.world.findAny(self.temp['location'],self.world.locations)
+            if not location:
+                return "(<fail>Location not found, try again or abort"
+           
+            self.temp['target'] = location[0]
+            self.handlerstate = 3
             return "Return link (Enter=No linking)"
             
 
-        elif self.handlerstate == 4:
+        elif self.handlerstate == 3:
             if len(msg) == 0: 
                 backlink = False
             else:
                 backlink = msg
                 
-            self.handler = self.gameHandler
-            location = self.world.findAny(self.temp['location'],self.world.locations)
-            if not location:
-                return "(<fail>Unable to link - location not found"
+            self.handler = self.handlerGame
+           
             
-            self.character.location.link(self.temp['linkto'],location,backlink)
+            self.character.location.link(self.temp['name'],self.temp['target'])
+            if backlink:
+                self.temp['target'].link(backlink,self.character.location)
+                
             return "(<ok>Done"

@@ -224,7 +224,7 @@ class Window(object):
             pline = "{typing}{name} {charname}".format(
                 typing="*" if self.playerlist[player][0] == "1" else "",
                 name=player,
-                charname="" if self.playerlist[player][1] == 'None' else "({0})".format(self.playerlist[player][1]))
+                charname="" if self.playerlist[player][1] == '-1' else "({0})".format(self.playerlist[player][1]))
                 
             #if self.playerlist[player][0] == "1": 
             #    self.playerbox.insert(END, "*%s (%s)"%(player,self.playerlist[player][1]))

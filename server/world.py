@@ -47,6 +47,8 @@ class World(object):
         self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
         self.offtopicHistory = []
         
+        self.limitSpawn = True
+        
     def timestamp(self):
         timestamp = time.time()
         print "timestamp",timestamp,self.messages.keys()
@@ -108,10 +110,10 @@ class World(object):
         typinglist = []
         for player in self.players: #TODO update here
             typinglist.append(
-                "{name}:{typing}:$(name={charname})".format(
+                "{name}:{typing}:$(name={unique})".format(
                     name=player.name,
                     typing="1" if player.typing else "0",
-                    charname=player.character.name if player.character else "None"))
+                    unique=player.character.name if player.character else "-1"))
         
         
         
@@ -326,11 +328,12 @@ class Character(object):
         self.owner = owner
         self.player = None
         self.name = name
-        self.rename = "$(name=%s)"%(self.name) #TODO
+        #self.rename = "$(name=%s)"%(self.name) #TODO
         self.description = description
         self.info        = info
         #self.color = "default"
-        self.location = location
+        
+        
 
         
         
@@ -345,14 +348,17 @@ class Character(object):
         
         self.memory = {}
         
-        self.world.addCharacter(self)
-        print "Added character",self.location.characters
-        
+        self.location = location
+        self.world.addCharacter(self) #This will move the char too.
+
+            
         #''' ID update '''
         #self.ident = str(id(self))
         #self.world.idents[self.ident] = self
         
-        
+    def rename(self):
+        return "$(name={name})".format(name=self.unique)
+            
             
     #def __setstate__(self,what): #TODO test this!
     #    print "Loading saved character.."
@@ -362,26 +368,33 @@ class Character(object):
     #    self.ident = str(id(self))
     #    self.world.idents[self.ident] = self
        
-    def id(self):
-        ''' Unique id of character '''
-        return (str(self.world.characters.index(self)),str(id(self)))
+    #def id(self):
+    #    ''' Unique id of character '''
+    #    return (str(self.world.characters.index(self)),str(id(self)))
         
-    def setRename(self):
-        self.rename = "<%s>$(name=%s)<reset>"%(self.color,self.name)    
+    #def setRename(self):
+    #    self.rename = "<%s>$(name=%s)<reset>"%(self.color,self.name)    
     
     def move(self,location):
-        if self.location != None and location != location:
+        ''' Move the character to a location. '''
+        ''' If location is the same that's already set, don't display arrive or leave messages '''
+        if self.location is not None and self.location is not location:
             print "Left from location"
             if self in self.location.characters:
                 if not self.invisible:
-                    self.location.announce("%s has left."%(self.rename))
+                    self.location.sendMessage("%s has left."%(self.rename()))
                 self.location.characters.remove(self)
+        
+        
+        #if self.location is location and self not in self.location characters: #TODO is this good?
+        #    self.location.characters.append(self)
+        #if self.location is not location:
         self.location = location
         self.location.characters.append(self)
-        if not self.invisible and not isinstance(self,Soul):
-            self.location.sendMessage("%s has arrived."%(self.rename),self)
+        if not self.invisible and not isinstance(self,Soul): #FIXME multiple arrive messages, work on these.
+            self.location.sendMessage("%s has arrived."%(self.rename()),self)
         self.world.sendMessage(self,"You have arrived.") #TODO decide whether send on world.message
-        if self.player: self.player.send(self.player.handle_look([]))
+        if self.player: self.player.sendMessage(self.player.handle_look([]))
         
     def attach(self,player):
         self.player = player
@@ -449,7 +462,7 @@ class Character(object):
 class Soul(Character):
     ''' Souls are temporary invisible characters '''
     def __init__(self,world,player,location=None):
-        Character.__init__(self,world)
+        Character.__init__(self,world,"","","",location)
         self.world = world
         self.owner = player.name
         self.name  = "Soul"
@@ -457,10 +470,7 @@ class Soul(Character):
         self.info = "Soul"
         
         self.attach(player)
-        if location:
-            self.location = location
-        else:
-            self.location = self.world.spawn
+ 
 
         
     def detach(self):
@@ -489,13 +499,7 @@ class Location(object):
     #        del self.world.idents[self.ident]
     #    self.ident = str(id(self))
     #    self.world.idents[self.ident] = self
-       
-    def id(self):
-        ''' Unique id of location '''
-        return (str(self.world.locations.index(self)),str(id(self)))
-    def dynid(self):
-        return str(self.world.locations.index(self))
-          
+
     def sendMessage(self,message,ignore=None): #TODO improve
         recipients = self.characters[:]
         print "Announcing to",recipients,message
@@ -509,16 +513,19 @@ class Location(object):
     def link(self,name,destination):
         
         # First check that exit name is not yet in use
-        if self.findLink(name=name):
+        if not isinstance(destination,Location):
+            print "FAIL FAIL FAIL"
+            print destination
+        if [link for link in self.links if link.name == name]:
             return "(<fail>Exit name exists already"
-        # Second check if there's an exit between these two locations already
-        elif self.findLink(destination=destination):
+        
+        elif [link for link in self.links if link.destination == destination]:
             return "(<fail>Only one exit to destination is allowed.."
         
         else:
             link = Link(name,destination)
             self.links.append(link)
-            return "(<ok>Exit created from %s (->%s->) %s"%(self.ident,name,destination.ident)
+            return "(<ok>Exit created from %s (->%s->) %s"%(self.unique,name,destination.unique)
         
     def unlink(self,towards,both=True):
         if towards in self.exits:
