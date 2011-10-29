@@ -560,33 +560,41 @@ class Player(object):
             character.detach()
         self.world.remCharacter(character)
         return "(<ok>Done."
+    
     def handle_chars(self, tok):
         print "Listing chars"
-        ownedchars = self.world.findOwner(self.account.name,self.world.characters)
+        ownedchars = [character for character in self.world.characters if character.owner == self.name]
+        
         buffer = []
-        if ownedchars == None: 
-            buffer.append("(You own no characters!")
+        if not ownedchars: 
+            buffer.append("(You own no characters!") #<- this kind of situation shouldn't even happen
         else:
-            buffer = ["You own the following characters"]
-            for char in ownedchars:
-                name = char.name + " "*(10-len(char.name))
-                info = char.info[:20] + " "*(20-len(char.info[:20]))
-                ident = char.id()
-                dynid = ident[0] + ' '*(10-len(ident[0]))
-                staid = ident[1] + ' '*(10-len(ident[1]))
-                if char == self.character:
-                    buffer.append("<green>%s<talk>- %s - %s - %s"%(name,info,dynid,staid))
-                else:
-                    buffer.append("<blue>%s<talk>- %s - %s - %s"%(name,info,staid,staid))
+            buffer = ["(You own the following characters"]
+            for character in ownedchars:
+                buffer.append("<{color}>{character.unique:<10} - {character.name}".format(
+                    color="green" if character == self.character else "blue",
+                    character=character))
+                    
+            #for char in ownedchars:
+            #    name = char.name + " "*(10-len(char.name))
+            #    info = char.info[:20] + " "*(20-len(char.info[:20]))
+            #    ident = char.id()
+            #    dynid = ident[0] + ' '*(10-len(ident[0]))
+            #    staid = ident[1] + ' '*(10-len(ident[1]))
+            #    if char == self.character:
+            #        buffer.append("<green>%s<talk>- %s - %s - %s"%(name,info,dynid,staid))
+            #    else:
+            #        buffer.append("<blue>%s<talk>- %s - %s - %s"%(name,info,staid,staid))
         
         if self.gamemaster:
             otherchars = set(self.world.characters)-set(ownedchars)
             if len(otherchars) > 0:
                 buffer.append("- - - - - - - - - - - - - - - - - - - - - - - -")
-                buffer.append("In addition, following other characters exist..")    
-                for char in otherchars:
-                    name = char.name + " "*(10-len(char.name))
-                    buffer.append("<yellow>%s <talk> - %s"%(name,char.info))
+                buffer.append("In addition, following other characters exist..")  
+                buffer.append("{:<10} - {:<15} - {}".format("Unique ID","Name","Owned by"))  
+                for character in ownedchars: #TODO add played by?
+                    buffer.append("<yellow>{character.unique:<10} - {character.name:<15} - ".format(
+                        character=character))
         return "\n".join(buffer)
         
     def handle_introduce(self, tok):
@@ -683,13 +691,10 @@ class Player(object):
  
     def handle_locs(self, tok):
         print "Listing locations"
-        buf = ["<green>Dynamic ID - Static  ID - Location name"]
+        buf = ["(<green>{:<10} - {}".format("Unique ID", "Location name")]
         for loc in self.world.locations:
-            ident = loc.id()
-            dynid = ident[0] + ' '*(10-len(ident[0]))
-            staid = ident[1] + ' '*(10-len(ident[1]))
-            buf.append("<green>%s - %s <grey>- <spring green>%s"%(dynid,staid,loc.name))
-        self.offtopic('\n'.join(buf))
+            buf.append("<green>{:<10} - <spring green>{}".format(loc.unique,loc.name))
+        return '\n'.join(buf)
     
     # #####################
     # World related handles
