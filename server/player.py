@@ -664,7 +664,7 @@ class Player(object):
         return
             
             
-    def handle_style(self,tok):
+    def handle_style(self,tok): #FIXME
         self.account.style = not self.account.style
         self.db.save()
         if self.account.style: return "You are now using MUD-style"
@@ -672,18 +672,14 @@ class Player(object):
         
     def handle_detach(self,tok): #FIXME
         if self.character:
-            if self.character.soul:
-                return "(You cannot detach from your soul!"
+            if isinstance(self.character,world.Soul):
+                return "(<fail>You cannot detach from your soul!"
             else:
                 location = self.character.location
-                chars = self.world.findOwner(self.account.name,self.world.characters)
-                for char in chars:
-                    if char.soul:
-                        self.character.detach()
-                        char.attach(self)
-                        self.character.move(location)
-                        return "(Your soul has left the body"
-                return "Oh god, we lost your soul. This is bad!"
+                self.character.detach()
+                world.Soul(self.world,self,location) # Soul attaches automatically!
+                return "Done"
+                
  
     def handle_locs(self, tok):
         print "Listing locations"
@@ -809,7 +805,7 @@ class Player(object):
         if tok[0][0] == '(':
             tok[0] = tok[0][1:]
         message = "{name}: {message}".format(name=self.name, message=" ".join(tok))
-        self.world.offtopic(message) #TODO we want seperate function for sending offtopic?
+        self.world.sendOfftopic(message) #TODO we want seperate function for sending offtopic?
         
     def handle_say(self, tok):
         if not self.character.mute and not isinstance(self.character,world.Soul):

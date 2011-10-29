@@ -113,7 +113,7 @@ class Window(object):
         message = self.colorResetParse(message)
         message = self.colorTags(message)
         
-        print "Displaying",message
+        print "Displaying",message,"with timestamp",timestamp
         if offtopic:
             self.displayOfftopic(message)
         else:

@@ -89,14 +89,16 @@ class World(object):
             for recipient in recipients:
                 recipient.message(timestamp)
     
-    def offtopic(self,message,recipients=None):
+    def sendOfftopic(self,message,recipients=None):
         # TODO all offtopic needs to be logged, and upon player
         # connecting, the last.. say, 50 lines will be sent.
+        timestamp = self.timestamp()
+        
         if not recipients: 
             recipients = self.players
-            self.offtopicHistory.append(message)
+            self.offtopicHistory.append((message,timestamp))
             
-        timestamp = self.timestamp()
+        
         print "Sending offtopic message",message
         for player in recipients:
             player.sendOfftopic(message,timestamp)
@@ -142,9 +144,9 @@ class World(object):
         
         self.players.append(player)
         self.updatePlayers()
-        for line in self.offtopicHistory[-20:]:
-            player.sendOfftopic(line)
-        self.offtopic("<notify>%s has joined the game!"%player.name)
+        for message,timestamp in self.offtopicHistory[-20:]:
+            player.sendOfftopic(message,timestamp)
+        self.sendOfftopic("<notify>%s has joined the game!"%player.name)
         if not player.character:
             player.character = Soul(self,player)
         if player.name in self.gamemasters:
@@ -160,7 +162,7 @@ class World(object):
             self.players.remove(player)
             self.updatePlayers()
             
-            self.offtopic("<notify>%s has left the game!"%player.name)
+            self.sendOfftopic("<notify>%s has left the game!"%player.name)
         if player.gamemaster:
             player.gamemaster = False
             
@@ -303,7 +305,7 @@ class World(object):
     def remCharacter(self,character):
         self.characters.remove(character)
         self.remObject(character)
-        character.location.announce("%s has been terminated."%(self.name))
+        #if character.location.sendMessage("%s disappears in a flash."%(self.name))
         character.location.characters.remove(character)
         
     def addExit(self,exit):
@@ -460,8 +462,12 @@ class Soul(Character):
         else:
             self.location = self.world.spawn
 
-        #TODO detach should destroy the soul
-  
+        
+    def detach(self):
+        self.player.character = None
+        self.player = None
+        self.world.remCharacter(self)
+        
 class Location(object):
     def __init__(self,world,name="New location",description = ""):
         self.world = world
