@@ -83,7 +83,7 @@ class Core(object):
             self.accounts = cPickle.load(f)
             f.close()
             if type(self.accounts) != list:
-                print "Accounts have invalid type, clearing"
+                print "CORE: Accounts have invalid type, clearing"
                 self.accounts = []
         except IOError:
             self.accounts = []
@@ -94,10 +94,18 @@ class Core(object):
         f.close()
         
     def loadWorlds(self):
-        pass #To be implemented
+        for path,subfolders,files in os.walk('./worlds'):
+            for fname in files:
+                if fname[-6:] == '.world':
+                    f = open("{0}/{1}".format(path,fname),'rb')
+                    world = cPickle.load(f)
+                    f.close()
+                    
         
     def saveWorlds(self):
-        pass #To be 
+        print "CORE: Save the worlds from destruction!"
+        for world in core.worlds:
+            world.saveWorld()
 
 class RopePlayer(LineReceiver):
 
@@ -199,3 +207,6 @@ if __name__ == '__main__':
     reactor.listenTCP(49500, RopeNetwork(core))
     reactor.listenTCP(10023, TelnetNetwork(core))
     reactor.run()
+    
+    core.saveWorlds()
+        

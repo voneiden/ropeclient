@@ -32,18 +32,18 @@ attributes
 import cPickle, time, re, random
 
 class World(object):
-    def __init__(self,name='default',pw=None,gamemasters=[]):
-        self.name = name
-        self.pw = pw
-        self.objects = []
-        self.locations = []
-        self.characters = []
-        self.players    = []
-        self.messages = {}
-        self.gamemasters = gamemasters
+    def __init__(self,name,pw,gamemasters):
+        self.name = name                # Can be unicode name?
+        self.pw = pw                    # Password
+        self.objects = []               # List of all objects
+        self.locations = []             # List of all  - locations
+        self.characters = []            # List of all  - characters
+        self.players    = []            # List of all  - players
+        self.messages = {}              # Dictionary of all messages..
+        self.gamemasters = gamemasters  # List of all gamemaster id's
         #self.memory = {} # Whats this? 
         #self.idents = {} # Contains all id()'s of objects    OBSOLETE?
-        self.unique = 0
+        self.unique = 0                 # Unique counter
         self.spawn      = Location(self,"Void","Black flames rise from the eternal darkness. You are in the void, a lost soul, without a body of your own.")
         self.offtopicHistory = []
         
@@ -54,30 +54,25 @@ class World(object):
             timestamp += 0.01
         return timestamp
         
-    def save(self):
+    def saveWorld(self):
         f = open('worlds/%s.world'%self.name,'wb')
         cPickle.dump(self,f)
         f.close()
         
-    def load(self,core,name):
-        print "Loading world..",name
-        try:
-            f = open('worlds/%s.world'%name,'rb')
-            world = cPickle.load(f)
-            f.close()
-        except:
-            print "Failed!"
-            return False
-        print "Success!"
-        #world.core = self.core
-        core.world = world
-        world.players = []
-        for player in self.players:
-            player.send("<fail>### GAMEMASTER HAS LOADED A NEW WORLD ###")
-            player.world = world
-            player.login()
-            
-        return True
+    def editName(self):
+        pass #TODO should also modify the world save location!
+        
+    def setup(self,core):
+        print "Setting up loaded world '{0}'".format(name)
+        self.players = []
+        
+        oldworld = [world for world in core.worlds if world.name.lower() == self.name.lower()]
+        if oldworld:
+            #TODO move all old players to the new world
+            core.worlds.remove(oldworld[0])
+            print "Removing old world",oldworld[0].name
+        core.worlds.append(self)
+        
 
     def sendMessage(self,recipients,message):
         ''' This is the function to send messages to character. The message is given an ID which can be later retrieved! '''
@@ -357,13 +352,13 @@ class Character(object):
         
         
             
-    def __setstate__(self): #TODO test this!
-        print "Loading saved character.."
-        print "Updating ident!"
-        if self.ident in self.world.idents.keys():
-            del self.world.idents[self.ident]
-        self.ident = str(id(self))
-        self.world.idents[self.ident] = self
+    #def __setstate__(self,what): #TODO test this!
+    #    print "Loading saved character.."
+    #    print "Updating ident!"
+    #    if self.ident in self.world.idents.keys():
+    #        del self.world.idents[self.ident]
+    #    self.ident = str(id(self))
+    #    self.world.idents[self.ident] = self
        
     def id(self):
         ''' Unique id of character '''
@@ -481,13 +476,13 @@ class Location(object):
         #self.ident = str(id(self))
         #self.world.idents[self.ident] = self
         
-    def __setstate__(self): #TODO test this!
-        print "Loading saved location.."
-        print "Updating ident!"
-        if self.ident in self.world.idents.keys():
-            del self.world.idents[self.ident]
-        self.ident = str(id(self))
-        self.world.idents[self.ident] = self
+    #def __setstate__(self): #TODO test this!
+    #    print "Loading saved location.."
+    #    print "Updating ident!"
+    #    if self.ident in self.world.idents.keys():
+    #        del self.world.idents[self.ident]
+    #    self.ident = str(id(self))
+    #    self.world.idents[self.ident] = self
        
     def id(self):
         ''' Unique id of location '''

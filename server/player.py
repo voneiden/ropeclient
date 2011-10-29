@@ -21,6 +21,7 @@
 '''
 
 # Todo avoid deleting of souls somehow.. :D
+# TODO input should be checked for invalid characters more often..
 
 import server,re, world, time, random
 
@@ -34,9 +35,9 @@ class Player(object):
         self.connection = connection    # RopePlayer class
         self.core = core                # Core class
         self.world = None               # Current world, None = menu
-        self.name = None                # 
-        self.account = None             # ?
-        self.typing = False              
+        self.name = None                # On login, accunt.name
+        self.account = None             # Kind of unnecessary..
+        self.typing = 0              
         self.handler = self.handlerLogin# Current function that handles all input
         self.character = None           # Current character
         self.gamemaster = False         # Is gamemaster
@@ -80,6 +81,11 @@ class Player(object):
             self.recv = self.recvIgnore
     
     def recvMessage(self, message):
+        '''
+        This s the standard message receiver.
+        It passes all msg packets forward to the handler
+        '''
+        
         print "Recv", message
         message = message.strip()
         
@@ -317,12 +323,19 @@ class Player(object):
         
         if self.handlerstate == 0:
             self.handlerstate = 1
-            return "Name of your new game world? Keep it below 40 chars."
+            return "Name of your new game world? Keep it below 60 chars."
         elif self.handlerstate == 1:
             s = " ".join(tok)
-            if len(s) > 40: 
+            if len(s) > 60: 
                 return "That name is too long, keep it shorter! Try again.."
-                 
+            
+            # Make sure name is not a duplicate
+            elif [world for world in self.core.worlds if world.name.lower() == s.lower()]:
+                return "That name already exists. Duplicate world names are not allowed.."
+                
+            elif not re.match("^[ \w-]+$",s,re.UNICODE):
+                return "This name contains inavlid characters. Unicode alphanumerics and hyphen are OK"
+                     
             self.temp['name'] = s
             self.handlerstate = 2
             return "Set a password for joining? (yes/no)"
@@ -428,7 +441,7 @@ class Player(object):
         #    else:
         #        return character.info
         
-    # Changing it so that a character is owned by whoever last was attached to it.            
+    # Changing it so that a character is owned by whoever last was attached to it.   
     def creatorCharacter(self,tok):
         ''' This is a handler for character generation '''
         msg = " ".join(tok)
@@ -438,7 +451,7 @@ class Player(object):
             
         elif self.handlerstate  == 0:
             self.handlerstate = 1
-            return "Character name [type 'abort' to abort process]:"
+            return "Character name [or 'abort']:"
 
             
         elif self.handlerstate == 1:
@@ -657,7 +670,7 @@ class Player(object):
         if self.account.style: return "You are now using MUD-style"
         else: return "You are now using IRC-style"
         
-    def handle_detach(self,tok):
+    def handle_detach(self,tok): #FIXME
         if self.character:
             if self.character.soul:
                 return "(You cannot detach from your soul!"
@@ -670,7 +683,7 @@ class Player(object):
                         char.attach(self)
                         self.character.move(location)
                         return "(Your soul has left the body"
-                return "Oh god, we lost your soul. This is bad!!!!!"
+                return "Oh god, we lost your soul. This is bad!"
  
     def handle_locs(self, tok):
         print "Listing locations"
@@ -879,7 +892,7 @@ class Player(object):
     def handle_tp(self,tok):
         return self.handle_teleport(tok)
     
-    def handle_world(self,tok):
+    def handle_world(self,tok): #FIXME
         if not self.gamemaster: return "(<fail>This command requires GM rights"
         if len(tok) < 1: return "(<fail>Usage: world name/save/load"
         if tok[0] == 'name' and len(tok) > 1: 
