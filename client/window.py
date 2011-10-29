@@ -35,10 +35,15 @@ class Window(object):
         Tkinter for speedy development!
         We have a root, and then we have a grid over the root, works very nice!
         """
+        
+        f = open('connect.txt','r')
+        self.host = f.read().strip()
+        f.close()
+        
 
         # Initialize some variables
         self.connection = None
-        self.host = "localhost"
+        
         self.entryboxTyping = False
 
         # Create the root

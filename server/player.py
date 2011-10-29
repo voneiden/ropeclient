@@ -303,6 +303,8 @@ class Player(object):
                 return "<fail>Invalid password"
                 
         if tok[0][0].lower() == 'c':
+            if len([w for w in self.core.worlds if w.creator == self.name]) > 2:
+                return "<fail>You have created maximum number of worlds."
             self.handler = self.creatorWorld
             self.handlerstate = 0
             self.temp = {}
@@ -335,7 +337,7 @@ class Player(object):
                 
                
        
-    def creatorWorld(self,tok): # TODO This requires abuse protection obviously.
+    def creatorWorld(self,tok): 
         
         if self.handlerstate == 0:
             self.handlerstate = 1

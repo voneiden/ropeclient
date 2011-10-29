@@ -41,6 +41,7 @@ class World(object):
         self.players    = []            # List of all  - players
         self.messages = {}              # Dictionary of all messages..
         self.gamemasters = gamemasters  # List of all gamemaster id's
+        self.creator = gamemasters[0] if len(gamemasters) > 0 else None
         #self.memory = {} # Whats this? 
         #self.idents = {} # Contains all id()'s of objects    OBSOLETE?
         self.unique = 0                 # Unique counter
