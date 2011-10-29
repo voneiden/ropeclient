@@ -95,6 +95,8 @@ class World(object):
     def sendOfftopic(self,message,recipients=None):
         # TODO all offtopic needs to be logged, and upon player
         # connecting, the last.. say, 50 lines will be sent.
+        # Do the dice rolling too..
+        message = self.doDice(message)
         timestamp = self.timestamp()
         
         if not recipients: 
