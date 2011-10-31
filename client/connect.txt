@@ -1,1 +1,1 @@
-localhost
+ninjabox.sytes.net
