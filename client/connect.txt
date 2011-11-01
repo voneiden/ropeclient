@@ -1,1 +1,2 @@
-localhost
+ninjabox.sytes.net:49500
+localhost:49500

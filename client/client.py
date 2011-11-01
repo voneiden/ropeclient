@@ -34,7 +34,7 @@ if __name__ == '__main__':
     window.display("Installing tksupport")
     tksupport.install(window.root)
 
-    reactor.connectTCP(window.host, 49500, network.connectionFactory(window))
+    
 
     window.display("Starting reactor!")
     window.reactor = reactor
