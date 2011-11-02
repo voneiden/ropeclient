@@ -26,6 +26,7 @@ from Tkinter import Entry, Listbox, StringVar, Tk, Frame, TclError
 from ScrolledText import ScrolledText
 import time
 import re
+import network
 from hashlib import sha256
 
 class Window(object):
@@ -36,9 +37,9 @@ class Window(object):
         We have a root, and then we have a grid over the root, works very nice!
         """
         
-        f = open('connect.txt','r')
-        self.host = f.read().strip()
-        f.close()
+        #f = open('connect.txt','r')
+        ##self.host = f.read().strip()
+        #f.close()
         
 
         # Initialize some variables
@@ -79,7 +80,7 @@ class Window(object):
                            background="black", foreground="white",
                              state=NORMAL, insertbackground="white")
         self.entrybox.grid(row=2,column=0,sticky=E+W)
-        self.entrybox.bind(sequence="<KeyRelease>", func=self.entryboxKeypress)
+        self.entrybox.bind(sequence="<KeyRelease>", func=self.entryboxConnectModeKeypress)
         self.entrybox.bind("<MouseWheel>", func=self.textboxMainScroll)
         self.entrybox.bind("<Button-4>", func=self.textboxMainScroll)
         self.entrybox.bind("<Button-5>", func=self.textboxMainScroll)
@@ -101,6 +102,17 @@ class Window(object):
         
         self.history = []
         self.historypos = 0
+        
+       
+        f = open('connect.txt','r')
+        self.connectList = f.readlines()
+        f.close()
+        self.display("Choose your connection (type number), or type the address manually you wish to connect to")
+        for i,choice in enumerate(self.connectList):
+            self.display("{i}) {choice}".format(i=i+1,choice=choice.strip()))
+        
+        #reactor.connectTCP(window.host, 49500, network.connectionFactory(window))
+        
         
     # TODO update
     def display(self,message,timestamp=None,offtopic=False):
@@ -144,6 +156,40 @@ class Window(object):
         print "ctrl+a"
         self.entrybox.selection_range(0, END)
         return "break"
+        
+        
+    def entryboxConnectModeKeypress(self,event):
+        if event.keysym == "Return":
+            message = self.entryboxMessage.get().strip()
+            self.entryboxMessage.set("")
+            if len(message) == 0: 
+                return
+            
+            try:
+                choice = int(message)
+                if choice > len(self.connectList) or choice < 1:
+                    return
+                else:
+                    tok = self.connectList[choice-1].strip().split(':')
+                   
+                        
+            except ValueError:
+                tok = message.split(':')
+            
+            if len(tok) == 1:
+                host = tok[0]
+                port = 49500
+            else:
+                host = tok[0]
+                try:
+                    port = int(tok[1])
+                except ValueError:
+                    port = 49500
+            print type(host),type(port)  
+            self.display("Connecting to {host}:{port}".format(host=host,port=port))
+            self.reactor.connectTCP(host, port, network.connectionFactory(self))
+            self.entrybox.bind(sequence="<KeyRelease>", func=self.entryboxKeypress)
+                
     def entryboxKeypress(self,event):
         ''' Handles the input on entrybox. Slightly hacky, maybe..! '''
         message = self.entryboxMessage.get()

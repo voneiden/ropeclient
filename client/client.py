@@ -31,12 +31,12 @@ if __name__ == '__main__':
     print ("Loading..")
     window = window.Window()
 
-    window.display("Installing tksupport")
+    #window.display("Installing tksupport")
     tksupport.install(window.root)
 
     
 
-    window.display("Starting reactor!")
+   # window.display("Starting reactor!")
     window.reactor = reactor
     
     #scp = ConfigParser.SafeConfigParser()
