@@ -742,7 +742,7 @@ class Player(object):
             elif len(characters) == 1:
                 buffer.append("<turquoise>%s is here.<reset>"%characters[0])
             else:
-                buffer.append("<turquoise>%s and %s are here.<reset>"%(", ".join([character.rename() for character in characters[:-1]]),characters[-1].rename()))
+                buffer.append("<turquoise>%s and %s are here.<reset>"%(", ".join([character for character in characters[:-1]]),characters[-1]))
             
             if len(location.links) == 0:
                 buffer.append("<ok>There is no obvious way out from here..</cyan>")
