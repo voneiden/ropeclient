@@ -97,6 +97,9 @@ class Connection(LineReceiver):
                 self.window.textboxOfftopic.config(state=window.DISABLED)
             else:
                 print "Unknown tok",tok
+        elif tok[0] == 'png':
+            self.write('png')
+            print "Ping replied"
         else: 
             print "Unknown packet",tok
     def write(self, data):
