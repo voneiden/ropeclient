@@ -171,26 +171,26 @@ class World(object):
         if player.gamemaster:
             player.gamemaster = False
             
-    def find(self,name,target):
+    def find(self,objID,objList):
         """ 
-            Will search target list for an identity.
-            Returns None if not found, object if single
-            occurence found, or a list if multiple choices
-            were found
+            Search objList for name or unique matching objID
         """
-        # TODO check that the object has .name attribute?
-        results = []
-        for obj in target:
-            if name.lower() in obj.name.lower(): results.append(obj)
-        if len(results) == 0: 
-            return None
-        elif len(results) == 1: 
-            return results
+        try:
+            unique = int(objID)
+            
+        except ValueError:
+            character = [character for character in objList if character.name.lower() == objID.lower()]
+            if not character:
+                return False
+            else:
+                return character[0]
         else:
-            for obj in results:
-                if name == obj.name:
-                    return [obj]
-            return results
+            character = [character for character in objList if character.unique == unique]
+            if not character:
+                return False
+            else:
+                return character[0]
+    '''
     def findOwner(self,owner,target):
         """ 
             Will search target list for an identity.
@@ -210,7 +210,8 @@ class World(object):
         #    return results[0]
         else:
             return results   
-      
+    '''
+    '''  
     def findId(self,ident,objects):
         print "findID",ident
         try:
@@ -234,14 +235,14 @@ class World(object):
             else:
                 print "not found"
                 return False
-   
-
+    '''
+    '''
     def findAny(self,key,target):
         match = self.findId(key,target)
         if match: return match
         match = self.find(key,target)
         if match: return match
-        
+    '''    
         
 
     def doDice(self,message):
@@ -312,6 +313,9 @@ class World(object):
         self.remObject(character)
         #if character.location.sendMessage("%s disappears in a flash."%(self.name))
         character.location.characters.remove(character)
+        if character.player:
+            character.detach()
+            
         
     def addExit(self,exit):
         self.addObject(exit)
@@ -413,7 +417,10 @@ class Character(object):
         
             
     def detach(self):
-        self.player.character = None
+        if self.player:
+            Soul(self.world,self.player,self.location) # Soul attaches automatically!            
+        else:
+            self.player.character = None
         self.player = None
         
     def message(self,timestamp): 

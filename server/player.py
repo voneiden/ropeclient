@@ -700,9 +700,9 @@ class Player(object):
             if isinstance(self.character,world.Soul):
                 return "(<fail>You cannot detach from your soul!"
             else:
-                location = self.character.location
+                #location = self.character.location
                 self.character.detach()
-                world.Soul(self.world,self,location) # Soul attaches automatically!
+                #world.Soul(self.world,self,location) # Soul attaches automatically!
                 return "Done"
                 
  
@@ -772,6 +772,24 @@ class Player(object):
         else:
             return "(Not authorized"
     
+    def handle_kill(self,tok):
+        ''' Kills a character '''
+        
+        if not self.gamemaster:
+            return "(Not authorized"
+        if len(tok) != 1:
+            return "(Usage: kill [name/unique]"
+        
+        character = self.world.find(" ".join(tok),self.world.characters)
+        if not character:
+            return "(Character not found"
+        
+        if isinstance(character,world.Soul):
+            return "(Can't kill souls!"
+        else:
+            self.world.remCharacter(character)
+            return "(Character's history!"
+                
     # #########################
     # Character related handles
     # #########################
