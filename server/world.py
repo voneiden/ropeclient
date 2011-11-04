@@ -149,7 +149,7 @@ class World(object):
         
         self.players.append(player)
         self.updatePlayers()
-        for message,timestamp in self.offtopicHistory[-20:]:
+        for message,timestamp in self.offtopicHistory[-100:]:
             player.sendOfftopic(message,timestamp)
         self.sendOfftopic("<notify>%s has joined the game!"%player.name)
         if not player.character:
