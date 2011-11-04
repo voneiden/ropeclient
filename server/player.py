@@ -410,6 +410,9 @@ class Player(object):
                 handle = getattr(self,command)
             except AttributeError:
                 handle = False
+            except UnicodeEncodeError: 
+                # This happens if the player tries a command that contains scandics..
+                handle = False
             if handle:
                 return handle(tok[1:]) # I assume we can drop the original trigger..
                 
@@ -588,6 +591,16 @@ class Player(object):
         self.world.remCharacter(character)
         return "(<ok>Done."
     '''
+    def handle_players(self,tok):
+        print "players",len(self.world.players)
+        players = [player for player in self.world.players if player.world]
+        players.sort(key=lambda player: player.world)
+        buffer = ['Players online',20*'-']
+        for player in players:
+            buffer.append("{player.name:<10} - {player.world.name}".format(player=player))
+            
+        return "\n".join(buffer)
+        
     def handle_chars(self, tok):
         print "Listing chars"
         ownedchars = [character for character in self.world.characters if character.owner == self.name]
@@ -608,7 +621,7 @@ class Player(object):
                 buffer.append("- - - - - - - - - - - - - - - - - - - - - - - -")
                 buffer.append("In addition, following other characters exist..")  
                 buffer.append("{:<10} - {:<15} - {}".format("Unique ID","Name","Owned by"))  
-                for character in ownedchars: #TODO add played by?
+                for character in otherchars: #TODO add played by?
                     buffer.append("<yellow>{character.unique:<10} - {character.name:<15} - ".format(
                         character=character))
         return "\n".join(buffer)
@@ -835,7 +848,7 @@ class Player(object):
             tok[-1] = tok[-1][:-1]
         if tok[0][0] == '(':
             tok[0] = tok[0][1:]
-        message = "{name}: {message}".format(name=self.name, message=" ".join(tok))
+        message = u"{name}: {message}".format(name=self.name, message=" ".join(tok))
         self.world.sendOfftopic(message) #TODO we want seperate function for sending offtopic?
         
     def handle_say(self, tok):
@@ -863,7 +876,7 @@ class Player(object):
             else:
                 says = 'says'
                 # had color #8888ff #TODO rename()
-            self.character.location.sendMessage('{name} {says}, "<talk>{text}<reset>"'.format(
+            self.character.location.sendMessage(u'{name} {says}, "<talk>{text}<reset>"'.format(
                                                        name=self.character.name,
                                                        says=says,
                                                        text=message))

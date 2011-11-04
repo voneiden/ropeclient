@@ -301,6 +301,7 @@ class World(object):
         self.remObject(location)
         
     def addCharacter(self,character):
+        print "DEBUG",character.player
         self.characters.append(character)
         self.addObject(character)
         if character.location == None:
@@ -385,6 +386,7 @@ class Character(object):
     def move(self,location):
         ''' Move the character to a location. '''
         ''' If location is the same that's already set, don't display arrive or leave messages '''
+        print "DEBUG2",self.player
         if self.location is not None and self.location is not location:
             print "Left from location"
             if self in self.location.characters:
@@ -426,6 +428,7 @@ class Character(object):
     def message(self,timestamp): 
         print "sending message id",timestamp
         if self.player:
+            print "To player",self.player,self.player.name
             self.player.sendMessage(self.world.messages[timestamp]) #TODO
             if timestamp not in self.read:
                 self.read.append(timestamp)

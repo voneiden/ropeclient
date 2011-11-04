@@ -159,7 +159,7 @@ class RopePlayer(LineReceiver):
 
     def sendOfftopic(self,message,timestamp):
         if not timestamp: timestamp = time.time()
-        self.write("oft {timestamp} {message}".format(timestamp=timestamp,message=message))
+        self.write(u"oft {timestamp} {message}".format(timestamp=timestamp,message=message))
 
     def disconnect(self):
         if self.pingTimer:
