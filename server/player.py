@@ -168,7 +168,7 @@ class Player(object):
                 self.name = self.account.name
                 return self.login()
             else:
-                self.disconnect() #TODO
+                self.connection.disconnect() #TODO
                 
         elif self.handlerstate == 10:
             if len(message[0]) < 1: return
@@ -234,7 +234,7 @@ class Player(object):
         # We need to check for old player connections and disconnect them.
         if self.name in self.core.players:
             print "Disconnecting old player"
-            self.core.players[self.name].disconnect()
+            self.core.players[self.name].connection.disconnect()
             
         
         self.handler = self.handlerWorldMenu

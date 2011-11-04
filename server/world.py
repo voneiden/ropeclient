@@ -145,7 +145,7 @@ class World(object):
             
     def addPlayer(self,player):
         if [p for p in self.players if p.name == player.name]:
-            p.disconnect() #This will automatically call remPlayer etc.
+            p.connection.disconnect() #This will automatically call remPlayer etc.
         
         self.players.append(player)
         self.updatePlayers()
@@ -513,7 +513,7 @@ class Location(object):
     def sendMessage(self,message,ignore=None): #TODO improve
         recipients = self.characters[:]
         print "Announcing to",recipients,message
-        #if ignore in recipients: recipients.remove(ignore)
+        if ignore in recipients: recipients.remove(ignore)
         if len(recipients) > 0: 
             self.world.sendMessage(recipients,message)
         else:
