@@ -57,6 +57,8 @@ class Window(object):
         self.frame.pack(fill=BOTH, expand=YES)
         self.frame.grid_rowconfigure(0, weight=1)
         self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(1, weight=1)
+        self.frame.grid_columnconfigure(1, weight=1)
 
         # Main text box
         self.textboxMain = ScrolledText(self.frame, width=80, height=20,
