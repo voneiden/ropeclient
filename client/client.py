@@ -54,8 +54,13 @@ if __name__ == '__main__':
         if len(tok) != 2: continue
         key = tok[0].strip()
         value = tok[1].strip()
-        window.colors[key] = value
-        print "Saved color",key,value
+        if key == "background":
+            print "Setting background color"
+            window.setBackgroundColor(value)
+        else:
+            window.colors[key] = value
+            print "Saved color",key,value
+        
     reactor.run()
 
 

@@ -112,7 +112,11 @@ class Window(object):
             self.display("{i}) {choice}".format(i=i+1,choice=choice.strip()))
         
         #reactor.connectTCP(window.host, 49500, network.connectionFactory(window))
-        
+    def setBackgroundColor(self,color):
+        self.textboxMain.config(background=color)
+        self.textboxOfftopic.config(background=color)
+        self.entrybox.config(background=color)
+        self.playerbox.config(background=color)    
         
     # TODO update
     def display(self,message,timestamp=None,offtopic=False):

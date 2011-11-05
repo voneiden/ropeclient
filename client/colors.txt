@@ -1,3 +1,4 @@
+background:black
 default:#aaaaff
 talk:#8888ff
 talk2:#70c8ff
