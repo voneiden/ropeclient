@@ -144,21 +144,22 @@ class Window(object):
             return
         
         # Check ratio for changes
-        ratio = self.paned.sash_coord(0)[1] / float(self.panedHeight)
-        print "Ratio diff",abs(self.panedRatio-ratio)
-        if abs(self.panedRatio - ratio) > 0.1:
-            # Ratio has changed, calculate new ratio
-            print "RATIO HAS BEEN CHANGED",self.panedRatio,ratio
-            self.panedRatio = self.paned.sash_coord(0)[1] / float(self.panedHeight)
-        
-        newPanedSize = self.panedRatio * event.height    
-        print "New panel size",newPanedSize
-        self.paned.sash_place(0,1,int(newPanedSize))
-        #print dir(event)
-        # Ratio 1/3?
-        #print self.paned.panes()
-        #print dir(self.paned)
-        self.panedHeight = event.height
+        elif self.panedRatio:
+            ratio = self.paned.sash_coord(0)[1] / float(self.panedHeight)
+            print "Ratio diff",abs(self.panedRatio-ratio)
+            if abs(self.panedRatio - ratio) > 0.1:
+                # Ratio has changed, calculate new ratio
+                print "RATIO HAS BEEN CHANGED",self.panedRatio,ratio
+                self.panedRatio = self.paned.sash_coord(0)[1] / float(self.panedHeight)
+            
+            newPanedSize = self.panedRatio * event.height    
+            print "New panel size",newPanedSize
+            self.paned.sash_place(0,1,int(newPanedSize))
+            #print dir(event)
+            # Ratio 1/3?
+            #print self.paned.panes()
+            #print dir(self.paned)
+            self.panedHeight = event.height
 
 
 
