@@ -76,6 +76,13 @@ class World(object):
             print "Removing old world",oldworld[0].name
         core.worlds.append(self)
         
+        # Fix soul bug, temporary
+        print "Fixing soul bug"
+        for character in self.characters:
+            if ininstance(character,Soul):
+                print "Destroying soul"
+                self.remCharacter(character)
+        
 
     def sendMessage(self,recipients,message):
         ''' This is the function to send messages to character. The message is given an ID which can be later retrieved! '''
