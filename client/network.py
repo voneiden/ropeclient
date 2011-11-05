@@ -32,7 +32,7 @@ class Connection(LineReceiver):
         
     def connectionMade(self):
         self.window.display("Connected!")
-        self.write("hsk 0.d.alpha")
+        self.write("hsk 0.d.rc1")
 
     def lineReceived(self, data):
         data = data.decode('utf-8').strip()

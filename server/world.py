@@ -178,25 +178,7 @@ class World(object):
         if player.gamemaster:
             player.gamemaster = False
             
-    def find(self,objID,objList):
-        """ 
-            Search objList for name or unique matching objID
-        """
-        try:
-            unique = int(objID)
-            
-        except ValueError:
-            character = [character for character in objList if character.name.lower() == objID.lower()]
-            if not character:
-                return False
-            else:
-                return character
-        else:
-            character = [character for character in objList if character.unique == unique]
-            if not character:
-                return False
-            else:
-                return character
+    
     '''
     def findOwner(self,owner,target):
         """ 

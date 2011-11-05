@@ -67,7 +67,7 @@ class Core(object):
     # new multiworld thingy that I have on my mind.
     
     def __init__(self):
-        self.version = "0.d.alpha"
+        self.version = "0.d.rc1"
         self.greeting = open('motd.txt', 'r').readlines()
         self.worlds = [world.World("Official sandbox",None,['voneiden'])]
         self.loadAccounts()
@@ -107,6 +107,26 @@ class Core(object):
         print "CORE: Save the worlds from destruction!"
         for world in core.worlds:
             world.saveWorld()
+            
+    def find(self,objID,objList):
+        """ 
+            Search objList for name or unique matching objID
+        """
+        try:
+            unique = int(objID)
+            
+        except ValueError:
+            obj = [obj for obj in objList if obj.name.lower() == objID.lower()]
+            if not obj:
+                return False
+            else:
+                return obj
+        else:
+            obj = [obj for obj in objList if obj.unique == unique]
+            if not obj:
+                return False
+            else:
+                return obj
 
 class RopePlayer(LineReceiver):
 

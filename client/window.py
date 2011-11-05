@@ -127,6 +127,7 @@ class Window(object):
        
         f = open('connect.txt','r')
         self.connectList = f.readlines()
+        #self.connectList = [line.strip() for line in f.readlines() if len(line.strip()) > 2]
         f.close()
         self.display("Choose your connection (type number), or type the address manually you wish to connect to")
         for i,choice in enumerate(self.connectList):

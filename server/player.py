@@ -219,6 +219,8 @@ class Player(object):
     
     
     def disconnect(self):
+        if self in self.core.players:
+            self.core.players.remove(self)
         if self.character: self.character.detach()
         if self.world:
             self.world.remPlayer(self)
@@ -232,10 +234,14 @@ class Player(object):
         
     def login(self):
         # We need to check for old player connections and disconnect them.
-        if self.name in self.core.players:
-            print "Disconnecting old player"
-            self.core.players[self.name].connection.disconnect()
+        #if self.name in self.core.players:
+        #    print "Disconnecting old player"
+        #    self.core.players[self.name].connection.disconnect()
+        player = self.core.find(self.name,self.core.players)
+        if player:
+            player[0].connection.disconnect()
             
+        self.core.players.append(self)
         
         self.handler = self.handlerWorldMenu
         return self.displayWorldMenu()
@@ -420,6 +426,8 @@ class Player(object):
                 return self.handle_offtopic(tok)
             elif tok[0][0] == '#':
                 return self.handle_describe(tok)
+            elif tok[0][0] == '!':
+                return self.handle_offtopic(tok)
             elif self.handle_move(tok):
                 return
 
@@ -593,7 +601,7 @@ class Player(object):
     '''
     def handle_players(self,tok):
         print "players",len(self.world.players)
-        players = [player for player in self.world.players if player.world]
+        players = [player for player in self.core.players if player.world]
         players.sort(key=lambda player: player.world)
         buffer = ['Players online',20*'-']
         for player in players:
@@ -667,13 +675,13 @@ class Player(object):
             playerName = groups[0].lower()
             #characterName = groups[1].lower()
             msg = groups[1]
-            character = self.world.find(msg,self.world.characters)
+            character = self.core.find(msg,self.world.characters)
             #player    = self.world.find(playerName,self.world.players)
             player = [player for player in self.world.players if player.name.lower() == playerName]
         else:
             player = [self]
             #characterName = msg
-            character = self.world.find(msg,self.world.characters)
+            character = self.core.find(msg,self.world.characters)
         
         if not player:
             return "(<fail>Unable to find a player named '{0}'.".format(playerName)
@@ -796,7 +804,7 @@ class Player(object):
         if len(tok) != 1:
             return "(Usage: kill [name/unique]"
         
-        character = self.world.find(" ".join(tok),self.world.characters)
+        character = self.core.find(" ".join(tok),self.world.characters)
         if not character:
             return "(Character not found"
         else:
