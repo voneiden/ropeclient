@@ -79,7 +79,7 @@ class World(object):
         # Fix soul bug, temporary
         print "Fixing soul bug"
         for character in self.characters:
-            if ininstance(character,Soul):
+            if isinstance(character,Soul):
                 print "Destroying soul"
                 self.remCharacter(character)
         
