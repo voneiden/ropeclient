@@ -21,8 +21,8 @@
 
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
-from Tkinter import N, S, E, W, WORD, DISABLED, NORMAL, END, BOTH, YES, SUNKEN, RAISED,GROOVE
-from Tkinter import Entry, Listbox, StringVar, Tk, Frame, TclError
+from Tkinter import N, S, E, W, WORD, DISABLED, NORMAL, END, BOTH, YES, SUNKEN, RAISED,GROOVE, VERTICAL
+from Tkinter import Entry, Listbox, StringVar, Tk, Frame, TclError, PanedWindow
 from ScrolledText import ScrolledText
 import time
 import re
@@ -60,21 +60,34 @@ class Window(object):
         self.frame.grid_rowconfigure(1, weight=1)
         self.frame.grid_columnconfigure(1, weight=1)
 
-        # Main text box
-        self.textboxMain = ScrolledText(self.frame, width=80, height=20,
+        '''
+        Structure
+        Frame
+            \--  '''
+        self.paned = PanedWindow(self.frame,orient=VERTICAL)
+        self.paned.grid(row=0, column=0,rowspan=2)
+        
+        
+        self.textboxMain = ScrolledText(self.paned, width=80, height=20,
                                         wrap=WORD, state=DISABLED,
                                         background="black", foreground="white")
         self.textboxMain.yview(END)
-        self.textboxMain.grid(row=1, column=0, sticky=N+S+W+E)
+        #self.textboxMain.grid(row=1, column=0, sticky=N+S+W+E)
         self.textboxMain.bind(sequence="<FocusIn>", func=self.focusEntrybox)
-
+        #self.textboxMain.pack(fill=BOTH,expand=1)
+        
         ''' Offtopic box, this should be easy to disable or enable! '''
-        self.textboxOfftopic = ScrolledText(self.frame, width=80, height=10,
+        self.textboxOfftopic = ScrolledText(self.paned, width=80, height=10,
                                         wrap=WORD, state=DISABLED,
                                         background="black", foreground="white")
         self.textboxOfftopic.yview(END)
-        self.textboxOfftopic.grid(row=0, column=0, sticky=N+S+W+E)
+        #self.textboxOfftopic.pack(fill=BOTH,expand=1)
+        #self.textboxOfftopic.grid(row=0, column=0, sticky=N+S+W+E)
+        
         self.textboxOfftopic.bind(sequence="<FocusIn>", func=self.focusEntrybox)
+
+        self.paned.add(self.textboxOfftopic)
+        self.paned.add(self.textboxMain)
 
         ''' Entry box, for typing shit '''
         self.entryboxMessage = StringVar()
