@@ -183,13 +183,13 @@ class World(object):
             if not character:
                 return False
             else:
-                return character[0]
+                return character
         else:
             character = [character for character in objList if character.unique == unique]
             if not character:
                 return False
             else:
-                return character[0]
+                return character
     '''
     def findOwner(self,owner,target):
         """ 
@@ -419,10 +419,7 @@ class Character(object):
         
             
     def detach(self):
-        if self.player:
-            Soul(self.world,self.player,self.location) # Soul attaches automatically!            
-        else:
-            self.player.character = None
+        self.player.character = None
         self.player = None
         
     def message(self,timestamp): 
@@ -487,6 +484,7 @@ class Soul(Character):
 
         
     def detach(self):
+        print "Destroying soul!!!"
         self.player.character = None
         self.player = None
         self.world.remCharacter(self)

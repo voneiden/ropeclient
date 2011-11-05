@@ -665,12 +665,15 @@ class Player(object):
         if special:
             groups = search.groups()
             playerName = groups[0].lower()
-            characterName = groups[1].lower()
+            #characterName = groups[1].lower()
+            msg = groups[1]
+            character = self.world.find(msg,self.world.characters)
             #player    = self.world.find(playerName,self.world.players)
             player = [player for player in self.world.players if player.name.lower() == playerName]
         else:
             player = [self]
-            characterName = msg
+            #characterName = msg
+            character = self.world.find(msg,self.world.characters)
         
         if not player:
             return "(<fail>Unable to find a player named '{0}'.".format(playerName)
@@ -680,11 +683,11 @@ class Player(object):
         #TODO handle characters with the same name
         #TODO wildcards?
         
-        character = [character for character in self.world.characters if character.name.lower() == characterName.lower()]
+        #character = [character for character in self.world.characters if character.name.lower() == characterName.lower()]
         if not character:
-            return "(<fail>Unable to find a character named '{0}'.".format(characterName)
+            return "(<fail>Unable to find a character '{0}'.".format(msg)
         elif len(character) > 1:
-            return ("<fail>Found multiple characters with the same name..")
+            return ("<fail>Found multiple characters with the same name.. try using unique number.")
         else:
             character = character[0]
             
@@ -715,7 +718,7 @@ class Player(object):
             else:
                 #location = self.character.location
                 self.character.detach()
-                #world.Soul(self.world,self,location) # Soul attaches automatically!
+                world.Soul(self.world,self,location) # Soul attaches automatically!
                 return "Done"
                 
  
@@ -796,7 +799,8 @@ class Player(object):
         character = self.world.find(" ".join(tok),self.world.characters)
         if not character:
             return "(Character not found"
-        
+        else:
+            character = character[0]
         if isinstance(character,world.Soul):
             return "(Can't kill souls!"
         else:
