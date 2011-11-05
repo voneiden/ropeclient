@@ -21,7 +21,7 @@
 
     Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
 '''
-from Tkinter import N, S, E, W, WORD, DISABLED, NORMAL, END, BOTH, YES, SUNKEN, RAISED,GROOVE, VERTICAL
+from Tkinter import N, S, E, W, WORD, DISABLED, NORMAL, END, BOTH, YES, SUNKEN, RAISED,GROOVE, VERTICAL, FLAT
 from Tkinter import Entry, Listbox, StringVar, Tk, Frame, TclError, PanedWindow
 from ScrolledText import ScrolledText
 import time
@@ -44,7 +44,7 @@ class Window(object):
 
         # Initialize some variables
         self.connection = None
-        
+        self.initialized = False
         self.entryboxTyping = False
 
         # Create the root
@@ -57,15 +57,15 @@ class Window(object):
         self.frame.pack(fill=BOTH, expand=YES)
         self.frame.grid_rowconfigure(0, weight=1)
         self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(1, weight=1)
-        self.frame.grid_columnconfigure(1, weight=1)
+        self.frame.grid_rowconfigure(1, weight=0)
+        self.frame.grid_columnconfigure(1, weight=0)
 
         '''
         Structure
         Frame
             \--  '''
-        self.paned = PanedWindow(self.frame,orient=VERTICAL)
-        self.paned.grid(row=0, column=0,rowspan=2)
+        self.paned = PanedWindow(self.frame,orient=VERTICAL,sashwidth=2,sashrelief=FLAT)
+        self.paned.grid(row=0, column=0,sticky=N+W+E+S)
         
         
         self.textboxMain = ScrolledText(self.paned, width=80, height=20,
@@ -86,15 +86,15 @@ class Window(object):
         
         self.textboxOfftopic.bind(sequence="<FocusIn>", func=self.focusEntrybox)
 
-        self.paned.add(self.textboxOfftopic)
-        self.paned.add(self.textboxMain)
+        self.paned.add(self.textboxOfftopic,sticky=N+S+E+W)
+        self.paned.add(self.textboxMain,sticky=S+N+E+W)
 
         ''' Entry box, for typing shit '''
         self.entryboxMessage = StringVar()
         self.entrybox = Entry(self.frame, textvariable=self.entryboxMessage,
                            background="black", foreground="white",
                              state=NORMAL, insertbackground="white")
-        self.entrybox.grid(row=2,column=0,sticky=E+W)
+        self.entrybox.grid(row=1,column=0,sticky=E+W+S)
         self.entrybox.bind(sequence="<KeyRelease>", func=self.entryboxConnectModeKeypress)
         self.entrybox.bind("<MouseWheel>", func=self.textboxMainScroll)
         self.entrybox.bind("<Button-4>", func=self.textboxMainScroll)
@@ -108,7 +108,13 @@ class Window(object):
 
         ''' Player box, for showing who's around!'''
         self.playerbox = Listbox(self.frame,background="black",foreground="white")
-        self.playerbox.grid(row=0,column=1,rowspan=3,sticky=N+S)
+        self.playerbox.grid(row=0,column=1,rowspan=2,sticky=N+S+E)
+        
+        
+        # Paned Ratio maintaining
+        self.paned.bind("<Configure>", self.checkPanedRatio)
+        self.panedRatio = None
+        
         
         # Colors that have been loaded!
         self.usedColors = []
@@ -126,7 +132,36 @@ class Window(object):
         for i,choice in enumerate(self.connectList):
             self.display("{i}) {choice}".format(i=i+1,choice=choice.strip()))
         
+        self.initialized = True
         #reactor.connectTCP(window.host, 49500, network.connectionFactory(window))
+    def checkPanedRatio(self,event):
+        ''' This is a bit hacky '''
+        if self.panedRatio == None and self.initialized:
+            self.panedRatio = self.paned.sash_coord(0)[1] / float(event.height)
+            self.panedHeight = event.height
+            print "Set up paned ratio",self.panedRatio
+            return
+        
+        # Check ratio for changes
+        ratio = self.paned.sash_coord(0)[1] / float(self.panedHeight)
+        print "Ratio diff",abs(self.panedRatio-ratio)
+        if abs(self.panedRatio - ratio) > 0.1:
+            # Ratio has changed, calculate new ratio
+            print "RATIO HAS BEEN CHANGED",self.panedRatio,ratio
+            self.panedRatio = self.paned.sash_coord(0)[1] / float(self.panedHeight)
+        
+        newPanedSize = self.panedRatio * event.height    
+        print "New panel size",newPanedSize
+        self.paned.sash_place(0,1,int(newPanedSize))
+        #print dir(event)
+        # Ratio 1/3?
+        #print self.paned.panes()
+        #print dir(self.paned)
+        self.panedHeight = event.height
+
+
+
+
     def setBackgroundColor(self,color):
         self.textboxMain.config(background=color)
         self.textboxOfftopic.config(background=color)
