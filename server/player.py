@@ -816,7 +816,7 @@ class Player(object):
             return "(Character is history!"
             
     def handle_destroy(self,tok):    
-    ''' Destroys a location '''
+        ''' Destroys a location '''
         
         if not self.gamemaster:
             return "(Not authorized"
