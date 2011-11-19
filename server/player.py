@@ -814,7 +814,7 @@ class Player(object):
         else:
             self.world.remCharacter(character)
             return "(Character's history!"
-                
+           
     # #########################
     # Character related handles
     # #########################
@@ -1026,30 +1026,36 @@ class Player(object):
             
     def handle_unlink(self,tok):
         if self.gamemaster:
-            self.handler = self.linkRemover
-            self.handlerstate = 0
+            self.handler = self.removerLink
+            self.handlerstate = 1
             self.temp = {}
             return self.handler([])
         else:
             return "(Not authorized"
-    def linkRemover(self,tok):
-        self.handlerstate += 1
+    def removerLink(self,tok):
         print "linkremover",tok
         print type(tok)
         msg = " ".join(tok)
-        #if len(msg) < 1: return "Answer the damn question" 
-        
+        if msg.lower() == 'abort':
+            self.handler = self.handlerGame
+            return "Aborted"
         if self.handlerstate == 1:
-            return "Name of the link to remove?"
+            self.handlerstate = 2
+            return "Name of the link to remove? (or type 'abort')"
+            
         elif self.handlerstate == 2:
             self.temp['linkto']= msg
-            return "Remove return also?"
+            self.handlerstate = 3
+            return "Remove return link also? (y/N)"
             
         elif self.handlerstate == 3:
+            
             if len(msg) == 0:
                 both = False
-            else:
+            elif msg[0].lower() == 'y':
                 both = True
+            else:
+                both = False
                 
             self.handler = self.gameHandler
             return self.character.location.unlink(self.temp['linkto'],both)
@@ -1063,6 +1069,7 @@ class Player(object):
             return self.handler([])
         else:
             return "(Not authorized"
+    
     def creatorLink(self,tok):
         #self.handlerstate += 1
         print "linkcreator",tok
@@ -1075,7 +1082,7 @@ class Player(object):
         
         if self.handlerstate == 0:
             self.handlerstate = 1
-            return "Name of the link?"
+            return "Name of the link? (or type 'abort')"
         elif self.handlerstate == 1:
         
             self.temp['name']= msg       
