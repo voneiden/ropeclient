@@ -813,8 +813,27 @@ class Player(object):
             return "(Can't kill souls!"
         else:
             self.world.remCharacter(character)
-            return "(Character's history!"
-           
+            return "(Character is history!"
+            
+    def handle_destroy(self,tok):    
+    ''' Destroys a location '''
+        
+        if not self.gamemaster:
+            return "(Not authorized"
+        if len(tok) != 1:
+            return "(Usage: destroy [unique]"
+        unique = tok[0]
+        try:
+            unique = int(tok[0])
+        except ValueError:
+            return "(Error: unique id required"
+        location = [location for location in self.world.locations if location.unique == unique]
+        if not location:
+            return "(Error: unique id not found"
+        
+        return "(Location %s should be destroyed, but function not implemented yet"%location[0].name
+        
+            
     # #########################
     # Character related handles
     # #########################
