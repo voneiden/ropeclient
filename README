@@ -9,6 +9,7 @@ features and design principle.
 
 CURRENT STATE OF SOFTWARE IS COMPELTELY DIFFERENT FROM 0.B-RC1
 
+Thanks for Oregon State University for providing smoothly working websocket code
 
 1.0 Installation notes
 Ropeclient runs on any nix system that has python 2.x and the following 
