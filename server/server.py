@@ -61,6 +61,8 @@ import sys
 import player
 import world
 import cPickle
+import re
+
 
 class Core(object):
     """ This class contains some core information.."""
@@ -252,7 +254,35 @@ class WebPlayer(Protocol):
         d.callback(data)
         
     def write(self,data):
+        
+        data = self.colorConvert(data)
         self.transport.write(data.encode("utf-8"))
+        
+    def colorConvert(self,data):
+        # Ensure that color is always reseted to default (</font>)
+        stack = []
+        fallback = "gray"
+        regex = '\<.*?\>'
+        print "Pre-parse:",data
+        for match in re.finditer(regex,data):
+            match = match.group()
+            color = match[1:-1]
+            
+            if color == 'reset':
+                try:
+                    stack.pop()
+                    recolor = stack[-1]
+                except:
+                    recolor = fallback
+                
+                
+            else:
+                stack.append(color)
+                
+            data = data.replace(match,'<font color="%s">'%color,1)
+        print "Finished:",data
+        return data
+        
     def sendMessage(self, message):
         self.write('msg %f %s' % (time.time(),message))
         
