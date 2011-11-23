@@ -52,6 +52,8 @@ from twisted.protocols.basic import LineReceiver
 from twisted.protocols.telnet import Telnet
 from twisted.internet import defer
 
+from txws import WebSocketFactory
+
 
 import time
 import os
@@ -158,7 +160,7 @@ class RopePlayer(LineReceiver):
             self.pingTime = False
             return
             
-        print "Testing new defer!"
+        print "Testing new defer!",line
         d = defer.Deferred()
         d.addCallback(self.player.recv)
         d.addErrback(self.failure)
@@ -229,7 +231,57 @@ class TelnetPlayer(Telnet):
         payload = message + '\r\n'
         self.write(payload)
 
-
+class WebPlayer(Protocol):
+    def connectionMade(self):
+        print "Web connection made"
+        self.core = self.factory.core
+        self.player = player.Player(self, self.core)
+        self.sendMessage("".join(self.core.greeting))
+        self.player.recv = self.player.recvMessage
+        
+    def connectionLost(self,reason):
+        print "Web connection lost"
+        
+    def dataReceived(self,data):
+        data = data.decode("utf-8")
+        
+        print "Web connection data recv:",data
+        d = defer.Deferred()
+        d.addCallback(self.player.recv)
+        d.addErrback(self.failure)
+        d.callback(data)
+        
+    def write(self,data):
+        self.transport.write(data.encode("utf-8"))
+    def sendMessage(self, message):
+        self.write('msg %f %s' % (time.time(),message))
+        
+    def failure(self,failure):
+        ''' Failure handles any exceptions '''
+        dtb = failure.getTraceback(detail='verbose')
+        tb = failure.getTraceback(detail='brief')
+        print "!"*30
+        print failure.getErrorMessage()
+        print "?"*30
+        print tb
+        print "!"*30
+        logid = str(int(time.time())) + "-" + str(self.player.name)
+        f=open('failures/{logid}.txt'.format(logid=logid),'w')
+        f.write(dtb)
+        f.close()
+        
+        self.sendMessage("<fail>[ERROR] Something you did caused an exception" +
+                         " on the server. This is probably a bug. The problem" +
+                         " has been logged with id {logid}.".format(logid=logid)+
+                         " You may help to solve the problem by filing an issue"+
+                         " at www.github.com/voneiden/ropeclient - Please mention"+
+                         " this log id and what you were writing/doing when the"+
+                         " error happened. Thank you!")
+class WebNetwork(Factory):
+    def __init__(self,core):
+        self.protocol = WebPlayer
+        self.core = core
+        
 class RopeNetwork(Factory):
 
     def __init__(self, core):
@@ -250,8 +302,13 @@ class Account:
 
 if __name__ == '__main__':
     core = Core()
+    webnetwork = WebNetwork(core)
     reactor.listenTCP(49500, RopeNetwork(core))
     reactor.listenTCP(10023, TelnetNetwork(core))
+    reactor.listenTCP(9091, WebSocketFactory(webnetwork))
+    
+    
+    
     reactor.run()
     
     core.saveWorlds()
