@@ -67,6 +67,7 @@ function ws_init(url) {
         }
         else if (hdr == 'plu') {
             // Player list update!
+            displayOfftopic(message);
             updatePlayerList(tok.shift().split(';'));
         
         }
@@ -86,19 +87,21 @@ function ws_init(url) {
 }
 
 function updatePlayer(playerinfo) {
+    displayOfftopic("Update single player with "+playerinfo);
     var info = playerinfo.split(':');
     var name = info.shift()
     var typing = info.shift()
     if (typing == "1") { typing = "*" }
     else { typing = "" }
     var char = info.shift()
-    var pattern = new RegExp("<pre>"+name+'.*</pre>');
+    var pattern = new RegExp("<pre>"+name+'.*?</pre>');
     //var results = document.getElementById('righttop').innerHTML.match(pattern);
     var results = $("#righttop").html().match(pattern);
 
     while (results.length) {
         result = results.shift()
-        $("#righttop").html( $("#righttop").html().replace(result,"<pre>"+name+typing+" ("+char+")<br>"))
+        displayOfftopic(" result:"+result);
+        $("#righttop").html( $("#righttop").html().replace(result,"<pre>"+name+typing+" ("+char+")</pre>"))
     }
 }
 function updatePlayerList(playerList) {
