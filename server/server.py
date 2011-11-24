@@ -240,6 +240,16 @@ class WebPlayer(Protocol):
         self.player = player.Player(self, self.core)
         self.sendMessage("".join(self.core.greeting))
         self.player.recv = self.player.recvMessage
+    
+    def disconnect(self):
+        #if self.pingTimer:
+        #    self.pingTimer.cancel()
+        #    self.pingTimer = False
+            
+        if self.player: self.player.disconnect()
+        else:
+            self.transport.loseConnection()
+    
         
     def connectionLost(self,reason):
         print "Web connection lost"
@@ -260,6 +270,7 @@ class WebPlayer(Protocol):
         
     def colorConvert(self,data):
         # Ensure that color is always reseted to default (</font>)
+        
         stack = []
         fallback = "gray"
         regex = '\<.*?\>'
@@ -267,25 +278,39 @@ class WebPlayer(Protocol):
         for match in re.finditer(regex,data):
             match = match.group()
             color = match[1:-1]
-            
+            if color == 'fail':
+                color = 'red'
+            elif color == 'ok':
+                color = 'green'
+            elif color == 'default':
+                color = '#aaaaff'
+                
             if color == 'reset':
                 try:
                     stack.pop()
-                    recolor = stack[-1]
+                    #recolor = stack[-1]
+                    color = 0
                 except:
-                    recolor = fallback
+                    color = '#aaaaff'
+                    stack.append(color)
                 
                 
             else:
                 stack.append(color)
                 
-            data = data.replace(match,'<font color="%s">'%color,1)
+            if color:
+                data = data.replace(match,'<font color="%s">'%color,1)
+            else:
+                data = data.replace(match,'</font>',1)
+        data = data + '</font>'*len(stack)
         print "Finished:",data
         return data
         
     def sendMessage(self, message):
-        self.write('msg %f %s' % (time.time(),message))
-        
+        self.write(u'msg %f %s' % (time.time(),message))
+    def sendOfftopic(self,message,timestamp):
+        if not timestamp: timestamp = time.time()
+        self.write(u"oft {timestamp} {message}".format(timestamp=timestamp,message=message))
     def failure(self,failure):
         ''' Failure handles any exceptions '''
         dtb = failure.getTraceback(detail='verbose')

@@ -154,7 +154,7 @@ class Player(object):
                 self.account = account[0]
                 
                 self.connection.write('pwd\r\n')
-                return "Your <f>password<reset>?"   
+                return "Your <fail>password<reset>?"   
             else:
                 if re.match("^[A-Za-z]+$", message[0]):
                     self.handlerstate = 10
