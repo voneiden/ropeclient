@@ -279,7 +279,8 @@ class World(object):
         obj.unique = self.unique
         
     def remObject(self,obj):
-        self.objects.remove(obj)
+        if obj in self.objects:
+            self.objects.remove(obj)
     
     def addLocation(self,location):
         self.locations.append(location)
@@ -299,7 +300,8 @@ class World(object):
             character.move(character.location)
             
     def remCharacter(self,character):
-        self.characters.remove(character)
+        if character in self.characters:
+            self.characters.remove(character)
         self.remObject(character)
         #if character.location.sendMessage("%s disappears in a flash."%(self.name))
         character.location.characters.remove(character)

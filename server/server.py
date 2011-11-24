@@ -253,6 +253,7 @@ class WebPlayer(Protocol):
         
     def connectionLost(self,reason):
         print "Web connection lost"
+        self.disconnect()
         
     def dataReceived(self,data):
         data = data.decode("utf-8")

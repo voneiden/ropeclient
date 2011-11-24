@@ -1,10 +1,10 @@
 function displayOfftopic(msg) {
-    document.getElementById('lefttop').innerHTML += '<font color="#aaaaff">' + msg +  "</font><br />";  
+    document.getElementById('lefttop').innerHTML += '<font color="#aaaaff">' + msg +  "</font>";  
     document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
 
 }
 function displayMain(msg) {
-    document.getElementById('leftbottom').innerHTML += '<font color="#aaaaff">' + msg + "</font><br />";  
+    document.getElementById('leftbottom').innerHTML += '<font color="#aaaaff">' + msg + "</font>";  
     document.getElementById("leftbottom").scrollTop = document.getElementById("lefttop").scrollHeight;
 }
 
@@ -62,9 +62,13 @@ function ws_init(url) {
             }
         }
         else if (hdr == 'ptu') {
-            playerList = tok;
-            updatePlayerList(playerList);
-            displayOfftopic(playerList.join(" "));
+            // player type update.. single player!!
+            updatePlayer(tok.shift());
+        }
+        else if (hdr == 'plu') {
+            // Player list update!
+            updatePlayerList(tok.shift().split(';'));
+        
         }
         else {
             displayOfftopic('unknown header (len'+hdr.length+': ' + hdr);
@@ -80,9 +84,25 @@ function ws_init(url) {
         displayOfftopic("Error: "+error.data);
     };
 }
-    
+
+function updatePlayer(playerinfo) {
+    var info = playerinfo.split(':');
+    var name = info.shift()
+    var typing = info.shift()
+    if (typing == "1") { typing = "*" }
+    else { typing = "" }
+    var char = info.shift()
+    var pattern = new RegExp("<pre>"+name+'.*</pre>');
+    //var results = document.getElementById('righttop').innerHTML.match(pattern);
+    var results = $("#righttop").html().match(pattern);
+
+    while (results.length) {
+        result = results.shift()
+        $("#righttop").html( $("#righttop").html().replace(result,"<pre>"+name+typing+" ("+char+")<br>"))
+    }
+}
 function updatePlayerList(playerList) {
-    displayOfftopic("Updating player list")
+    displayOfftopic("Updating full playerlist"+playerList.join(" "));
     document.getElementById('righttop').innerHTML = "";
     while (playerList.length) {
         var info = playerList.shift().split(':')
@@ -91,7 +111,7 @@ function updatePlayerList(playerList) {
         var char = info.shift()
         if (typing == "1") { typing = "*" }
         else { typing = "" }
-        document.getElementById('righttop').innerHTML += name+typing+" ("+char+")<br />";
+        document.getElementById('righttop').innerHTML += "<pre>"+name+typing+" ("+char+")</pre>";
         
         
     }
@@ -136,13 +156,11 @@ $(document).ready(function(){
             
         }
         else {
-            if (isTyping == 0 && $("#entrybox").val().length > 0) {
-                displayOfftopic("PIT!");
+            if (isTyping == 0 && $("#entrybox").val().length > 0) {    
                 isTyping = 1;
                 ws_send("pit")
         }
             else if (isTyping == 1 && $("#entrybox").val().length == 0) {
-                displayOfftopic("PNT!");
                 isTyping = 0;
                 ws_send("pnt")
             }

@@ -12,8 +12,9 @@ pre
     padding:0;
     border:0;
     margin-left:10px;
-    margin-bottom:-15px;
+    margin-bottom:0px;
     line-height:100%;
+    white-space: pre-wrap;
 }
 #main
 {
@@ -48,6 +49,7 @@ pre
     left:0;
     right:12.25%;
     overflow-y:scroll;
+    overflow-x:hidden;
    
 
 }
@@ -62,6 +64,7 @@ pre
     left:0;
     right:12.25%;
     overflow-y:scroll;
+    overflow-x:hidden;
 }
 
 
