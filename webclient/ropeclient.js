@@ -34,9 +34,19 @@ function ws_init(url) {
             displayMain('<pre>'+message+'</pre>');
         }
         else if (hdr == "oft") {
-            var timestamp = tok.shift();
-            message = tok.join(" ");
-            displayOfftopic('<pre>'+message+'</pre>');
+            //A lot faster method of displaying a lot of text at once.
+            var everything = tok.join(" ");
+            var lines = everything.split("\x27");
+            var output = new Array();
+            while (lines.length) {
+                
+                var line = lines.shift();
+                var linetok = line.split(" ");
+                var timestamp = linetok.shift();
+                var message = linetok.join(" ");
+                output.push('<pre>'+message+'</pre>'); 
+            }
+            displayOfftopic(output.join(""));
         }
         else if (hdr == 'pwd') {
             marker = $('<span />').insertBefore('#entrybox');
@@ -67,7 +77,6 @@ function ws_init(url) {
         }
         else if (hdr == 'plu') {
             // Player list update!
-            displayOfftopic(message);
             updatePlayerList(tok.shift().split(';'));
         
         }
@@ -87,7 +96,6 @@ function ws_init(url) {
 }
 
 function updatePlayer(playerinfo) {
-    displayOfftopic("Update single player with "+playerinfo);
     var info = playerinfo.split(':');
     var name = info.shift()
     var typing = info.shift()
@@ -100,12 +108,10 @@ function updatePlayer(playerinfo) {
 
     while (results.length) {
         result = results.shift()
-        displayOfftopic(" result:"+result);
         $("#righttop").html( $("#righttop").html().replace(result,"<pre>"+name+typing+" ("+char+")</pre>"))
     }
 }
 function updatePlayerList(playerList) {
-    displayOfftopic("Updating full playerlist"+playerList.join(" "));
     document.getElementById('righttop').innerHTML = "";
     while (playerList.length) {
         var info = playerList.shift().split(':')
