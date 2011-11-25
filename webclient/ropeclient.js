@@ -1,4 +1,5 @@
 function displayOfftopic(msg) {
+    msg = diceParse(msg);
     document.getElementById('lefttop').innerHTML += '<font color="#aaaaff">' + msg +  "</font>";  
     document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
 
@@ -7,7 +8,36 @@ function displayMain(msg) {
     document.getElementById('leftbottom').innerHTML += '<font color="#aaaaff">' + msg + "</font>";  
     document.getElementById("leftbottom").scrollTop = document.getElementById("lefttop").scrollHeight;
 }
+function diceParse(msg) {
+    var results = msg.match(/\$\(dice\=.*?\)/g);
+    if (results) { 
+        while (results.length) {
+            var result = results.shift();
+            var tok = result.split('=').pop().split(';');
+            var d1 = tok.shift();
+            var d2 = tok.shift().slice(0,-1);
+            var id = 'dice-'+Math.random() 
+                          
+            msg = msg.replace(result,'<span id="'+id+'" onclick="swapDice(\''+id+'\',\''+d1+'\',\''+d2+'\')" style="color:lime;border-style:solid;border-width:1px;border-color:lime;">'+d1+'</span>');
+            //msg.replace('voneiden','aasdufihiuahshafsud');
+        }
+        return msg; 
+    }
+    else { 
+        return msg; 
+    }
+   
+}
+function swapDice(id,from,to) {
+    var pattern = new RegExp('<span.*?onclick="swapDice.'+id+'.*?</span>');
+    if (document.getElementById(id).innerHTML == from) {
+        document.getElementById(id).innerHTML = to
+    }
+    else {
+        document.getElementById(id).innerHTML = from
+    }
 
+}
 function ws_init(url) {
     if ( $.browser.mozilla ) {
         ws = new MozWebSocket(url);
