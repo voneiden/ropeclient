@@ -45,8 +45,8 @@ function ws_init(url) {
         ws = new WebSocket(url);
     }
     
-    displayOfftopic("Connecting to " + url + "... socket state "+ws.readyState)
-
+    displayOfftopic("Connecting to " + url + "... socket state "+ws.readyState);
+    
     ws.onopen = function() {
         displayOfftopic("Connection established.");
     };
@@ -100,6 +100,9 @@ function ws_init(url) {
             else {
                 displayOfftopic("Unknown thingy");
             }
+        }
+        else if (hdr == 'png') {
+            ws_send('png');
         }
         else if (hdr == 'ptu') {
             // player type update.. single player!!
