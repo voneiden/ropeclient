@@ -235,12 +235,27 @@ class TelnetPlayer(Telnet):
 
 class WebPlayer(Protocol):
     def connectionMade(self):
+        #TODO: require version from weblclient too
         print "Web connection made"
         self.core = self.factory.core
         self.player = player.Player(self, self.core)
         self.sendMessage("".join(self.core.greeting))
         self.player.recv = self.player.recvMessage
+        self.pingTimer = False
+        self.pingTime = False
+        self.doPing()
     
+    def doPing(self,*args):
+        self.pingTimer = False
+        if self.pingTime != False: # This means last request was not replied
+            print "ping not replied, disconnecting"
+            self.disconnect()
+        else:
+            self.pingTime = time.time()
+            self.write("png")
+            self.pingTimer = reactor.callLater(10,self.doPing)
+            print "Ping asked"
+            
     def disconnect(self):
         #if self.pingTimer:
         #    self.pingTimer.cancel()
@@ -257,7 +272,12 @@ class WebPlayer(Protocol):
         
     def dataReceived(self,data):
         data = data.decode("utf-8")
-        
+        data = data.strip()
+        if data == "png":
+            print "Ping received, latency",time.time()-self.pingTime
+            self.pingTime = False
+            return
+            
         print "Web connection data recv:",data
         d = defer.Deferred()
         d.addCallback(self.player.recv)
