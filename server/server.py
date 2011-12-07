@@ -305,7 +305,10 @@ class WebPlayer(Protocol):
                 color = 'green'
             elif color == 'default':
                 color = '#aaaaff'
-                
+            elif color == 'talk':
+                color = '#8888ff'
+            elif color == 'notify':
+                color = 'orange'
             if color == 'reset':
                 try:
                     stack.pop()

@@ -5,6 +5,7 @@ function displayOfftopic(msg) {
 
 }
 function displayMain(msg) {
+    msg = diceParse(msg);
     document.getElementById('leftbottom').innerHTML += '<font color="#aaaaff">' + msg + "</font>";  
     document.getElementById("leftbottom").scrollTop = document.getElementById("lefttop").scrollHeight;
 }
