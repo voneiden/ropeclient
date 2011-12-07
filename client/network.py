@@ -42,14 +42,18 @@ class Connection(LineReceiver):
         # I don't quite know why I changed it in the first place..
         
         if tok[0] == 'msg':
+            
             timestamp = float(tok[1])
             message = " ".join(tok[2:])
             self.window.display(message,timestamp)
         
         elif tok[0] == 'oft':
-            timestamp = float(tok[1])
-            message = " ".join(tok[2:])
-            self.window.display(message,timestamp,True)
+            messages = " ".join(tok[1:]).split('\x27')
+            for message in messages:
+                tok = message.split(' ')
+                timestamp = float(tok[0])
+                message = " ".join(tok[1:])
+                self.window.display(message,timestamp,True)
            
         elif tok[0] == 'pwd':
             self.window.entryboxHide = True
