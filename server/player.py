@@ -919,53 +919,69 @@ class Player(object):
     def handle_shout(self, tok):
         pass
     '''
-    """   
+    
     def handle_teleport(self,tok):
         ''' TP function, allows chars to be moved to locations '''
         ''' ex1: tp 0 --- Teleport to location with dynid 0 '''
         ''' ex2: tp xxx to yyy --- Teleport character xxx to location with name/id yyy'''
-        aregex = '^\d+$'   # tp 0
-        bregex = '^(.+?) to (\d+)$'
-        cregex = '^(.+?) to (.+)$'
-        msg = " ".join(tok)
-        if re.search(aregex,msg):
-            character = self.character.ident
-            location  = msg
+        if len(tok) == 1:
+            try:
+                print "got toks",tok
+                unique = int(tok[0])
+            except:
+                return "(<fail>Destination must be unique id"
             
+            location  = [location for location in self.world.locations if location.unique == unique]
+            character = [self.character]
+        
         else:
-            bsearch = re.search(bregex,msg)
-            csearch = re.search(cregex,msg)
-            if bsearch:
-                groups = bsearch.groups()
-                character = groups[0]
-                location = groups[1]
-            elif csearch:
-                groups = csearch.groups()
-                character = groups[0]
-                location = groups[1]
-            else:
-                return "(<fail>Usage: teleport [locationid] OR teleport [charactername] to [locationid/locationname]"
+            return ("<fail>Unable to parse request: tp {chr} [loc]")
+        if len(location) != 1:
+            return "(<fail>Invalid destination)"
+        if len(character) != 1:
+            return "(<fail>Invalid character)"
         
-
-        character = self.world.findAny(character,self.world.characters)
-        location  = self.world.findAny(location,self.world.locations)
-        
-        if not character:
-            return "(<fail>Character could not be resolved"
-        if not location:
-            return "(<fail>Location could not be resolved"
+        #aregex = '^\d+$'   # tp 0
+        #bregex = '^(.+?) to (\d+)$'
+        #cregex = '^(.+?) to (.+)$'
+        #msg = " ".join(tok)
+        #if re.search(aregex,msg):
+        #    character = self.character.ident
+        #    location  = msg
+            
+        #else:
+        #    bsearch = re.search(bregex,msg)
+        #    csearch = re.search(cregex,msg)
+        #    if bsearch:
+        #        groups = bsearch.groups()
+        #        character = groups[0]
+        #        location = groups[1]
+        #    elif csearch:
+        #        groups = csearch.groups()
+        #        character = groups[0]
+        #        location = groups[1]
+        #    else:
+        #        return "(<fail>Usage: teleport [locationid] OR teleport [charactername] to [locationid/locationname]"
        
+
+        #character = self.world.findAny(character,self.world.characters)
+        #location  = self.world.findAny(location,self.world.locations)
+        
+        #if not character:
+        #    return "(<fail>Character could not be resolved"
+        #if not location:
+        #    return "(<fail>Location could not be resolved"
+        
         character[0].move(location[0])
         if self.character != character[0]:
             if character[0].player:
                 character[0].player.send("(<ok>You have been teleported")
         return "(<ok>Teleport succesful"
         
-    """
-    '''
+    
+
     def handle_tp(self,tok):
         return self.handle_teleport(tok)
-    '''
     
     def handle_world(self,tok): #FIXME
         if not self.gamemaster: return "(<fail>This command requires GM rights."
