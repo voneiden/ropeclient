@@ -101,7 +101,7 @@ function ws_init(url) {
                 displayOfftopic("Unknown thingy");
             }
         }
-        else if (hdr == 'png') {
+        else if (hdr == 'png') {#033336
             ws_send('png');
         }
         else if (hdr == 'ptu') {
