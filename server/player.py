@@ -671,7 +671,7 @@ class Player(object):
         msg = " ".join(tok)
         special = re.search(regex1,msg)
         if special:
-            groups = search.groups()
+            groups = special.groups()
             playerName = groups[0].lower()
             #characterName = groups[1].lower()
             msg = groups[1]
@@ -724,7 +724,7 @@ class Player(object):
             if isinstance(self.character,world.Soul):
                 return "(<fail>You cannot detach from your soul!"
             else:
-                #location = self.character.location
+                location = self.character.location
                 self.character.detach()
                 world.Soul(self.world,self,location) # Soul attaches automatically!
                 return "Done"
