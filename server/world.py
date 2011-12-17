@@ -410,14 +410,15 @@ class Character(object):
         
     def attach(self,player):
         self.player = player
+        self.owner  = player.account.name
         self.player.character = self
         self.player.connection.write("clr main")
-        for message in self.read[-50:-1]:
+        for message in self.read[-50:]:
             self.message(message)
         while len(self.unread):
             message = self.unread.pop(0)
             self.message(message)
-            self.read.append(message)
+            #self.read.append(message)
         self.player.sendOfftopic("<ok>Attached to %s!"%self.name)
         
             
