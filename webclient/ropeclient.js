@@ -67,7 +67,7 @@ function ws_init(url) {
         else if (hdr == "oft") {
             //A lot faster method of displaying a lot of text at once.
             var everything = tok.join(" ");
-            var lines = everything.split("\x27");
+            var lines = everything.split("\x1b");
             var output = new Array();
             while (lines.length) {
                 

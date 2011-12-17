@@ -42,16 +42,25 @@ class Connection(LineReceiver):
         # I don't quite know why I changed it in the first place..
         
         if tok[0] == 'msg':
-            
+            print "ABC"
             timestamp = float(tok[1])
+            print "CDF"
             message = " ".join(tok[2:])
             self.window.display(message,timestamp)
-        
+
         elif tok[0] == 'oft':
-            messages = " ".join(tok[1:]).split('\x27')
+            messages = " ".join(tok[1:]).split('\x1b')
+            print "I have messages",messages
             for message in messages:
+                print "This message:",message
                 tok = message.split(' ')
-                timestamp = float(tok[0])
+                print "Splitted:",tok
+                print "ABCDEF"
+                try:
+                    timestamp = float(tok[0])
+                except:
+                    self.window.display("Error",time.time(),True)
+                print "EFGHKJ"
                 message = " ".join(tok[1:])
                 self.window.display(message,timestamp,True)
            

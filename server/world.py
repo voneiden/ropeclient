@@ -161,7 +161,7 @@ class World(object):
         offtopic = [message[0] if not i else "{0} {1}".format(message[1],message[0]) 
                     for i,message in enumerate(self.offtopicHistory[-100:])]
         if offtopic:
-            player.sendOfftopic("\x27".join(offtopic),self.offtopicHistory[-100:][0][1])
+            player.sendOfftopic("\x1b".join(offtopic),self.offtopicHistory[-100:][0][1])
         #offtopicUpdate = []
         #offtopicHistory = self.offtopicHistory[-100:0]
         #if len(offtopicHistory):
@@ -422,8 +422,8 @@ class Character(object):
         
             
     def detach(self):
-        self.player.character = None
-        self.player = None
+            self.player.character = None
+            self.player = None
         
     def message(self,timestamp): 
         print "sending message id",timestamp

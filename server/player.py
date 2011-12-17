@@ -424,8 +424,8 @@ class Player(object):
                 
             elif tok[0][0] == '(':
                 return self.handle_offtopic(tok)
-            elif tok[0][0] == '#':
-                return self.handle_describe(tok)
+            elif tok[0][0] == '#' and len(tok[0]) > 1:
+                return self.handle_describe(" ".join(tok)[1:].split(' ')) # Bugfix done here.
             elif tok[0][0] == '!':
                 return self.handle_offtopic(tok)
             elif self.handle_move(tok):
