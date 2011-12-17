@@ -727,7 +727,7 @@ class Player(object):
                 location = self.character.location
                 self.character.detach()
                 world.Soul(self.world,self,location) # Soul attaches automatically!
-                return "Done"
+                return "(<ok>Detached!"
                 
  
     def handle_locs(self, tok):

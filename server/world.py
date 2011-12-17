@@ -29,6 +29,9 @@ attributes
 #contain a reference to the character? too lazy to check right now
 #FIXME
 
+#TODO Make it so that souls can see the last 100 lines that have been happening in a location.
+
+
 import cPickle, time, re, random
 
 class World(object):
@@ -82,6 +85,10 @@ class World(object):
             if isinstance(character,Soul):
                 print "Destroying soul"
                 self.remCharacter(character)
+        for location in self.locations:
+            if not hasattr(location,'history'):
+                print "Fixing history"
+                location.history = []
         
 
     def sendMessage(self,recipients,message):
@@ -98,6 +105,7 @@ class World(object):
             print "2"
             for recipient in recipients:
                 recipient.message(timestamp)
+        return timestamp
     
     def sendOfftopic(self,message,recipients=None):
         # TODO all offtopic needs to be logged, and upon player
@@ -485,7 +493,11 @@ class Soul(Character):
         
         self.attach(player)
  
-
+    def attach(self,player):
+        for msg in self.location.history[-50:]:
+            self.message(msg)
+            
+        Character.attach(self,player)
         
     def detach(self):
         print "Destroying soul!!!"
@@ -500,8 +512,7 @@ class Location(object):
         self.description = description
         self.characters = []
         self.links = []
-        
-        
+        self.history = []
         self.world.addLocation(self)
         
         #self.ident = str(id(self))
@@ -520,7 +531,8 @@ class Location(object):
         print "Announcing to",recipients,message
         if ignore in recipients: recipients.remove(ignore)
         if len(recipients) > 0: 
-            self.world.sendMessage(recipients,message)
+            timestamp = self.world.sendMessage(recipients,message)
+            self.history.append(timestamp)
         else:
             print "Nobody to receive this message, ignoring.."
 
