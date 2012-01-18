@@ -237,12 +237,23 @@ class Player(object):
         #if self.name in self.core.players:
         #    print "Disconnecting old player"
         #    self.core.players[self.name].connection.disconnect()
+        # TODO: UPDATE
+        
         player = self.core.find(self.name,self.core.players)
         if player:
             player[0].connection.disconnect()
             
         self.core.players.append(self)
-        
+        print "CHECKING COLORS",self.account.colors
+        if 'background' in self.account.colors:
+            print "Sending custom background color"
+            self.connection.sendColor("background",self.account.colors['background'])
+        if 'timestamp' in self.account.colors:
+            print "Sending custom timestamp color"
+            self.connection.sendColor("timestamp",self.account.colors['timestamp'])
+        if 'input' in self.account.colors:
+            self.connection.sendColor("input",self.account.colors['input'])
+            
         self.handler = self.handlerWorldMenu
         return self.displayWorldMenu()
     
@@ -865,31 +876,37 @@ class Player(object):
                 self.character.location.sendMessage("""%s (%s)"""%(message, self.account.name))
         
     def handle_setcolor(self,tok):
-		""" 
-		This command is used to set custom colors
-		"""
-		
-		buffer = []
-		if len(tok) == 0:
-			if len(self.account.colors) == 0:
-				buffer.append("No color definitions set")
-			else:
-				buffer.append("Current color definitions")
-				for c1,c2 in self.account.colors.items():
-					buffer.append("{c1} -> {c2}".format(c1=c1,c2=c2))
-		elif len(tok) == 1:
-			c1 = tok[0]
-			if c1 in self.account.colors:
-				del self.account.colors[c1]
-				buffer.append("<ok>Removed color mapping for {0}".format(c1))
-			else:
-				buffer.append("<fail>Color not found")
-		else:
-			c1 = tok[0]
-			c2 = tok[1]
-			self.account.colors[c1] = c2
-			buffer.append("<ok>Mapped: {c1} -> {c2}".format(c1=c1,c2=c2))
-		return "\n".join(buffer)
+        """ 
+        This command is used to set custom colors
+        Special colors that the server should sync with the client..
+        background and timestamp?
+        """
+        
+        buffer = []
+        if len(tok) == 0:
+            if len(self.account.colors) == 0:
+                buffer.append("No color definitions set")
+            else:
+                buffer.append("Current color definitions")
+                for c1,c2 in self.account.colors.items():
+                    buffer.append("{c1} -> {c2}".format(c1=c1,c2=c2))
+        elif len(tok) == 1:
+            c1 = tok[0]
+            if c1 in self.account.colors:
+                del self.account.colors[c1]
+                buffer.append("<ok>Removed color mapping for {0}".format(c1))
+            else:
+                buffer.append("<fail>Color not found")
+        else:
+            c1 = tok[0]
+            c2 = tok[1]
+            self.account.colors[c1] = c2
+            buffer.append("<ok>Mapped: {c1} -> {c2}".format(c1=c1,c2=c2))
+            
+            if c1 == 'background' or c1 == 'timestamp' or c1 == 'input':
+                self.connection.sendColor(c1,c2)
+                
+        return "\n".join(buffer)
     
         
     def handle_offtopic(self, tok):

@@ -46,6 +46,7 @@ if __name__ == '__main__':
     #window.colors['ok'] = scp.get('colors','ok')
     #window.colors['fail'] = scp.get('colors','fail')
     #window.colors['notify'] = scp.get('colors','notify')
+    """
     f = open('colors.txt','r')
     print "PIIPAA"
     for line in f.readlines():
@@ -60,7 +61,8 @@ if __name__ == '__main__':
         else:
             window.colors[key] = value
             print "Saved color",key,value
-        
+    """
+      
     reactor.run()
 
 

@@ -118,7 +118,7 @@ class Window(object):
         
         # Colors that have been loaded!
         self.usedColors = []
-        self.colors = {'default': 'gray'}
+        self.colors = {'default': 'gray','timestamp':'#aaaaff'} 
         self.dicetags = {}
         
         self.history = []
@@ -169,6 +169,10 @@ class Window(object):
         self.textboxOfftopic.config(background=color)
         self.entrybox.config(background=color)
         self.playerbox.config(background=color)    
+        
+    def setInputColor(self,color):
+        self.entrybox.config(foreground=color)
+        self.entrybox.config(insertbackground=color)
         
     # TODO update
     def display(self,message,timestamp=None,offtopic=False):
@@ -404,7 +408,7 @@ class Window(object):
             
     def colorTags(self,message):
         regex = '\<.*?\>'
-        colors = [self.colors['default']]+[color[1:-1] for color in re.findall(regex,message)]
+        colors = [self.colors['timestamp']]+[color[1:-1] for color in re.findall(regex,message)]
         parts  = re.split(regex,message)
         
         print "Colors:",colors

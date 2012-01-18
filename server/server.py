@@ -234,7 +234,10 @@ class RopePlayer(LineReceiver):
     def sendOfftopic(self,message,timestamp):
         if not timestamp: timestamp = time.time()
         self.write(u"oft {timestamp} <offtopic>{message}".format(timestamp=timestamp,message=message))
-
+    
+    def sendColor(self,c1,c2):
+        self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))
+        
     def disconnect(self):
         if self.pingTimer:
             self.pingTimer.cancel()
@@ -384,6 +387,9 @@ class WebPlayer(Protocol):
         
     def sendMessage(self, message):
         self.write(u'msg %f %s' % (time.time(),message))
+    def sendColor(self,c1,c2):
+        self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))
+        
     def sendOfftopic(self,message,timestamp):
         if not timestamp: timestamp = time.time()
         self.write(u"oft {timestamp} {message}".format(timestamp=timestamp,message=message))

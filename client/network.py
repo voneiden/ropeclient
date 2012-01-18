@@ -113,6 +113,17 @@ class Connection(LineReceiver):
         elif tok[0] == 'png':
             self.write('png')
             print "Ping replied"
+        elif tok[0] == 'col':
+            print "*** ReCEIVED COLOR",tok
+            if tok[1] == 'background':
+                self.window.setBackgroundColor(tok[2])
+            elif tok[1] == 'timestamp':
+                self.window.colors['timestamp'] = tok[2]
+            elif tok[1] == 'input':
+                self.window.setInputColor(tok[2])
+                
+            else:
+                print "Unknown color setting"
         else: 
             print "Unknown packet",tok
     def write(self, data):

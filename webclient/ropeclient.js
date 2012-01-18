@@ -114,6 +114,24 @@ function ws_init(url) {
             updatePlayerList(tok.shift().split(';'));
         
         }
+        else if (hdr == 'col') {
+            c1 = tok.shift();
+            c2 = tok.shift();
+            if (c1 == 'background') { 
+                $("#lefttop").css("background-color",c2);
+                $("#leftbottom").css("background-color",c2);
+                $("#righttop").css("background-color",c2);
+                $("#rightbottom").css("background-color",c2);
+                $("#leftentry").css("background-color",c2);
+                $("#entrybox").css("background-color",c2);
+                
+            }
+            else if (c1 == 'timestamp') { }
+            else if (c1 == 'input') { 
+                $("#entrybox").css("color",c2);
+            }
+            else { displayOfftopic("Unknown color received.. bug?"); }
+        }
         else {
             displayOfftopic('unknown header (len'+hdr.length+': ' + hdr);
         }
@@ -214,5 +232,5 @@ $(document).ready(function(){
         setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
 
-    ws_init("ws://ninjabox.sytes.net:9091")
+    ws_init("ws://localhost:9091")
 });
