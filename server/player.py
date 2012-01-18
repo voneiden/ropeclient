@@ -847,13 +847,6 @@ class Player(object):
                 return True
             else:
                 return False
-            #for exit in self.character.location.exits.keys():
-            #    if dir in exit.lower():
-            #        destination = self.character.location.exits[exit]
-            #        self.character.move(destination)
-            #        return True
-
-            #return False
         else:
             return False
             
@@ -871,6 +864,32 @@ class Player(object):
                 message = " ".join(tok)
                 self.character.location.sendMessage("""%s (%s)"""%(message, self.account.name))
         
+    def handle_setcolor(self,tok):
+		""" 
+		This command is used to set custom colors
+		"""
+		
+		buffer = []
+		if len(tok) == 0:
+			if len(self.account.colors) == 0:
+				buffer.append("No color definitions set")
+			else:
+				buffer.append("Current color definitions")
+				for c1,c2 in self.account.colors.items():
+					buffer.append("{c1} -> {c2}".format(c1=c1,c2=c2))
+		elif len(tok) == 1:
+			c1 = tok[0]
+			if c1 in self.account.colors:
+				del self.account.colors[c1]
+				buffer.append("<ok>Removed color mapping for {0}".format(c1))
+			else:
+				buffer.append("<fail>Color not found")
+		else:
+			c1 = tok[0]
+			c2 = tok[1]
+			self.account.colors[c1] = c2
+			buffer.append("<ok>Mapped: {c1} -> {c2}".format(c1=c1,c2=c2))
+		return "\n".join(buffer)
     
         
     def handle_offtopic(self, tok):

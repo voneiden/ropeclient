@@ -91,6 +91,11 @@ class Core(object):
                 self.accounts = []
         except IOError:
             self.accounts = []
+            
+        for account in self.accounts:
+			if not hasattr(account,"colors"):
+				print "Fixing missing account color table"
+				account.colors = {}
     
     def saveAccounts(self):
         f = open('accounts.db','wb')
@@ -170,9 +175,54 @@ class RopePlayer(LineReceiver):
         #self.player.recv(line)
 
     def write(self, data, newline=True):
+        data = self.colorConvert(data)
         if newline:
             data = ("%s\r\n" % data).encode('utf-8')
         self.transport.write(data)
+
+    def colorConvert(self,data):
+        # Ensure that color is always reseted to default (</font>)
+        
+        stack = []
+        fallback = "gray"
+        regex = '\<.*?\>'
+        print "Pre-parse:",data
+        for match in re.finditer(regex,data):
+            match = match.group()
+            color = match[1:-1]
+            if self.player.account and color in self.player.account.colors:
+                color = self.player.account.colors[color]
+            elif color == 'fail':
+                color = 'red'
+            elif color == 'ok':
+                color = 'green'
+            elif color == 'default':
+                color = '#aaaaff'
+            elif color == 'offtopic':
+                color = '#aaaaff'
+            elif color == 'talk':
+                color = '#8888ff'
+            elif color == 'notify':
+                color = 'orange'
+            
+            if color == 'reset':
+                try:
+                    color = stack.pop()
+                    #recolor = stack[-1]
+                    #color = 0
+                except:
+                    color = '#aaaaff'
+                    stack.append(color)     
+            else:
+                stack.append(color)
+                
+            #if color:
+            data = data.replace(match,"<%s>"%color,1)
+            #else:
+            #    data = data.replace(match,'</font>',1)
+        #data = data + '</font>'*len(stack)
+        print "Finished:",data
+        return data
 
     def connectionLost(self, reason):
         print "Connection lost"
@@ -183,7 +233,7 @@ class RopePlayer(LineReceiver):
 
     def sendOfftopic(self,message,timestamp):
         if not timestamp: timestamp = time.time()
-        self.write(u"oft {timestamp} {message}".format(timestamp=timestamp,message=message))
+        self.write(u"oft {timestamp} <offtopic>{message}".format(timestamp=timestamp,message=message))
 
     def disconnect(self):
         if self.pingTimer:
@@ -299,7 +349,9 @@ class WebPlayer(Protocol):
         for match in re.finditer(regex,data):
             match = match.group()
             color = match[1:-1]
-            if color == 'fail':
+            if self.player.account and color in self.player.account.colors:
+				color = self.player.account.colors[color]
+            elif color == 'fail':
                 color = 'red'
             elif color == 'ok':
                 color = 'green'
@@ -378,6 +430,10 @@ class Account:
         self.name = name
         self.password = password
         self.style = style
+        
+        self.colors = {}
+        
+
 
 if __name__ == '__main__':
     core = Core()
@@ -391,4 +447,4 @@ if __name__ == '__main__':
     reactor.run()
     
     core.saveWorlds()
-        
+    core.saveAccounts()
