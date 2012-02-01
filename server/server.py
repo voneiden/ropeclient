@@ -93,9 +93,12 @@ class Core(object):
             self.accounts = []
             
         for account in self.accounts:
-			if not hasattr(account,"colors"):
-				print "Fixing missing account color table"
-				account.colors = {}
+            if not hasattr(account,"colors"):
+                print "Fixing missing account color table"
+                account.colors = {}
+            if not hasattr(account,"font"):
+                print "Fixing missing font data"
+                account.font = ("Monospace",8)
     
     def saveAccounts(self):
         f = open('accounts.db','wb')
@@ -292,6 +295,7 @@ class WebPlayer(Protocol):
         print "Web connection made"
         self.core = self.factory.core
         self.player = player.Player(self, self.core)
+        self.sendFont("Monospace")
         self.sendMessage("".join(self.core.greeting))
         self.player.recv = self.player.recvMessage
         self.pingTimer = False
@@ -340,6 +344,7 @@ class WebPlayer(Protocol):
     def write(self,data):
         
         data = self.colorConvert(data)
+        #data = data.replace("\n",'<br>')
         self.transport.write(data.encode("utf-8"))
         
     def colorConvert(self,data):
@@ -353,7 +358,7 @@ class WebPlayer(Protocol):
             match = match.group()
             color = match[1:-1]
             if self.player.account and color in self.player.account.colors:
-				color = self.player.account.colors[color]
+                color = self.player.account.colors[color]
             elif color == 'fail':
                 color = 'red'
             elif color == 'ok':
@@ -389,6 +394,8 @@ class WebPlayer(Protocol):
         self.write(u'msg %f %s' % (time.time(),message))
     def sendColor(self,c1,c2):
         self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))
+    def sendFont(self,font,size=8):
+        self.write(u"fnt {font} {size}".format(font=font,size=size))
         
     def sendOfftopic(self,message,timestamp):
         if not timestamp: timestamp = time.time()

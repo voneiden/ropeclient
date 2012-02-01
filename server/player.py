@@ -253,7 +253,9 @@ class Player(object):
             self.connection.sendColor("timestamp",self.account.colors['timestamp'])
         if 'input' in self.account.colors:
             self.connection.sendColor("input",self.account.colors['input'])
-            
+        
+        self.connection.sendFont(self.account.font[0],self.account.font[1])
+        
         self.handler = self.handlerWorldMenu
         return self.displayWorldMenu()
     
@@ -908,6 +910,18 @@ class Player(object):
                 
         return "\n".join(buffer)
     
+        
+    def handle_setfont(self,tok):
+        if len(tok) == 0: 
+            return "Unable"
+        font = tok[0]
+        if len(tok) == 2:
+            size = tok[1]
+        else:
+            size = 8
+        print "Setting font",font,"with size",size
+        self.account.font = (font,size)
+        self.connection.sendFont(font,size)
         
     def handle_offtopic(self, tok):
         if len(tok) == 0: return

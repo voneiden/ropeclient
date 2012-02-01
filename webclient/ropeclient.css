@@ -7,6 +7,9 @@ body,html
 }
 pre
 {
+    font-style: inherit;
+    font-family: inherit;
+    font-size: inherit;
     display:block;
     margin:0;
     padding:0;

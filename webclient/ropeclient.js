@@ -1,3 +1,104 @@
+autocomplete_stage = 0;
+autocomplete_base  = "";
+autocomplete_cycle = [];
+autocomplete_index = 0;
+autocomplete_commands = {
+    'tell':["Who?","Message?"],
+    'test':1
+};
+
+autocomplete_buffer = [];
+
+function displayAutocomplete() {
+    var text = "";
+    for (var i in autocomplete_buffer) {
+        text += '<span style="color:lime;border-style:solid;border-width:1px;border-color:lime;">'+autocomplete_buffer[i]+'</span>';
+    }
+    if (autocomplete_buffer.length > 0) { // This is a neat feature!
+        var cmd = autocomplete_buffer[0];
+        var question = autocomplete_commands[cmd][autocomplete_buffer.length - 1];
+        text += question
+    }
+    $("#autocomplete").html(text);
+}
+
+function AutoComplete(event) {
+    // There are 3 stages
+    // 1 - command autocomplete
+    // 2 - argument 1 complete
+    // 3 - argument 2 complete..
+    // 4 - argument 3 complete..
+    keyCode = event.keyCode
+    if (autocomplete_stage == 0 && keyCode == 9) {
+        displayOfftopic("Enter stage 1");
+        autocomplete_stage = 1;
+    }
+    
+    if (autocomplete_stage == 1 && keyCode == 9) {
+        if (autocomplete_cycle.length == 0) {
+            autocomplete_base = $("#entrybox").val()
+            displayOfftopic("Search for command "+autocomplete_base);
+            // Fill the cycle with results
+            var pattern = new RegExp(autocomplete_base + '.*',"i");
+            for (var cmd in autocomplete_commands) {
+                if (pattern.test(cmd)) {
+                    autocomplete_cycle.push(cmd)
+                }
+            }
+            
+            if (autocomplete_cycle.length == 0) {
+                // No results found, fall back to stage 0
+                autocomplete_stage = 0;
+            }
+            
+            else { 
+                displayOfftopic("Auto completing command");
+                $("#entrybox").val(autocomplete_cycle[autocomplete_index] + " "); 
+            }
+        }
+        else {
+            autocomplete_index += 1;
+            autocomplete_index %= autocomplete_cycle.length;
+            displayOfftopic("Auto completing command");
+            $("#entrybox").val(autocomplete_cycle[autocomplete_index] + " "); 
+        }
+    }
+    else if (autocomplete_stage == 1 && keyCode == 8) {
+        $("#entrybox").val(autocomplete_base );
+        autocomplete_stage = 0;
+        autocomplete_cycle = [];
+        autocomplete_index = 0;
+        autocomplete_base = "";
+    }
+    
+    else if (autocomplete_stage == 1 && keyCode >= 48) {
+        // Accept command, move it to label etc.
+        displayOfftopic("Autocomplete accepted")
+        $("#entrybox").val("");
+        
+        autocomplete_buffer.push(autocomplete_cycle[autocomplete_index]);
+        displayAutocomplete();
+        autocomplete_stage = 2;
+        
+    }
+    
+    else if (autocomplete_stage == 2 && keyCode == 8 && $("#entrybox").val().length <= 1) {
+        autocomplete_stage = 0; // MAYBE its ok to have autocomplete_stage > 1?
+        $("#autocomplete").text("");
+        autocomplete_cycle = [];
+        autocomplete_index = 0;
+        $("#entrybox").val(autocomplete_base );
+        if (event.preventDefault) { event.preventDefault(); }
+    }
+    else if (autocomplete_stage == 2 && keyCode == 9) {
+        autocomplete_buffer.push($("#entrybox").val());
+        $("#entrybox").val("");
+        displayAutocomplete();
+        
+        
+    }
+}
+
 function displayOfftopic(msg) {
     msg = diceParse(msg);
     document.getElementById('lefttop').innerHTML += '<font color="#aaaaff">' + msg +  "</font>";  
@@ -132,8 +233,17 @@ function ws_init(url) {
             }
             else { displayOfftopic("Unknown color received.. bug?"); }
         }
+        else if (hdr == 'fnt') {
+            
+            font = tok.shift();
+            size = tok.shift();
+            $("#lefttop").css("font-family",font);
+            $("#leftbottom").css("font-family",font);
+            $("#lefttop").css("font-size",size);
+            $("#leftbottom").css("font-size",size);
+        }
         else {
-            displayOfftopic('unknown header (len'+hdr.length+': ' + hdr);
+            displayOfftopic('unknown header (len:'+hdr.length+': ' + hdr);
         }
     };
     
@@ -192,7 +302,18 @@ $(document).ready(function(){
     playerList = new Array();
     
     $("#entrybox").focus();
-
+    $("#entrybox").keydown(function(event){
+        if (event.keyCode == 9) {
+            AutoComplete(event);
+            
+            if (event.preventDefault) { event.preventDefault(); }
+            return false;
+            
+        }
+        else {
+            AutoComplete(event);
+        }
+    });
     $("#entrybox").keyup(function(event){
         if(event.keyCode == 13){
             if (isPassword) {
@@ -216,16 +337,23 @@ $(document).ready(function(){
             isTyping = 0;
             
         }
+        
         else {
+            //if (event.keyCode == 8) {
+                //AutoComplete(event.keyCode);
+            //}
+            
+            
             if (isTyping == 0 && $("#entrybox").val().length > 0) {    
                 isTyping = 1;
                 ws_send("pit")
-        }
+            }
             else if (isTyping == 1 && $("#entrybox").val().length == 0) {
                 isTyping = 0;
                 ws_send("pnt")
             }
         }
+        
     });
     
     $("#entrybox").focusout(function(event){
