@@ -1061,10 +1061,11 @@ class Player(object):
         
     
 
-    def handle_tp(self,tok):
-        return self.handle_teleport(tok)
+    def handle_tp(self,*args):
+        return self.handle_teleport(*args)
     
-    def handle_world(self,tok): #FIXME
+    def handle_world(self,*args): #FIXME
+        tok = args
         if not self.gamemaster: return "(<fail>This command requires GM rights."
         if len(tok) < 1: return "(<fail>Usage: world rename/save/load"
         if tok[0] == 'name' and len(tok) > 1: 
@@ -1097,22 +1098,22 @@ class Player(object):
             #    return "(<fail>Load failed."
                 
             
-    def handle_loc(self,tok):
+    def handle_editlocation(self,*args):
         if not self.gamemaster: 
             return "(<fail>This command requires GM rights."
         
-        elif len(tok) == 0:
+        elif len(args) < 2:
             return "(<fail>Usage: loc name/describe [text]"
         
-        elif tok[0] == 'name':
-            name = " ".join(tok[1:])
+        elif args[0] == 'name' and len(args)>=2:
+            name = " ".join(args[1])
             if 3 > len(name) or len(name) > 60:
                 return "(<fail>Please limit your location name to 60 characters (min 3)"
             self.character.location.name = name
             return "(<ok>Location renamed!"
         
-        elif tok[0][0] == 'd':
-            desc = " ".join(tok[1:])
+        elif args[0] == 'd':
+            desc = " ".join(args[1])
             if 3 > len(desc) or len(desc) > 5000:
                 return "(<fail>Please limit your title to 5000 characters (min 3)"
             self.character.location.description = desc

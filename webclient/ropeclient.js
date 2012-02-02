@@ -3,21 +3,22 @@ autocomplete_base  = "";
 autocomplete_cycle = [];
 autocomplete_index = 0;
 autocomplete_commands = {
-    'tell':["Who?","Message?"],
-    'me':["Message?"],
     'action':["Message?"],
-    'look':["Enter/At who?"],
     'attach':["Who?/To?","To?"],
     'chars':[],
-    'locs':[],
     'create':["Title?","Description?","Exit name (or blank)?", "Return exit name (or blank?"],
-    'players':[],
     'detach':[],
+    'editlocation':['Choose attribute to edit: name/description','set to?']
+    'locs':[],
+    'look':["Enter/At who?"],
     'kill':["Who?"],
+    'me':["Message?"],
+    'notify':["Who?","Message?"],
+    'players':[],
+    'tell':["Who?","Message?"],
     'setcolor':["Enter to list/Color name (from)?","Enter to erase definition/Color name (to)?"],
     'setfont':["Font name?","Font size?"],
-    'spawn':["Character name?","Short description? (Max 40 chars)","Long description"],
-    'notify':["Who?","Message?"]
+    'spawn':["Character name?","Short description? (Max 40 chars)","Long description"]
 };
 
 autocomplete_buffer = [];
