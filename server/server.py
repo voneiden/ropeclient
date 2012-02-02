@@ -119,7 +119,7 @@ class Core(object):
         print "CORE: Save the worlds from destruction!"
         for world in core.worlds:
             world.saveWorld()
-            
+    '''      
     def find(self,objID,objList):
         """ 
             Search objList for name or unique matching objID
@@ -139,7 +139,51 @@ class Core(object):
                 return False
             else:
                 return obj
-
+        '''
+    def find(self,source,pattern,instance):
+        # source = player object
+        # Pattern = pattern to be found
+        # Instance = Type of instances to be searched
+        
+        # First case is testing for ID number.
+        try:
+            ref = int(pattern)
+        except ValueError:
+            ref = -1
+        
+        else:
+            if isinstance(instance,world.Character):
+                l = source.world.characters
+            elif isinstance(instance,player.Player):
+                l = source.world.Players
+            try:
+                return [l[ref]]
+            except:
+                return False
+    
+        # Second case is testing for local name match, applies only to characters
+        pattern = re.compile(pattern+'$',re.IGNORECASE)
+        
+        if isinstance(instance,world.Character):
+            l = source.character.location.characters
+            
+            match = [character for character in l if re.match(pattern,character.name)]
+            if len(match) > 0:
+                return match
+                
+        # Third case is testing for global name match, applies to rest
+        if isinstance(instance,world.Character):
+            l = source.world.characters
+        elif isinstance(instance,player.Player):
+          
+            l = source.world.players
+        else:
+            l = []
+        match = [object for object in l if re.match(pattern,object.name)]
+        return match
+        
+            
+        
 class RopePlayer(LineReceiver):
 
     def connectionMade(self):

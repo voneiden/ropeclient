@@ -186,7 +186,7 @@ class World(object):
             player.sendOfftopic("<notify>GM mode enabled!")
         
         print "Do looky"
-        player.sendMessage(player.handle_look([]))
+        player.sendMessage(player.handle_look())
             
     def remPlayer(self,player):
         print "REMOVING player"

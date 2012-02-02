@@ -4,8 +4,20 @@ autocomplete_cycle = [];
 autocomplete_index = 0;
 autocomplete_commands = {
     'tell':["Who?","Message?"],
-    'test':[],
-    'attach':["Player or Target name?","Target name?"]
+    'me':["Message?"],
+    'action':["Message?"],
+    'look':["Enter/At who?"],
+    'attach':["Who?/To?","To?"],
+    'chars':[],
+    'locs':[],
+    'create':["Title?","Description?","Exit name (or blank)?", "Return exit name (or blank?"],
+    'players':[],
+    'detach':[],
+    'kill':["Who?"],
+    'setcolor':["Enter to list/Color name (from)?","Enter to erase definition/Color name (to)?"],
+    'setfont':["Font name?","Font size?"],
+    'spawn':["Character name?","Short description? (Max 40 chars)","Long description"],
+    'notify':["Who?","Message?"]
 };
 
 autocomplete_buffer = [];
@@ -47,7 +59,7 @@ function AutoComplete(event) {
             autocomplete_base = $("#entrybox").val()
             //displayOfftopic("Search for command "+autocomplete_base);
             // Fill the cycle with results
-            var pattern = new RegExp(autocomplete_base + '.*',"i");
+            var pattern = new RegExp('^' + autocomplete_base + '.*',"i");
             for (var cmd in autocomplete_commands) {
                 if (pattern.test(cmd)) {
                     autocomplete_cycle.push(cmd)
@@ -91,7 +103,7 @@ function AutoComplete(event) {
     
     // Accept autocomplete command by typing something else
     else if (autocomplete_stage == 1 && keyCode >= 48) {
-        displayOfftopic("Autocomplete accepted")
+        //displayOfftopic("Autocomplete accepted")
         $("#entrybox").val("");
         autocomplete_stage = 2;
         
@@ -279,8 +291,8 @@ function ws_init(url) {
     };
     
     ws.onerror = function (error) {
-        alert(error.toSource())
-        displayOfftopic("Error: "+error.data);
+        //alert(error.toSource())
+        displayOfftopic("Error: "+error.data+" (Hit F5 to reconnect)");
     };
 }
 
@@ -376,7 +388,7 @@ $(document).ready(function(){
                 autocomplete_cycle = [];
                 displayAutocomplete();
             }
-            displayOfftopic("Content: "+content);
+            //displayOfftopic("Content: "+content);
             $("#entrybox").val("");
             ws_send(header + " " + content);
             isTyping = 0;

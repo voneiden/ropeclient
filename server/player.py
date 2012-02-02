@@ -241,9 +241,8 @@ class Player(object):
         #    self.core.players[self.name].connection.disconnect()
         # TODO: UPDATE
         
-        player = self.core.find(self.name,self.core.players)
-        if player:
-            player[0].connection.disconnect()
+        #player = self.core.find(self.name,self.core.players)
+        #Moved to world login..
             
         self.core.players.append(self)
         print "CHECKING COLORS",self.account.colors
@@ -353,6 +352,9 @@ class Player(object):
                     
                 self.clearMain()
                 self.world = choice
+                player = self.core.find(self,self.name,self)
+                if player:
+                    player[0].connection.disconnect()
                 choice.addPlayer(self)
                 self.handler = self.handlerGame
                 
@@ -522,98 +524,9 @@ class Player(object):
         #    else:
         #        return character.info
         
-    # Changing it so that a character is owned by whoever last was attached to it.   
-    def creatorCharacter(self,tok):
-        ''' This is a handler for character generation '''
-        msg = " ".join(tok)
-        if msg.lower() == 'abort':
-            self.handler = self.handlerGame
-            return "Aborted"
-            
-        elif self.handlerstate  == 0:
-            self.handlerstate = 1
-            return "Character name [or 'abort']:"
-
-            
-        elif self.handlerstate == 1:
-            matched = [character for character in self.world.characters if character.name == msg]
-            if matched:
-                self.sendMessage("<fail>Warning, a character with that name already exists!")
-            elif len(msg) < 2:
-                return("That's a too short name..! Try again:")
-            self.temp['name'] = msg
-            self.handlerstate = 2
-            return "Short description [max 5 words OR blank to set same as name]:"
-           
-        elif self.handlerstate == 2:
-            if len(tok) > 6:
-                return "Too long, keep it brief.."
-            if len(tok) == 0:
-                self.temp['info'] = self.temp['name']
-            else:
-                self.temp['info'] = msg
-            
-            self.handlerstate = 3
-            return "Long description?"
-        
-        elif self.handlerstate == 3:
-            self.temp['description'] = msg
-            newchar = world.Character(self.world,self.name,
-                                      self.temp['name'],self.temp['info'],
-                                      self.temp['description'],
-                                      self.character.location)
-            #newchar.move(self.character.location)
-            self.handler = self.handlerGame
-            return "Character created succesfully!"
     
-    def creatorLocation(self,tok):
-        print "Locreator",tok
-        print type(tok)
-        msg = " ".join(tok)
-        if msg.lower() == 'abort':
-            self.handler = self.handlerGame
-            return "Aborted"
-        
-        if self.handlerstate == 0:
-            self.handlerstate = 1
-            return "(Location title:"
-        elif self.handlerstate == 1 and len(msg) > 2:
-            self.temp['name']= msg
-            self.handlerstate = 2
-            return "(Location description:"
-            
-        elif self.handlerstate == 2:
-            self.temp['description'] = msg
-            self.handlerstate = 3
-            return "(Exit name (enter for no exit):"
-        
-        elif self.handlerstate == 3:
-            if len(msg):
-                self.temp['exit'] = msg
-            else:
-                self.temp['exit'] = False
-            self.handlerstate = 4
-            return "(Return exit name (enter for no return exit):"
-            
-            
+    
 
-        elif self.handlerstate == 4:
-            if len(msg): 
-                rexit = msg
-            else:
-                rexit = False
-                 
-            newlocation = world.Location(self.world,self.temp['name'],self.temp['description'])
-            if self.temp['exit']:
-                self.character.location.link(self.temp['exit'],newlocation)
-            if rexit:
-                newlocation.link(rexit,self.character.location)
-                
-            self.handler = self.handlerGame
-            return "(<ok>Location created (unique: %i)"%(newlocation.unique)
-            
-        else:
-            return "<fail>Not enough information"
     # ######################
     # Player related handles
     # ######################
@@ -647,7 +560,7 @@ class Player(object):
         self.world.remCharacter(character)
         return "(<ok>Done."
     '''
-    def handle_players(self,tok):
+    def handle_players(self,*args):
         print "players",len(self.world.players)
         players = [player for player in self.core.players if player.world]
         players.sort(key=lambda player: player.world)
@@ -657,7 +570,7 @@ class Player(object):
             
         return "\n".join(buffer)
         
-    def handle_chars(self, tok):
+    def handle_chars(self, *args):
         print "Listing chars"
         ownedchars = [character for character in self.world.characters if character.owner == self.name]
         
@@ -667,9 +580,9 @@ class Player(object):
         else:
             buffer = ["(You own the following characters"]
             for character in ownedchars:
-                buffer.append("<{color}>{character.unique:<10} - {character.name}".format(
+                buffer.append("<{color}>{index:<10} - {character.name}".format(
                     color="green" if character == self.character else "blue",
-                    character=character))
+                    character=character,index=self.world.characters.index(character)))
         
         if self.gamemaster:
             otherchars = set(self.world.characters)-set(ownedchars)
@@ -750,63 +663,9 @@ class Player(object):
             return "(<ok>Attach succesful!"
         return
         
-        """
-        regex1 = "(.+?) to (.+)"
-        msg = " ".join(tok)
-        special = re.search(regex1,msg)
-        
-        if special:
-            groups = special.groups()
-            playerName = groups[0].lower()
-            #characterName = groups[1].lower()
-            msg = groups[1]
-            character = self.core.find(msg,self.world.characters)
-            #player    = self.world.find(playerName,self.world.players)
-            player = [player for player in self.world.players if player.name.lower() == playerName]
-        else:
-            player = [self]
-            #characterName = msg
-            character = self.core.find(msg,self.world.characters)
-        
-        if not player:
-            return "(<fail>Unable to find a player named '{0}'.".format(playerName)
-        else:
-            player = player[0]
-        """    
-        #TODO handle characters with the same name
-        #TODO wildcards?
-        
-        #character = [character for character in self.world.characters if character.name.lower() == characterName.lower()]
-        """
-        if not character:
-            return "(<fail>Unable to find a character '{0}'.".format(msg)
-        elif len(character) > 1:
-            return ("<fail>Found multiple characters with the same name.. try using unique number.")
-        else:
-            character = character[0]
-            
-        if character.owner is not player.account.name and not self.gamemaster:
-            return "(<fail>You may not attach to this character"
-        
-        if character.player:
-            return "(<fail>Somebody is currently playing with this character. Detach them first?"
-        
-        player.character.detach()
-        character.attach(player)
-        
-        if player is not self:
-            return "(<ok>Attach succesful!"
-        return
-        """
-            
-            
-    def handle_style(self,tok): #FIXME
-        self.account.style = "irc" if self.account.style == 'mud' else 'mud'
-        self.core.saveAccounts()
-        if self.account.style == 'mud': return "You are now using MUD-style"
-        else: return "You are now using IRC-style"
-        
-    def handle_detach(self,tok): #FIXME
+   
+
+    def handle_detach(self,*args): #FIXME
         if self.character:
             if isinstance(self.character,world.Soul):
                 return "(<fail>You cannot detach from your soul!"
@@ -817,30 +676,20 @@ class Player(object):
                 return "(<ok>Detached!"
                 
  
-    def handle_locs(self, tok):
+    def handle_locs(self, *args):
         print "Listing locations"
         buf = ["(<green>{:<10} - {}".format("Unique ID", "Location name")]
         for loc in self.world.locations:
-            buf.append("<green>{:<10} - <spring green>{}".format(loc.unique,loc.name))
+            buf.append("<green>{:<10} - <spring green>{}".format(self.world.locations.index(loc),loc.name))
         return '\n'.join(buf)
     
     # #####################
     # World related handles
     # #####################
-    def handle_look(self, tok):
-        regex1 = '(?<=look ).+'
-        match = re.search(regex1," ".join(tok))
-        buffer = ['']
-        
-        if match:
-            charname = match.group()
-            char = self.world.findAny(charname,self.character.location.characters)
-            if not char or not isinstance(char,world.Character): return "(<fail>There is no one with that id here (%s).."%charname
-            buffer.append("Looking at %s.."%char.rename())
-            buffer.append("%s"%char.description)
-            return "\n".join(buffer)
-            
-        else:
+    def handle_look(self, *args):
+        buffer = []
+        if len(args) == 0:
+            print "GENERAL LOOK"
             location = self.character.location
             buffer.append("<purple>%s<reset>"%location.name)
             buffer.append("<light sky blue>%s<reset>"%location.description)
@@ -861,39 +710,134 @@ class Player(object):
                 buffer.append("<ok>This is a dead end, only one way out: %s"%location.links[0].name)
             else:
                 buffer.append("<ok>Exits: %s"%", ".join([link.name for link in location.links]))
-        
-        return "\n".join(buffer)
+            return "\n".join(buffer)
+        else:
+            print "LOOK AT"
+            charname = match.group()
+            char = self.world.findAny(charname,self.character.location.characters)
+            if not char or not isinstance(char,world.Character): return "(<fail>There is no one with that id here (%s).."%charname
+            buffer.append("Looking at %s.."%char.rename())
+            buffer.append("%s"%char.description)
+            return "\n".join(buffer)
+
           
-    def handle_spawn(self, tok):
-        ''' This command is used to spawn new characters '''
+    def handle_spawn(self, *args):
+        #0 Character name
+        #1 Short description
+        #2 Long description
+        
         if self.gamemaster or not self.world.limitSpawn:
-            self.handler = self.creatorCharacter
-            self.handlerstate = 0
-            self.temp = {}
-            return self.handler([])
+            if len(args) >= 3:
+                name = args[0]
+                shortd = args[1]
+                longd = args[2]
+                if len(name) > 40:
+                    return "(<fail>The character name is way too long!"
+                if len(shortd) == 0:
+                    shortd = name
+                if len(shortd) > 40:
+                    return "(<fail>The short description is way too long! Max 40 letters."
+                newchar = world.Character(self.world,self.name,
+                                              name,shortd,
+                                              longd,
+                                              self.character.location)
+                return "Character created succesfully!"
+                
         else:
             return "(Not authorized"
             
-    def handle_create(self, tok):
-        if self.gamemaster:
-            self.handler = self.creatorLocation
-            self.handlerstate = 0
-            self.temp = {}
-            return self.handler([])
+            
+    # Changing it so that a character is owned by whoever last was attached to it.   
+    def creatorCharacter(self,tok):
+        ''' This is a handler for character generation '''
+        msg = " ".join(tok)
+        if msg.lower() == 'abort':
+            self.handler = self.handlerGame
+            return "Aborted"
+            
+        elif self.handlerstate  == 0:
+            self.handlerstate = 1
+            return "Character name [or 'abort']:"
+
+            
+        elif self.handlerstate == 1:
+            matched = [character for character in self.world.characters if character.name == msg]
+            if matched:
+                self.sendMessage("<fail>Warning, a character with that name already exists!")
+            elif len(msg) < 2:
+                return("That's a too short name..! Try again:")
+            self.temp['name'] = msg
+            self.handlerstate = 2
+            return "Short description [max 5 words OR blank to set same as name]:"
+           
+        elif self.handlerstate == 2:
+            if len(tok) > 6:
+                return "Too long, keep it brief.."
+            if len(tok) == 0:
+                self.temp['info'] = self.temp['name']
+            else:
+                self.temp['info'] = msg
+            
+            self.handlerstate = 3
+            return "Long description?"
+        
+        elif self.handlerstate == 3:
+            self.temp['description'] = msg
+            newchar = world.Character(self.world,self.name,
+                                      self.temp['name'],self.temp['info'],
+                                      self.temp['description'],
+                                      self.character.location)
+            #newchar.move(self.character.location)
+            self.handler = self.handlerGame
+            return "Character created succesfully!"
+            
+            
+    def handle_create(self, *args):
+        # 0 Title
+        # 1 Description
+        # 2 Exit name
+        # 3 Return exit name
+        
+        if self.gamemaster and len(args) >= 2:
+            title = args[0]
+            description = args[1]
+            if len(title) == 0:
+                return "(<fail>Title cannot be left empty."
+            if len(args) >= 3 and len(args[2]) > 0:
+                exit = args[2]
+            else:
+                exit = False
+            if len(args) >= 4 and len(args[3]) > 0:
+                rexit = args[3]
+            else:
+                rexit = False
+                
+            newlocation = world.Location(self.world,title,description)
+            if exit:
+                self.character.location.link(exit,newlocation)
+            if rexit:
+                newlocation.link(rexit,self.character.location)
+            return "(<ok>Location created (unique: %i)"%(self.world.locations.index(newlocation))
         else:
             return "(Not authorized"
     
-    def handle_kill(self,tok):
+    
+    
+    
+    def handle_kill(self,*args):
         ''' Kills a character '''
         
         if not self.gamemaster:
             return "(Not authorized"
-        if len(tok) != 1:
+        if len(args) < 1:
             return "(Usage: kill [name/unique]"
-        
-        character = self.core.find(" ".join(tok),self.world.characters)
+        if len(args[1]) == 0: 
+            return "(Requires a name or id.."
+        character = self.core.find(self,args[1],self.character)
         if not character:
-            return "(Character not found"
+            return "(<fail>Character not found"
+        elif len(character) > 1:
+            return "(<fail>Multiple characters found under that name!"
         else:
             character = character[0]
         if isinstance(character,world.Soul):
@@ -937,13 +881,13 @@ class Player(object):
         else:
             return False
             
-    def handle_action(self,tok):
-        if len(tok) > 0 and not isinstance(self.character,world.Soul):
-            message = " ".join(tok)
+    def handle_action(self,*args):
+        if len(args) > 0 and not isinstance(self.character,world.Soul):
+            message = args[0]
             self.character.location.sendMessage('''%s %s'''%(self.character.rename(), message))
             
-    def handle_me(self,tok):
-        self.handle_action(tok)
+    def handle_me(self,*args):
+        self.handle_action(*args)
         
     def handle_describe(self,message):
         if len(tok) > 1:
@@ -952,7 +896,7 @@ class Player(object):
                     message = message[1:]
                 self.character.location.sendMessage("""%s (%s)"""%(message, self.account.name))
         
-    def handle_setcolor(self,tok):
+    def handle_setcolor(self,*args):
         """
         This command is used to set custom colors
         Special colors that the server should sync with the client..
@@ -960,23 +904,23 @@ class Player(object):
         """
         
         buffer = []
-        if len(tok) == 0:
+        if len(args) == 0:
             if len(self.account.colors) == 0:
                 buffer.append("No color definitions set")
             else:
                 buffer.append("Current color definitions")
                 for c1,c2 in self.account.colors.items():
                     buffer.append("{c1} -> {c2}".format(c1=c1,c2=c2))
-        elif len(tok) == 1:
-            c1 = tok[0]
+        elif len(args) == 1:
+            c1 = args[0]
             if c1 in self.account.colors:
                 del self.account.colors[c1]
                 buffer.append("<ok>Removed color mapping for {0}".format(c1))
             else:
                 buffer.append("<fail>Color not found")
         else:
-            c1 = tok[0]
-            c2 = tok[1]
+            c1 = args[0]
+            c2 = args[1]
             self.account.colors[c1] = c2
             buffer.append("<ok>Mapped: {c1} -> {c2}".format(c1=c1,c2=c2))
             
@@ -986,12 +930,12 @@ class Player(object):
         return "\n".join(buffer)
     
         
-    def handle_setfont(self,tok):
-        if len(tok) == 0: 
-            return "Unable"
-        font = tok[0]
-        if len(tok) == 2:
-            size = tok[1]
+    def handle_setfont(self,*args):
+        if len(args) == 0: 
+            return "(<fail>Not enough args."
+        font = args[0]
+        if len(args) == 2:
+            size = args[1]
         else:
             size = 8
         print "Setting font",font,"with size",size
@@ -1170,24 +1114,45 @@ class Player(object):
             self.character.location.description = desc
             return "(<ok>Location renamed!"
             
-    def handle_tell(self,tok):
-        if len(tok) > 2:
-            targetname = tok[1]
-            message = " ".join(tok[2:])
-            target = self.world.findAny(targetname,self.character.location.characters)
-            if not target: return "(<fail>%s is not here.."%targetname
-            self.world.message(target,'''%s whispers to you, "%s"'''%(self.character.rename, message))
-            return '''You whisper to %s, "%s"'''%(target.rename,message)
+    def handle_tell(self,*args):
+        if len(args) >= 2:
+            pattern = args[0]
+            message = args[1]
+            
+            target = self.core.find(self,pattern,self.character)
+            
+            
+            if not target: 
+                return "(<fail>%s is not here.."%targetName.pattern
+            elif len(target) > 1:
+                return "(<fail>Multiple people found with that name.."
+            else:
+                target = target[0]
+                
+            self.world.sendMessage(target,'''%s whispers to you, "%s"'''%(self.character.rename, message))
+            return '''You whisper to %s, "%s"'''%(target.rename(),message)
         else:
             return "(<fail>Invalid arguments: /tell charname message"
     
-    def handle_notify(self,tok):
-        if len(tok) > 2 and self.gamemaster:
-            targetname = tok[1]
-            message = " ".join(tok[2:])
-            target = self.world.findAny(targetname,self.character.location.characters)
-            if not target: return "(<fail>%s is not here.."%targetname
-            self.world.message(target,'''<notify>%s: %s'''%(self.account.name, message))
+    def handle_notify(self,*args):
+        if len(args) >= 2 and self.gamemaster:
+            pattern = args[0]
+            message = args[1]
+            target = self.core.find(self,pattern,self)
+            if not target: 
+                target = self.core.find(self,pattern,self.character)
+                if not target:
+                    return "(<fail>%s is not here.."%targetname
+            elif len(target) > 1:
+                return "(<fail>Multiple targets, be more specific"
+            else:
+                target = target[0]
+                
+            if isinstance(target,world.Character):
+                self.world.sendMessage(target,'''<notify>%s: %s'''%(self.account.name, message))
+            elif isinstance(target,Player):
+                target.sendMessage('''<notify>%s: %s'''%(self.account.name, message))
+                
             return '''<notify>@%s: "%s"'''%(target.name,message)        
         else:
             return "(<fail>Invalid arguments: /tell charname message, or you're not GM"

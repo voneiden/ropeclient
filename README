@@ -25,3 +25,16 @@ http://groups.google.com/group/ropeclient
 3.0 Usage
 
 Please look at the wiki.
+
+4.0 Recent updates
+- Support for the Tk client will be dropped as I've chosen to focus on 
+the browser client.
+- The browser client now features an autocomplete system and no longer 
+features the two different input styles. Now we have our own input 
+style. To speak, simply write your words. To write offtopic, start your 
+sentence with an opening bracket (. To use commands, input the command 
+name either fully or partially and press tab. Follow the questions and 
+press TAB to move forward or enter to send the command.
+
+- Objects no longer gain an unique number. Instead their referencing ID 
+is based on their position in the object list.
