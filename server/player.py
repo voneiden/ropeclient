@@ -362,8 +362,9 @@ class Player(object):
                 
                
        
-    def creatorWorld(self,tok): 
-        
+    def creatorWorld(self,header,*args): 
+        tok = args
+        print "Tok:",tok
         if self.handlerstate == 0:
             self.handlerstate = 1
             return "Name of your new game world? Keep it below 60 chars."
@@ -371,7 +372,9 @@ class Player(object):
             s = " ".join(tok)
             if len(s) > 60: 
                 return "That name is too long, keep it shorter! Try again.."
-            
+            elif len(s) < 3:
+                return "That name is too short, make it longer. Try again.."
+                
             # Make sure name is not a duplicate
             elif [w for w in self.core.worlds if w.name.lower() == s.lower()]:
                 return "That name already exists. Duplicate world names are not allowed.."
@@ -393,7 +396,7 @@ class Player(object):
                 newworld = world.World(self.temp['name'],None,[self.name])
                 self.core.worlds.append(newworld)
                 self.handler = self.handlerWorldMenu
-                return self.handler(['refresh'])
+                return self.handler("msg",['refresh'])
                 
         elif self.handlerstate == 10:
             self.handlerstate = 11
@@ -427,7 +430,8 @@ class Player(object):
                 
             elif content[0] == '#':
                 self.handle_describe(content)
-                
+            elif content[0] == '!':
+                self.handle_offtopic(content)
             else:
                 self.handle_say(content)
                 

@@ -186,10 +186,10 @@ function ws_init(url) {
         ws = new WebSocket(url);
     }
     
-    displayOfftopic("Connecting to " + url + "... socket state "+ws.readyState);
+    displayOfftopic("Connecting to " + url + "... socket state "+ws.readyState+"<br>");
     
     ws.onopen = function() {
-        displayOfftopic("Connection established.");
+        displayOfftopic("Connection established.<br>");
     };
     
     ws.onmessage = function(e) {
