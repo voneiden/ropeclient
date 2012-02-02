@@ -92,11 +92,9 @@ class Player(object):
         # To avoid players being able to create their own variables.. remove $(
         message = message.replace('$(','')
         tok = message.split()
-        if tok[0] == 'msg':
-            
-            response = self.handler(tok[1:])
-            
-            
+        if tok[0] == 'msg' or tok[0] == 'cmd':
+            response = self.handler(tok[0]," ".join(tok[1:]))
+
             print "Got resp",response
             print "Type",type(response)
             if type(response) is str or type(response) is unicode:
@@ -107,6 +105,8 @@ class Player(object):
             self.typing = 0
             if self.world:
                 self.world.updatePlayer(self)
+        
+            
 
         elif tok[0] == 'pnt':
             self.typing = 0
@@ -138,7 +138,7 @@ class Player(object):
 
 
         
-    def handlerLogin(self, message):
+    def handlerLogin(self,header, message):
         '''
         State 1 - asking for name
         State 2 - asking for password
@@ -146,6 +146,8 @@ class Player(object):
         State 11 - asking for new account password
         State 12 - asking one more time for password
         '''
+        if header == 'cmd': return
+        message = message.split()
         if self.handlerstate == 1:
             self.temp['name'] = message[0]
             account = [account for account in self.core.accounts if self.temp['name'].lower() == account.name.lower()]
@@ -304,7 +306,9 @@ class Player(object):
         buf.append("[{0}]".format(", ".join(choice)))
         return "\n".join(buf)
             
-    def handlerWorldMenu(self, tok):
+    def handlerWorldMenu(self, header,message):
+        if header == 'cmd': return 
+        tok = message.split()
         print "worldmenu",tok
         if len(tok) == 0: return
         elif len(tok[0]) == 0: 
@@ -409,7 +413,38 @@ class Player(object):
             
             
     ''' New dev version gameHandler '''
-    def handlerGame(self, tok):
+    def handlerGame(self, header,content):
+        
+        if header == 'msg':
+            if len(content) == 0: 
+                return
+            
+                
+            if content[0] == '(':
+                self.handle_offtopic(content)
+                
+            elif content[0] == '#':
+                self.handle_describe(content)
+                
+            else:
+                self.handle_say(content)
+                
+        if header == 'cmd':
+            # Fix the tokens
+            args = content.split('\x1b')
+            command = "handle_%s"%args[0]
+            
+            try:
+                handle = getattr(self,command)
+            except AttributeError:
+                handle = False
+            except UnicodeEncodeError: 
+                # This happens if the player tries a command that contains scandics..
+                handle = False
+            if handle:
+                return handle(*args[1:]) # I assume we can drop the original trigger..
+                
+        '''    
         print "Handlering"
         print "style is",self.account.style
         if len(tok) > 0:
@@ -443,7 +478,7 @@ class Player(object):
                 return self.handle_offtopic(tok)
             elif self.handle_move(tok):
                 return
-
+        '''
 
     def replaceCharacterNames(self,message):
         ''' This functions solves name-memory '''
@@ -679,10 +714,47 @@ class Player(object):
             self.character.color = tok[1]
             return "(Color set to %s."%tok[1]
     '''      
-    def handle_attach(self,tok): 
+    def handle_attach(self,*args): 
+        if len(args) == 1:
+            targetName = re.compile(args[0],re.IGNORECASE)
+            player = [self]
+            character = [character for character in self.world.characters if re.match(targetName,character.name)]
+        elif len(args) > 1:
+            playerName = re.compile(args[0],re.IGNORECASE)
+            targetName = re.compile(args[1],re.IGNORECASE)
+            player = [player for player in self.world.players if re.match(playerName,player.name)]
+            character = [character for character in self.world.characters if re.match(targetName,character.name)]
+        
+        if not player:
+            return "(<fail>Unable to find a player named '{0}'.".format(args[0])
+        else:
+            player = player[0]
+            
+        if not character:
+            return "(<fail>Unable to find a character '{0}'.".format(targetName.pattern)
+        elif len(character) > 1:
+            return ("<fail>Found multiple characters with the same name.. try using unique number.")
+        else:
+            character = character[0]
+            
+        if character.owner is not player.account.name and not self.gamemaster:
+            return "(<fail>You may not attach to this character"
+        
+        if character.player:
+            return "(<fail>Somebody is currently playing with this character. Detach them first?"
+        
+        player.character.detach()
+        character.attach(player)
+        
+        if player is not self:
+            return "(<ok>Attach succesful!"
+        return
+        
+        """
         regex1 = "(.+?) to (.+)"
         msg = " ".join(tok)
         special = re.search(regex1,msg)
+        
         if special:
             groups = special.groups()
             playerName = groups[0].lower()
@@ -700,11 +772,12 @@ class Player(object):
             return "(<fail>Unable to find a player named '{0}'.".format(playerName)
         else:
             player = player[0]
-            
+        """    
         #TODO handle characters with the same name
         #TODO wildcards?
         
         #character = [character for character in self.world.characters if character.name.lower() == characterName.lower()]
+        """
         if not character:
             return "(<fail>Unable to find a character '{0}'.".format(msg)
         elif len(character) > 1:
@@ -724,6 +797,7 @@ class Player(object):
         if player is not self:
             return "(<ok>Attach succesful!"
         return
+        """
             
             
     def handle_style(self,tok): #FIXME
@@ -871,14 +945,15 @@ class Player(object):
     def handle_me(self,tok):
         self.handle_action(tok)
         
-    def handle_describe(self,tok):
-        if len(tok) > 0:
+    def handle_describe(self,message):
+        if len(tok) > 1:
             if not isinstance(self.character,world.Soul) or self.gamemaster:
-                message = " ".join(tok)
+                if message[0] == '#':
+                    message = message[1:]
                 self.character.location.sendMessage("""%s (%s)"""%(message, self.account.name))
         
     def handle_setcolor(self,tok):
-        """ 
+        """
         This command is used to set custom colors
         Special colors that the server should sync with the client..
         background and timestamp?
@@ -923,26 +998,34 @@ class Player(object):
         self.account.font = (font,size)
         self.connection.sendFont(font,size)
         
-    def handle_offtopic(self, tok):
-        if len(tok) == 0: return
-        if tok[-1][-1] == ')': 
-            tok[-1] = tok[-1][:-1]
-        if tok[0][0] == '(':
-            tok[0] = tok[0][1:]
-        message = u"{name}: {message}".format(name=self.name, message=" ".join(tok))
+    def handle_offtopic(self, *args):
+        message = args[0]
+        if len(message) == 0: return
+        if message[-1] == ')': 
+            message = message[:-1]
+        
+        if len(message) == 0: return
+        if message[0] == '(':
+            message = message[1:]
+            
+        if len(message) == 0: return
+        
+        message = u"{name}: {message}".format(name=self.name, message=message)
         self.world.sendOfftopic(message) #TODO we want seperate function for sending offtopic?
         
-    def handle_say(self, tok):
+    def handle_say(self, *args):
+        message = args[0]
+        
         if not self.character.mute and not isinstance(self.character,world.Soul):
             #if self.account.style == 'mud':
             #    message = " ".join(tok[1:])
             #else:
             #    message = " ".join(tok)
-            message = " ".join(tok)
+        
             if len(message) == 0: return "<fail>Say what?"
             
             print "Attempting to say",message
-            print tok
+            #print tok
             if message[-2:] == ':)': 
                 says = "smiles and says"
                 message = message[:-2].strip()
@@ -963,7 +1046,7 @@ class Player(object):
                                                        text=message))
         else:
             #self.offtopic("You are mute! You can't talk")
-            self.handle_offtopic(tok)
+            self.handle_offtopic(message)
     
     '''    
     def handle_shout(self, tok):

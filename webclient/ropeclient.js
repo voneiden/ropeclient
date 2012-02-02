@@ -4,7 +4,8 @@ autocomplete_cycle = [];
 autocomplete_index = 0;
 autocomplete_commands = {
     'tell':["Who?","Message?"],
-    'test':1
+    'test':[],
+    'attach':["Player or Target name?","Target name?"]
 };
 
 autocomplete_buffer = [];
@@ -16,8 +17,15 @@ function displayAutocomplete() {
     }
     if (autocomplete_buffer.length > 0) { // This is a neat feature!
         var cmd = autocomplete_buffer[0];
-        var question = autocomplete_commands[cmd][autocomplete_buffer.length - 1];
-        text += question
+        var questions = autocomplete_commands[cmd]
+        //displayOfftopic(questions.length + " qlen")
+        if (questions.length < autocomplete_buffer.length) {
+            text += "Press Enter"
+        }
+        else {
+            text += questions[autocomplete_buffer.length - 1];
+        }
+         
     }
     $("#autocomplete").html(text);
 }
@@ -30,14 +38,14 @@ function AutoComplete(event) {
     // 4 - argument 3 complete..
     keyCode = event.keyCode
     if (autocomplete_stage == 0 && keyCode == 9) {
-        displayOfftopic("Enter stage 1");
+        //displayOfftopic("Enter stage 1");
         autocomplete_stage = 1;
     }
     
     if (autocomplete_stage == 1 && keyCode == 9) {
         if (autocomplete_cycle.length == 0) {
             autocomplete_base = $("#entrybox").val()
-            displayOfftopic("Search for command "+autocomplete_base);
+            //displayOfftopic("Search for command "+autocomplete_base);
             // Fill the cycle with results
             var pattern = new RegExp(autocomplete_base + '.*',"i");
             for (var cmd in autocomplete_commands) {
@@ -52,42 +60,61 @@ function AutoComplete(event) {
             }
             
             else { 
-                displayOfftopic("Auto completing command");
-                $("#entrybox").val(autocomplete_cycle[autocomplete_index] + " "); 
+                //displayOfftopic("Auto completing command");
+                $("#entrybox").val("");
+                autocomplete_buffer.push(autocomplete_cycle[autocomplete_index]);
+                displayAutocomplete();
+                //$("#entrybox").val(autocomplete_cycle[autocomplete_index] + " "); 
             }
         }
         else {
             autocomplete_index += 1;
             autocomplete_index %= autocomplete_cycle.length;
-            displayOfftopic("Auto completing command");
-            $("#entrybox").val(autocomplete_cycle[autocomplete_index] + " "); 
+            //displayOfftopic("Auto completing command");
+            //$("#entrybox").val(autocomplete_cycle[autocomplete_index] + " "); 
+            autocomplete_buffer.pop();
+            autocomplete_buffer.push(autocomplete_cycle[autocomplete_index]);
+            displayAutocomplete();
         }
     }
+    // Abort choosing autocomplete command
     else if (autocomplete_stage == 1 && keyCode == 8) {
         $("#entrybox").val(autocomplete_base );
+        $("#autocomplete").text("");
         autocomplete_stage = 0;
         autocomplete_cycle = [];
+        autocomplete_buffer = [];
         autocomplete_index = 0;
         autocomplete_base = "";
+        if (event.preventDefault) { event.preventDefault(); }
     }
     
+    // Accept autocomplete command by typing something else
     else if (autocomplete_stage == 1 && keyCode >= 48) {
-        // Accept command, move it to label etc.
         displayOfftopic("Autocomplete accepted")
         $("#entrybox").val("");
-        
-        autocomplete_buffer.push(autocomplete_cycle[autocomplete_index]);
-        displayAutocomplete();
         autocomplete_stage = 2;
         
     }
     
-    else if (autocomplete_stage == 2 && keyCode == 8 && $("#entrybox").val().length <= 1) {
-        autocomplete_stage = 0; // MAYBE its ok to have autocomplete_stage > 1?
-        $("#autocomplete").text("");
-        autocomplete_cycle = [];
-        autocomplete_index = 0;
-        $("#entrybox").val(autocomplete_base );
+    else if (autocomplete_stage == 2 && keyCode == 8 && $("#entrybox").val().length == 0) {
+        // If we have more than one command in the buffer, return the last command. 
+        // Otherwise return the base text for autcomplete
+        
+        if (autocomplete_buffer.length > 1) {
+            $("#entrybox").val(autocomplete_buffer.pop());
+            displayAutocomplete();
+            
+        }
+        else { // Return to normal mode
+            autocomplete_stage = 0; 
+            $("#autocomplete").text("");
+            autocomplete_cycle = [];
+            autocomplete_index = 0;
+            autocomplete_buffer = [];
+            $("#entrybox").val(autocomplete_base );
+        }
+        
         if (event.preventDefault) { event.preventDefault(); }
     }
     else if (autocomplete_stage == 2 && keyCode == 9) {
@@ -316,9 +343,12 @@ $(document).ready(function(){
     });
     $("#entrybox").keyup(function(event){
         if(event.keyCode == 13){
+            // Check if it's a command or message
+            
             if (isPassword) {
+                header = "msg";
                 isPassword = 0;
-                var msg = $("#entrybox").val();
+                var content = $("#entrybox").val();
                 $("#entrybox").val("");
                 
                 marker = $('<span />').insertBefore('#entrybox');
@@ -326,14 +356,29 @@ $(document).ready(function(){
                 marker.remove();
                 $("#entrybox").focus();
                 
-                var shaObj = new jsSHA(msg+'r0p3s4lt');
-                msg = shaObj.getHash("SHA-256","HEX");
+                var shaObj = new jsSHA(content+'r0p3s4lt');
+                content = shaObj.getHash("SHA-256","HEX");
+            }
+            else if (autocomplete_buffer.length == 0) {
+                var header = 'msg';
+                var content = $("#entrybox").val();
             }
             else {
-                var msg = $("#entrybox").val()
-                $("#entrybox").val("");
+                var header = "cmd";
+                var content = autocomplete_buffer.join("\x1b")
+                var temp = $("#entrybox").val();
+                if (temp.length > 0) {
+                    content += "\x1b" + temp
+                }
+                autocomplete_buffer = [];
+                autocomplete_stage = 0;
+                autocomplete_index = 0;
+                autocomplete_cycle = [];
+                displayAutocomplete();
             }
-            ws_send('msg ' + msg);
+            displayOfftopic("Content: "+content);
+            $("#entrybox").val("");
+            ws_send(header + " " + content);
             isTyping = 0;
             
         }
