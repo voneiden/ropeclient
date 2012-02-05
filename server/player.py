@@ -63,10 +63,10 @@ class Player(object):
         
         if tok[0] == 'hsk' and len(tok) > 1:
             if tok[1] != self.core.version:
-                buf = ["<fail>Your version of ropeclient ({clientversion}) is ",
-                       "not compatible with this server ({version}). Please ",
-                       "get the latest updates from http://www.github.com",
-                       "/voneiden/ropecilent - thanks!"]
+                buf = ["<fail>ATTENTION - As of February 2011, the ropeclient ",
+                       "Tk client is no longer supported. To use this server, ",
+                       "Please login at <cyan>http://eiden.fi/ropeclient.html<fail> ",
+                       "Thanks!"]
                 self.sendMessage("".join(buf).format(clientversion=tok[1],
                                               version=self.core.version))
                 self.recv = self.recvIgnore
@@ -134,6 +134,7 @@ class Player(object):
         self.connection.sendMessage(self.replaceCharacterNames(message))
     
     def sendOfftopic(self,message,timestamp=None):
+        print "SENDING OFFTOPIC",message
         self.connection.sendOfftopic(self.replaceCharacterNames(message),timestamp)
 
 
@@ -893,8 +894,9 @@ class Player(object):
     def handle_me(self,*args):
         self.handle_action(*args)
         
-    def handle_describe(self,message):
-        if len(tok) > 1:
+    def handle_describe(self,*args):
+        if len(args) >= 1:
+            message = args[0]
             if not isinstance(self.character,world.Soul) or self.gamemaster:
                 if message[0] == '#':
                     message = message[1:]

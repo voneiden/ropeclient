@@ -71,7 +71,7 @@ class Core(object):
     # new multiworld thingy that I have on my mind.
     
     def __init__(self):
-        self.version = "0.d.rc1"
+        self.version = "0.e"
         self.greeting = open('motd.txt', 'r').readlines()
         self.worlds = [world.World("Official sandbox",None,['voneiden'])]
         self.loadAccounts()

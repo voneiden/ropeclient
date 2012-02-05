@@ -8,7 +8,7 @@ autocomplete_commands = {
     'chars':[],
     'create':["Title?","Description?","Exit name (or blank)?", "Return exit name (or blank?"],
     'detach':[],
-    'editlocation':['Choose attribute to edit: name/description','set to?']
+    'editlocation':['Choose attribute to edit: name/description','set to?'],
     'locs':[],
     'look':["Enter/At who?"],
     'kill':["Who?"],
