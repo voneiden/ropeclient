@@ -166,7 +166,7 @@ class World(object):
         self.updatePlayers()
         
         #[obj[1] if not i else "%i %s"%(obj[0],obj[1]) for i,obj in enumerate(l)]
-        offtopic = [message[0] if not i else "{0} {1}".format(message[1],message[0]) 
+        offtopic = [message[0] if not i else u"{0} {1}".format(message[1],message[0]) 
                     for i,message in enumerate(self.offtopicHistory[-100:])]
         if offtopic:
             player.sendOfftopic("\x1b".join(offtopic),self.offtopicHistory[-100:][0][1])
