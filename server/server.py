@@ -489,7 +489,9 @@ class Account:
         self.style = style
         
         self.colors = {}
-        
+        account.colors = {}
+
+        account.font = ("Monospace",8)
 
 
 if __name__ == '__main__':
