@@ -433,6 +433,8 @@ class Player(object):
                 self.handle_describe(content)
             elif content[0] == '!':
                 self.handle_offtopic(content)
+            elif content[0] == '%':
+                self.handle_action(content)
             else:
                 self.handle_say(content)
                 
@@ -889,6 +891,10 @@ class Player(object):
     def handle_action(self,*args):
         if len(args) > 0 and not isinstance(self.character,world.Soul):
             message = args[0]
+            if message[0] == '%':
+                message = message[1:].strip()
+            if len(message) == 0: 
+                return 
             self.character.location.sendMessage('''%s %s'''%(self.character.rename(), message))
             
     def handle_me(self,*args):
