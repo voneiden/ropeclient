@@ -583,24 +583,24 @@ class Player(object):
         
         buffer = []
         if not ownedchars: 
-            buffer.append("(You own no characters!") #<- this kind of situation shouldn't even happen
+            buffer.append(u"(You own no characters!") #<- this kind of situation shouldn't even happen
         else:
-            buffer = ["(You own the following characters"]
+            buffer = [u"(You own the following characters"]
             for character in ownedchars:
-                buffer.append("<{color}>{index:<10} - {character.name}".format(
+                buffer.append(u"<{color}>{index:<10} - {character.name}".format(
                     color="green" if character == self.character else "blue",
                     character=character,index=self.world.characters.index(character)))
         
         if self.gamemaster:
             otherchars = set(self.world.characters)-set(ownedchars)
             if len(otherchars) > 0:
-                buffer.append("- - - - - - - - - - - - - - - - - - - - - - - -")
-                buffer.append("In addition, following other characters exist..")  
-                buffer.append("{:<10} - {:<15} - {}".format("Unique ID","Name","Owned by"))  
+                buffer.append(u"- - - - - - - - - - - - - - - - - - - - - - - -")
+                buffer.append(u"In addition, following other characters exist..")  
+                buffer.append(u"{:<10} - {:<15} - {}".format("Unique ID","Name","Owned by"))  
                 for character in otherchars: #TODO add played by?
-                    buffer.append("<yellow>{character.unique:<10} - {character.name:<15} - ".format(
+                    buffer.append(u"<yellow>{character.unique:<10} - {character.name:<15} - {character.owner} ".format(
                         character=character))
-        return "\n".join(buffer)
+        return u"\n".join(buffer)
     '''    
     def handle_introduce(self, tok):
         if len(tok) < 1: return "Introduce as who?"
