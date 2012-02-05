@@ -838,9 +838,9 @@ class Player(object):
             return "(Not authorized"
         if len(args) < 1:
             return "(Usage: kill [name/unique]"
-        if len(args[1]) == 0: 
+        if len(args[0]) == 0: 
             return "(Requires a name or id.."
-        character = self.core.find(self,args[1],self.character)
+        character = self.core.find(self,args[0],self.character)
         if not character:
             return "(<fail>Character not found"
         elif len(character) > 1:
