@@ -598,8 +598,8 @@ class Player(object):
                 buffer.append(u"In addition, following other characters exist..")  
                 buffer.append(u"{:<10} - {:<15} - {}".format("Unique ID","Name","Owned by"))  
                 for character in otherchars: #TODO add played by?
-                    buffer.append(u"<yellow>{character.unique:<10} - {character.name:<15} - {character.owner} ".format(
-                        character=character))
+                    buffer.append(u"<yellow>{index:<10} - {character.name:<15} - {character.owner} ".format(
+                        index=self.world.characters.index(character),character=character))
         return u"\n".join(buffer)
     '''    
     def handle_introduce(self, tok):
@@ -1142,7 +1142,7 @@ class Player(object):
             else:
                 target = target[0]
                 
-            self.world.sendMessage(target,'''%s whispers to you, "%s"'''%(self.character.rename, message))
+            self.world.sendMessage(target,'''%s whispers to you, "%s"'''%(self.character.rename(), message))
             return '''You whisper to %s, "%s"'''%(target.rename(),message)
         else:
             return "(<fail>Invalid arguments: /tell charname message"
