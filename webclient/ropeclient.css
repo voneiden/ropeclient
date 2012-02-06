@@ -19,6 +19,14 @@ pre
     line-height:100%;
     white-space: pre-wrap;
 }
+span.msg 
+{
+    display: block;
+    margin:0px;
+    line-height:100%;
+    padding:0px;
+    margin-left:10px;
+}
 #main
 {
     height:100%;

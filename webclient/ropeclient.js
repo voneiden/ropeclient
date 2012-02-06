@@ -1,7 +1,13 @@
+// Ropeclient web client
+// See http://www.github.com/voneiden/ropeclient
+// for license
+
+// Autocomplete variables
 autocomplete_stage = 0;
 autocomplete_base  = "";
 autocomplete_cycle = [];
 autocomplete_index = 0;
+autocomplete_buffer = [];
 autocomplete_commands = {
     'action':["Message?"],
     'attach':["Who?/To?","To?"],
@@ -21,7 +27,10 @@ autocomplete_commands = {
     'spawn':["Character name?","Short description? (Max 40 chars)","Long description"]
 };
 
-autocomplete_buffer = [];
+// Message edit variables
+edit_history = [];
+edit_index   = 0;
+
 
 function displayAutocomplete() {
     var text = "";
@@ -139,15 +148,19 @@ function AutoComplete(event) {
     }
 }
 
-function displayOfftopic(msg) {
+function displayOfftopic(id,msg) {
     msg = diceParse(msg);
-    document.getElementById('lefttop').innerHTML += '<font color="#aaaaff">' + msg +  "</font>";  
+    if (id) {
+        span = ' id="' + id + '"';
+    }
+    else { span = ""; }
+    document.getElementById('lefttop').innerHTML += '<span class="msg"' + span + ">" + msg + "</span>";  
     document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
 
 }
 function displayMain(msg) {
-    msg = diceParse(msg);
-    document.getElementById('leftbottom').innerHTML += '<font color="#aaaaff">' + msg + "</font>";  
+    msg = diceParse(msg); // '<font color="#aaaaff">' 
+    document.getElementById('leftbottom').innerHTML += msg;  
     document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
 }
 function diceParse(msg) {
@@ -187,10 +200,10 @@ function ws_init(url) {
         ws = new WebSocket(url);
     }
     
-    displayOfftopic("Connecting to " + url + "... socket state "+ws.readyState+"<br>");
+    displayOfftopic(false,"Connecting to " + url + "... socket state "+ws.readyState+"<br>");
     
     ws.onopen = function() {
-        displayOfftopic("Connection established.<br>");
+        displayOfftopic(false,"Connection established.<br>");
     };
     
     ws.onmessage = function(e) {
@@ -216,9 +229,10 @@ function ws_init(url) {
                 var linetok = line.split(" ");
                 var timestamp = linetok.shift();
                 var message = linetok.join(" ");
-                output.push('<pre>'+message+'</pre>'); 
+                //output.push('<pre>'+message+'</pre>'); 
+                displayOfftopic(timestamp,message);
             }
-            displayOfftopic(output.join(""));
+            //displayOfftopic(false,output.join(""));
         }
         else if (hdr == 'pwd') {
             marker = $('<span />').insertBefore('#entrybox');
@@ -227,7 +241,7 @@ function ws_init(url) {
             $("#entrybox").focus();
             //$("#entrybox").attr('type','password');
             isPassword = 1;
-            displayOfftopic('pwd toggle');
+            //displayOfftopic('pwd toggle');
         }
         else if (hdr == 'clr') {
             var window = tok.shift();
@@ -240,7 +254,7 @@ function ws_init(url) {
                 document.getElementById('lefttop').innerHTML = "";
             }
             else {
-                displayOfftopic("Unknown thingy");
+                displayOfftopic(false,"Unknown thingy");
             }
         }
         else if (hdr == 'png') {
@@ -271,7 +285,7 @@ function ws_init(url) {
             else if (c1 == 'input') { 
                 $("#entrybox").css("color",c2);
             }
-            else { displayOfftopic("Unknown color received.. bug?"); }
+            else { displayOfftopic(false,"Unknown color received.. bug?"); }
         }
         else if (hdr == 'fnt') {
             
@@ -283,17 +297,17 @@ function ws_init(url) {
             $("#leftbottom").css("font-size",size);
         }
         else {
-            displayOfftopic('unknown header (len:'+hdr.length+': ' + hdr);
+            displayOfftopic(false,'unknown header (len:'+hdr.length+': ' + hdr);
         }
     };
     
     ws.onclose = function() {
-        displayOfftopic("Connection closed.");
+        displayOfftopic(false,"Connection closed.");
     };
     
     ws.onerror = function (error) {
         //alert(error.toSource())
-        displayOfftopic("Error: "+error.data+" (Hit F5 to reconnect)");
+        displayOfftopic(false,"Error: "+error.data+" (Hit F5 to reconnect)");
     };
 }
 

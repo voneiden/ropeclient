@@ -957,8 +957,8 @@ class Player(object):
     def handle_offtopic(self, *args):
         message = args[0]
         if len(message) == 0: return
-        if message[-1] == ')': 
-            message = message[:-1]
+        #if message[-1] == ')': 
+        #    message = message[:-1]
         
         if len(message) == 0: return
         if message[0] == '(':
@@ -993,6 +993,8 @@ class Player(object):
                 message = message[:-2].strip()
             elif message[-1] == '!':
                 says = "exclaims"
+            elif message[-1] == '?':
+                says = "asks"
             else:
                 says = 'says'
                 # had color #8888ff #TODO rename()
