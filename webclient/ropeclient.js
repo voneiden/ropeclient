@@ -150,11 +150,24 @@ function AutoComplete(event) {
 
 function displayOfftopic(id,msg) {
     msg = diceParse(msg);
+    var timestamp = '';
     if (id) {
         span = ' id="' + id + '"';
+        var d = new Date(parseFloat(id)*1000);
+        var hours = d.getHours();
+        var minutes = d.getMinutes();
+        var seconds = d.getSeconds();
+        
+        if (hours < 10) { hours = "0" + hours; }
+        if (minutes < 10) { minutes = "0" + minutes;}
+        if (seconds < 10) { seconds = "0" + seconds;}
+        
+        
+        timestamp = "[" + hours + ":" + minutes + ":" + seconds + "] "
+        
     }
     else { span = ""; }
-    document.getElementById('lefttop').innerHTML += '<span class="msg"' + span + ">" + msg + "</span>";  
+    document.getElementById('lefttop').innerHTML += '<span class="msg"' + span + ">" + timestamp + msg + "</span>";  
     document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
 
 }

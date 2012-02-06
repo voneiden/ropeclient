@@ -441,9 +441,22 @@ class WebPlayer(Protocol):
     def sendFont(self,font,size=8):
         self.write(u"fnt {font} {size}".format(font=font,size=size))
         
-    def sendOfftopic(self,message,timestamp):
-        if not timestamp: timestamp = time.time()
-        self.write(u"oft {timestamp} {message}".format(timestamp=timestamp,message=message))
+    def sendOfftopic(self,message):
+        
+        if isinstance(message,list):
+            print "Ignoring list"
+            return 
+        elif isinstance(message,tuple):
+            content = message[0]
+            timestamp = message[1]
+            message = "{0} {1}".format(timestamp,content)
+            
+        else:
+            print "Got invalid offtopic data",message
+            return 
+            
+        print "-> Offtopic ->"
+        self.write(u"oft {message}".format(message=message))
     def failure(self,failure):
         ''' Failure handles any exceptions '''
         dtb = failure.getTraceback(detail='verbose')

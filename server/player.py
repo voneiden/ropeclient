@@ -131,13 +131,43 @@ class Player(object):
         ''' This function will also do some parsing stuff! '''
         #if self.character: #TODO fix
         #    message = self.character.parse(message)
-        self.connection.sendMessage(self.replaceCharacterNames(message))
+        
+        #NOTE major problem with multi-part messages..8
+        if isinstance(message,list):
+            pass
+        
+        elif isinstance(message,tuple):
+            owner = message[0]
+            content = message[1]
+        
+        else: # Send just text, ignore ownwer.
+            owner = None
+            content = message 
+        self.connection.sendMessage(self.replaceCharacterNames(content))
     
-    def sendOfftopic(self,message,timestamp=None):
-        print "SENDING OFFTOPIC",message
-        self.connection.sendOfftopic(self.replaceCharacterNames(message),timestamp)
-
-
+    def sendOfftopic(self,message):
+        ''' message can be either a tuple (content,timestamp) or a list '''
+        
+        if isinstance(message,list):
+            print "Sending %i offtopic lines (list)"%len(message)
+            parsedMessages = []
+            for content,timestamp in message:
+                parsedMessages.append((self.replaceCharacterNames(content),timestamp))
+            message = parsedMessages
+        
+        elif isinstance(message,tuple):
+            print "Sending offtopic (tuple): ",message
+            content = self.replaceCharacterNames(message[0])
+            timestamp = message[1]
+            
+        
+        elif isinstance(message,str):
+            print "!! Sending offtopic (string) !!",message
+            content = self.replaceCharacterNames(message)
+            timestamp = time.time()
+            
+        self.connection.sendOfftopic((content,timestamp))
+        
         
     def handlerLogin(self,header, message):
         '''
@@ -1144,7 +1174,7 @@ class Player(object):
             else:
                 target = target[0]
                 
-            self.world.sendMessage(target,'''%s whispers to you, "%s"'''%(self.character.rename(), message))
+            self.world.sendMessage('''%s whispers to you, "%s"'''%(self.character.rename(), message),[target])
             return '''You whisper to %s, "%s"'''%(target.rename(),message)
         else:
             return "(<fail>Invalid arguments: /tell charname message"
@@ -1164,7 +1194,7 @@ class Player(object):
                 target = target[0]
                 
             if isinstance(target,world.Character):
-                self.world.sendMessage(target,'''<notify>%s: %s'''%(self.account.name, message))
+                self.world.sendMessage('''<notify>%s: %s'''%(self.account.name, message),[target])
             elif isinstance(target,Player):
                 target.sendMessage('''<notify>%s: %s'''%(self.account.name, message))
                 

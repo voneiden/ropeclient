@@ -33,6 +33,7 @@ attributes
 
 
 import cPickle, time, re, random
+from collections import OrderedDict
 
 class World(object):
     def __init__(self,name,pw,gamemasters):
@@ -89,39 +90,57 @@ class World(object):
             if not hasattr(location,'history'):
                 print "Fixing history"
                 location.history = []
-        
+                
+        # Updating to new message format and ordereddict.
+        if not isinstance(self.messages,OrderedDict):
+            print "Regenerating message list"
+            newmessages = OrderedDict()
+            oldkeys = self.messages.keys()
+            oldkeys.sort()
+            for key in oldkeys:
+                newmessages[key] = (None,self.messages[key])
+            print "Done.."
+            self.messages = newmessages
 
-    def sendMessage(self,recipients,message):
-        ''' This is the function to send messages to character. The message is given an ID which can be later retrieved! '''
-        timestamp = self.timestamp()
-        # Do the dice rolling too..
-        message = self.doDice(message)
-        self.messages[timestamp] = message
+    def sendMessage(self,message,recipients=[]):
+        ''' This function creates message id
+            and forwards the message id's to characters '''
+        
+        timestamp = self.timestamp() # Message ID
+        if isinstance(message,tuple):
+            owner = message[0]
+            content = message[1]
+        else:
+            owner = None
+            content = message 
+            
+        
+        content = self.doDice(content)
+        self.messages[timestamp] = (owner,content)
         print "Preparing to message"
-        if isinstance(recipients,Character):
-            recipients.message(timestamp)
-            print "1"
-        elif isinstance(recipients, list):
-            print "2"
-            for recipient in recipients:
-                recipient.message(timestamp)
+        if len(recipients) == 0:
+            recipients = self.characters
+
+        for recipient in recipients:
+            recipient.message(timestamp)
         return timestamp
     
-    def sendOfftopic(self,message,recipients=None):
+    def sendOfftopic(self,content,recipients=None):
         # TODO all offtopic needs to be logged, and upon player
         # connecting, the last.. say, 50 lines will be sent.
         # Do the dice rolling too..
-        message = self.doDice(message)
+        content = self.doDice(content)
         timestamp = self.timestamp()
         
+        # Send to every user and log
         if not recipients: 
             recipients = self.players
-            self.offtopicHistory.append((message,timestamp))
+            self.offtopicHistory.append((content,timestamp))
             
         
-        print "Sending offtopic message",message
+        print "Sending offtopic message",content
         for player in recipients:
-            player.sendOfftopic(message,timestamp)
+            player.sendOfftopic((content,timestamp))
             
     def updatePlayers(self):
         print "Updating player list.."
@@ -166,18 +185,15 @@ class World(object):
         self.updatePlayers()
         
         #[obj[1] if not i else "%i %s"%(obj[0],obj[1]) for i,obj in enumerate(l)]
-        offtopic = [message[0] if not i else u"{0} {1}".format(message[1],message[0]) 
-                    for i,message in enumerate(self.offtopicHistory[-100:])]
-        if offtopic:
-            player.sendOfftopic("\x1b".join(offtopic),self.offtopicHistory[-100:][0][1])
-        #offtopicUpdate = []
-        #offtopicHistory = self.offtopicHistory[-100:0]
-        #if len(offtopicHistory):
-        #    for message,timestamp in offtopicHistory[-99:]:
-        #        #player.sendOfftopic(message,timestamp)
-        #        offtopicUpdate.append("{timestamp} {message}".format(timestamp=timestamp,message=message))
-        #    player.sendOfftopic("{first}\x27{rest}".format(first=self.offtopicHistory[-100][0],rest="\x27".join(offtopicUpdate)),self.offtopicHistory[-100][1])
-        #    
+        #offtopic = [message[0] if not i else u"{0} {1}".format(message[1],message[0]) 
+        #            for i,message in enumerate(self.offtopicHistory[-100:])]
+        
+        # Deliver a list to player.sendOfftopic
+        
+        player.sendOfftopic(self.offtopicHistory[-100:])
+        #if offtopic:
+        #    player.sendOfftopic("".join(offtopic),self.offtopicHistory[-100:][0][1])
+        
         self.sendOfftopic("<notify>%s has joined the game!"%player.name)
         if not player.character:
             player.character = Soul(self,player)
@@ -413,7 +429,7 @@ class Character(object):
         self.location.characters.append(self)
         if not self.invisible and not isinstance(self,Soul): #FIXME multiple arrive messages, work on these.
             self.location.sendMessage("%s has arrived."%(self.rename()),self)
-        self.world.sendMessage(self,"You have arrived.") #TODO decide whether send on world.message
+        self.world.sendMessage("You have arrived.",[self]) #TODO decide whether send on world.message
         if self.player: self.player.sendMessage(self.player.handle_look([]))
         
     def attach(self,player):
@@ -526,12 +542,15 @@ class Location(object):
     #    self.ident = str(id(self))
     #    self.world.idents[self.ident] = self
 
-    def sendMessage(self,message,ignore=None): #TODO improve
+    def sendMessage(self,message,ignore=None): 
+        ''' This function compiles a list of characters
+            in the location, removes the ignored (which is not a list..)
+            and forwards it to world.sendMessage'''
         recipients = self.characters[:]
         print "Announcing to",recipients,message
         if ignore in recipients: recipients.remove(ignore)
         if len(recipients) > 0: 
-            timestamp = self.world.sendMessage(recipients,message)
+            timestamp = self.world.sendMessage(message,recipients)
             self.history.append(timestamp)
         else:
             print "Nobody to receive this message, ignoring.."
