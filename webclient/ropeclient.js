@@ -171,7 +171,7 @@ function displayOfftopic(id,msg) {
         
     }
 
-    document.getElementById('lefttop').innerHTML += '<span class="msg"' + span + ">" + timestamp + msg + "</span>";  
+    document.getElementById('lefttop').innerHTML += '<span class="msg"' + spanid + ">" + timestamp + msg + "</span>";  
     document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
 
 }

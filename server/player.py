@@ -154,19 +154,22 @@ class Player(object):
             for content,timestamp in message:
                 parsedMessages.append((self.replaceCharacterNames(content),timestamp))
             message = parsedMessages
+            
         
         elif isinstance(message,tuple):
             print "Sending offtopic (tuple): ",message
             content = self.replaceCharacterNames(message[0])
             timestamp = message[1]
+            message = (content,timestamp)
             
         
         elif isinstance(message,str):
             print "!! Sending offtopic (string) !!",message
             content = self.replaceCharacterNames(message)
             timestamp = time.time()
+            message = (content,timestamp)
             
-        self.connection.sendOfftopic((content,timestamp))
+        self.connection.sendOfftopic(message)
         
         
     def handlerLogin(self,header, message):

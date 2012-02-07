@@ -38,3 +38,8 @@ press TAB to move forward or enter to send the command.
 
 - Objects no longer gain an unique number. Instead their referencing ID 
 is based on their position in the object list.
+
+
+5.0 Personal notes
+\x1f is the unit seperator if needed
+\x1b is escape keey 

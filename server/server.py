@@ -442,10 +442,16 @@ class WebPlayer(Protocol):
         self.write(u"fnt {font} {size}".format(font=font,size=size))
         
     def sendOfftopic(self,message):
-        
+        print "server.sendOfftopic",message
         if isinstance(message,list):
-            print "Ignoring list"
-            return 
+            buf = []
+            # Extract parts
+            for part in message: 
+                buf.append("{0} {1}".format(part[1],part[0]))
+            
+            # Construct message
+            message = "\x1b".join(buf)
+            
         elif isinstance(message,tuple):
             content = message[0]
             timestamp = message[1]
