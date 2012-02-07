@@ -147,26 +147,30 @@ function AutoComplete(event) {
         
     }
 }
-
+function  makeTimestamp(id) {
+    var d = new Date(parseFloat(id)*1000);
+    var hours = d.getHours();
+    var minutes = d.getMinutes();
+    var seconds = d.getSeconds();
+    
+    if (hours < 10) { hours = "0" + hours; }
+    if (minutes < 10) { minutes = "0" + minutes;}
+    if (seconds < 10) { seconds = "0" + seconds;}
+    
+    
+    return "[" + hours + ":" + minutes + ":" + seconds + "] "
+    
+}
 function displayOfftopic(id,msg) {
     msg = diceParse(msg);
     var timestamp = '';
+    var spanid = '';
     if (id) {
-        span = ' id="' + id + '"';
-        var d = new Date(parseFloat(id)*1000);
-        var hours = d.getHours();
-        var minutes = d.getMinutes();
-        var seconds = d.getSeconds();
-        
-        if (hours < 10) { hours = "0" + hours; }
-        if (minutes < 10) { minutes = "0" + minutes;}
-        if (seconds < 10) { seconds = "0" + seconds;}
-        
-        
-        timestamp = "[" + hours + ":" + minutes + ":" + seconds + "] "
+        spanid = ' id="' + id + '"';
+        timestamp = makeTimestamp(id);
         
     }
-    else { span = ""; }
+
     document.getElementById('lefttop').innerHTML += '<span class="msg"' + span + ">" + timestamp + msg + "</span>";  
     document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
 
