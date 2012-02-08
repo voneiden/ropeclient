@@ -26,6 +26,7 @@ span.msg
     line-height:100%;
     padding:0px;
     margin-left:10px;
+    white-space: pre-wrap;
 }
 #main
 {

@@ -86,6 +86,10 @@ class World(object):
             if isinstance(character,Soul):
                 print "Destroying soul"
                 self.remCharacter(character)
+                continue
+            if not hasattr(character,"talk"):
+                character.talk = '<talk>'
+                
         for location in self.locations:
             if not hasattr(location,'history'):
                 print "Fixing history"
@@ -108,6 +112,7 @@ class World(object):
         
         timestamp = self.timestamp() # Message ID
         if isinstance(message,tuple):
+            print "**** ATTENTION SHOPPERS, VOLDEMORT KILLS SNAPES *****"
             owner = message[0]
             content = message[1]
         else:
@@ -369,7 +374,7 @@ class Character(object):
         #self.color = "default"
         
         
-
+        self.talk = '<talk>'
         
         
         self.invisible = False
@@ -454,7 +459,8 @@ class Character(object):
         print "sending message id",timestamp
         if self.player:
             print "To player",self.player,self.player.name
-            self.player.sendMessage(self.world.messages[timestamp]) #TODO
+            message = self.world.messages[timestamp]
+            self.player.sendMessage((timestamp,message[0],message[1]))
             if timestamp not in self.read:
                 self.read.append(timestamp)
         else:

@@ -24,6 +24,7 @@ autocomplete_commands = {
     'tell':["Who?","Message?"],
     'setcolor':["Enter to list/Color name (from)?","Enter to erase definition/Color name (to)?"],
     'setfont':["Font name?","Font size?"],
+    'settalk':["To color?"],
     'spawn':["Character name?","Short description? (Max 40 chars)","Long description"]
 };
 
@@ -175,9 +176,16 @@ function displayOfftopic(id,msg) {
     document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
 
 }
-function displayMain(msg) {
+function displayMain(id,msg) {
     msg = diceParse(msg); // '<font color="#aaaaff">' 
-    document.getElementById('leftbottom').innerHTML += msg;  
+    var timestamp = '';
+    var spanid = '';
+
+    if (id && id != '0') {
+        spanid = ' id="' + id + '"';
+        timestamp = makeTimestamp(id);
+    }
+    document.getElementById('leftbottom').innerHTML += '<span class="msg"' + spanid + ">" + timestamp + msg + "</span>";  
     document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
 }
 function diceParse(msg) {
@@ -231,17 +239,22 @@ function ws_init(url) {
         //message = message.replace(/\n/g,"<br />");
 
         if (hdr == "msg") {
-            var timestamp = tok.shift();
-            message = tok.join(" ");
-            displayMain('<pre>'+message+'</pre>');
+            var everything = tok.join(" ");
+            var lines = everything.split("\x1b");
+            while (lines.length) {
+                var line = lines.shift();
+                var linetok = line.split("\x1f");
+                var timestamp = linetok.shift();
+                var editable = linetok.shift();
+                var message = linetok.shift();
+                displayMain(timestamp,message);
+            }
         }
         else if (hdr == "oft") {
             //A lot faster method of displaying a lot of text at once.
             var everything = tok.join(" ");
             var lines = everything.split("\x1b");
-            var output = new Array();
             while (lines.length) {
-                
                 var line = lines.shift();
                 var linetok = line.split(" ");
                 var timestamp = linetok.shift();

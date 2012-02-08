@@ -340,7 +340,13 @@ class WebPlayer(Protocol):
         self.core = self.factory.core
         self.player = player.Player(self, self.core)
         self.sendFont("Monospace")
-        self.sendMessage("".join(self.core.greeting))
+        
+        # Send MOTD
+        buf = []
+        for line in self.core.greeting:
+            buf.append((0,0,line))
+        self.sendMessage(buf)
+        
         self.player.recv = self.player.recvMessage
         self.pingTimer = False
         self.pingTime = False
@@ -355,7 +361,7 @@ class WebPlayer(Protocol):
             self.pingTime = time.time()
             self.write("png")
             self.pingTimer = reactor.callLater(10,self.doPing)
-            print "Ping asked"
+            #print "Ping asked"
             
     def disconnect(self):
         #if self.pingTimer:
@@ -375,7 +381,7 @@ class WebPlayer(Protocol):
         data = data.decode("utf-8")
         data = data.strip()
         if data == "png":
-            print "Ping received, latency",time.time()-self.pingTime
+            #print "Ping received, latency",time.time()-self.pingTime
             self.pingTime = False
             return
             
@@ -413,6 +419,8 @@ class WebPlayer(Protocol):
                 color = '#8888ff'
             elif color == 'notify':
                 color = 'orange'
+            elif color == 'timestamp':
+                color = 'grey'
             if color == 'reset':
                 try:
                     stack.pop()
@@ -434,14 +442,42 @@ class WebPlayer(Protocol):
         print "Finished:",data
         return data
         
-    def sendMessage(self, message):
-        self.write(u'msg %f %s' % (time.time(),message))
+    def sendMessage(self,message):
+        '''
+        Message format
+        msg timestamp editable content \x1b timestamp editable content \1b etc
+        '''
+        #Todo: maybe send timestamp and default colors to client too?
+        
+        if isinstance(message,list):
+            buf = []
+            for part in message:
+                buf.append("{timestamp}\x1f{editable}\x1f<default>{content}".format(
+                           timestamp=part[0],editable=part[1],content=part[2]))
+            message = "\x1b".join(buf)
+        elif isinstance(message,tuple):
+            message = "{timestamp}\x1f{editable}\x1f<default>{content}".format(
+                       timestamp=message[0],editable=message[1],content=message[2])
+        elif isinstance(message,unicode):
+            message = "{timestamp}\x1f{editable}\x1f<default>{content}".format(
+                       timestamp=0,editable=0,content=message)
+        else:
+            print type(message)
+            print message
+            print "******** UNABLE TO PROCESS ******"*50
+            return               
+        self.write(u'msg {message}'.format(message=message))
+        
     def sendColor(self,c1,c2):
         self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))
     def sendFont(self,font,size=8):
         self.write(u"fnt {font} {size}".format(font=font,size=size))
         
     def sendOfftopic(self,message):
+        '''
+        Offtopic format:
+        oft timestamp content \x1b timestamp content \x1b.. etc
+        '''
         print "server.sendOfftopic",message
         if isinstance(message,list):
             buf = []
