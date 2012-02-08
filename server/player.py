@@ -106,7 +106,9 @@ class Player(object):
             if self.world:
                 self.world.updatePlayer(self)
         
-            
+        elif tok[0] == 'edi':
+            self.handler(tok[0]," ".join(tok[1:]))
+                
 
         elif tok[0] == 'pnt':
             self.typing = 0
@@ -139,7 +141,7 @@ class Player(object):
                 timestamp = message[0]
                 owner = message[1]
                 content = self.replaceCharacterNames(message[2])
-                if owner == self.account.name:
+                if owner == self.account.name and "$(dice=" not in content:
                     owner = 1
                 else:
                     owner = 0
@@ -493,7 +495,7 @@ class Player(object):
             else:
                 self.handle_say(content)
                 
-        if header == 'cmd':
+        elif header == 'cmd':
             # Fix the tokens
             args = content.split('\x1b')
             command = "handle_%s"%args[0]
@@ -507,7 +509,35 @@ class Player(object):
                 handle = False
             if handle:
                 return handle(*args[1:]) # I assume we can drop the original trigger..
-                
+        
+        
+        elif header == 'edi':
+            print "HANDLING EDI"
+            args = content.split()
+            timestamp = float(args[0])
+            content = " ".join(args[1:])
+            
+            # Note, this should be connection specific decolor convert
+            # But since webclient is the only client supported atm, doing it the simple way
+            content = content.replace('</font>','<reset>')
+            content = content.replace('<font color="','<')
+            content = content.replace('">','>')
+            
+            # TODO check the owner of the message!
+            
+            if timestamp not in self.character.world.messages:
+                print "******* TIMESTAMP",timestamp,"NOT FOUND IN WORLD MESSAGES"
+                return 
+            
+            message = self.character.world.messages[timestamp]
+            print "Updating",message
+            message = (message[0],content)
+            print "To",message
+            self.character.world.messages[timestamp] = message 
+            self.character.world.sendEdit(timestamp,content)
+            
+        else:
+            print "UNKNOWN HEADER"
         '''    
         print "Handlering"
         print "style is",self.account.style

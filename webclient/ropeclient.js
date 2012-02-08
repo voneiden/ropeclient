@@ -30,7 +30,47 @@ autocomplete_commands = {
 
 // Message edit variables
 edit_history = [];
-edit_index   = 0;
+edit_index   = -1;
+edit_mem     = ''; 
+editing = 0;
+
+function EditHistory(event) {
+    if (autocomplete_stage != 0 || isPassword) {
+        if (event.preventDefault) { event.preventDefault(); }
+        return false
+    }
+    
+    // Adjust index depending on key event
+    if (event.keyCode == 38) { edit_index += 1 }
+    else if (event.keyCode == 40) { edit_index -= 1 }
+    
+    
+    // Make sure the index is within acceptable bounds
+    if (edit_index >= edit_history.length) {
+        edit_index = edit_history.length -1 
+    }
+    
+    if (edit_index < -1) { edit_index = -1 }
+    
+    // Resolve action
+    if (edit_index == -1 && editing == 0) {
+        }
+    else if (edit_index == -1 && editing == 1) {
+        editing = 0;
+        $("#entrybox").val(edit_mem);
+        edit_mem = '';
+    }  
+    else if (edit_index > -1 && editing == 0) {
+        edit_mem = $("#entrybox").val();
+        editing = 1;
+        $("#entrybox").val(edit_history[edit_history.length - 1 - edit_index][1]);
+    }
+    
+    else if (edit_index > -1 && editing == 1) {
+        $("#entrybox").val(edit_history[edit_history.length - 1 - edit_index][1]);
+    }
+    displayOfftopic(false,editing+" "+edit_index+"  - ")
+}
 
 
 function displayAutocomplete() {
@@ -59,6 +99,7 @@ function AutoComplete(event) {
     // 2 - argument 1 complete
     // 3 - argument 2 complete..
     // 4 - argument 3 complete..
+    if (editing) { return }
     keyCode = event.keyCode
     if (autocomplete_stage == 0 && keyCode == 9) {
         //displayOfftopic("Enter stage 1");
@@ -245,9 +286,15 @@ function ws_init(url) {
                 var line = lines.shift();
                 var linetok = line.split("\x1f");
                 var timestamp = linetok.shift();
+                //displayOfftopic(false,timestamp)
                 var editable = linetok.shift();
                 var message = linetok.shift();
                 displayMain(timestamp,message);
+                //displayMain(false,line);
+                
+                if (editable == "1") {
+                    edit_history.push([timestamp,message])
+                }
             }
         }
         else if (hdr == "oft") {
@@ -326,6 +373,22 @@ function ws_init(url) {
             $("#lefttop").css("font-size",size);
             $("#leftbottom").css("font-size",size);
         }
+        else if (hdr == 'edi') {
+            timestamp = tok.shift();
+            message = tok.join(" ");
+            
+            // Update history
+            for (var i in edit_history) {
+                if (edit_history[i][0] == timestamp) {
+                    edit_history[i] = [timestamp,message]
+                }
+            }
+            // Update text
+            displayOfftopic(false,"Updating id "+timestamp);
+            //$("#"+timestamp).html(message);
+            var element = document.getElementById(timestamp);
+            if (element != null) { element.innerHTML = "[EDITED  ] " + message }
+        }
         else {
             displayOfftopic(false,'unknown header (len:'+hdr.length+': ' + hdr);
         }
@@ -394,6 +457,12 @@ $(document).ready(function(){
             return false;
             
         }
+        else if (event.keyCode == 38 || event.keyCode == 40) // Up / Down
+            {
+                EditHistory(event);
+            }
+            
+            
         else {
             AutoComplete(event);
         }
@@ -416,6 +485,14 @@ $(document).ready(function(){
                 var shaObj = new jsSHA(content+'r0p3s4lt');
                 content = shaObj.getHash("SHA-256","HEX");
             }
+            else if (editing) {
+                var header = 'edi ' + edit_history[edit_history.length - 1 - edit_index][0]
+                var content = $("#entrybox").val();
+                editing = 0
+                edit_index = -1
+                $("#entrybox").val("");
+            }
+            
             else if (autocomplete_buffer.length == 0) {
                 var header = 'msg';
                 var content = $("#entrybox").val();

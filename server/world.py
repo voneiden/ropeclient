@@ -43,7 +43,7 @@ class World(object):
         self.locations = []             # List of all  - locations
         self.characters = []            # List of all  - characters
         self.players    = []            # List of all  - players
-        self.messages = {}              # Dictionary of all messages..
+        self.messages = OrderedDict()              # Dictionary of all messages..
         self.gamemasters = gamemasters  # List of all gamemaster id's
         self.creator = gamemasters[0] if len(gamemasters) > 0 else None
         #self.memory = {} # Whats this? 
@@ -146,6 +146,12 @@ class World(object):
         print "Sending offtopic message",content
         for player in recipients:
             player.sendOfftopic((content,timestamp))
+            
+    def sendEdit(self,id,message):
+        #TEST
+        for player in self.players:
+            player.connection.sendEdit(id,message) 
+            
             
     def updatePlayers(self):
         print "Updating player list.."

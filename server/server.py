@@ -395,6 +395,12 @@ class WebPlayer(Protocol):
         
         data = self.colorConvert(data)
         #data = data.replace("\n",'<br>')
+        if "John says" in data:
+            print ""
+            print "*****"
+            print data
+            print "*****"
+            print ""
         self.transport.write(data.encode("utf-8"))
         
     def colorConvert(self,data):
@@ -403,7 +409,7 @@ class WebPlayer(Protocol):
         stack = []
         fallback = "gray"
         regex = '\<.*?\>'
-        print "Pre-parse:",data
+        #print "Pre-parse:",data
         for match in re.finditer(regex,data):
             match = match.group()
             color = match[1:-1]
@@ -439,7 +445,7 @@ class WebPlayer(Protocol):
             else:
                 data = data.replace(match,'</font>',1)
         data = data + '</font>'*len(stack)
-        print "Finished:",data
+        #print "Finished:",data
         return data
         
     def sendMessage(self,message):
@@ -452,14 +458,14 @@ class WebPlayer(Protocol):
         if isinstance(message,list):
             buf = []
             for part in message:
-                buf.append("{timestamp}\x1f{editable}\x1f<default>{content}".format(
-                           timestamp=part[0],editable=part[1],content=part[2]))
+                buf.append("{timestamp}\x1f{editable}\x1f{content}".format(
+                           timestamp=repr(part[0]),editable=part[1],content=part[2]))
             message = "\x1b".join(buf)
         elif isinstance(message,tuple):
-            message = "{timestamp}\x1f{editable}\x1f<default>{content}".format(
-                       timestamp=message[0],editable=message[1],content=message[2])
+            message = "{timestamp}\x1f{editable}\x1f{content}".format(
+                       timestamp=repr(message[0]),editable=message[1],content=message[2])
         elif isinstance(message,unicode):
-            message = "{timestamp}\x1f{editable}\x1f<default>{content}".format(
+            message = "{timestamp}\x1f{editable}\x1f{content}".format(
                        timestamp=0,editable=0,content=message)
         else:
             print type(message)
@@ -499,6 +505,10 @@ class WebPlayer(Protocol):
             
         print "-> Offtopic ->"
         self.write(u"oft {message}".format(message=message))
+        
+    def sendEdit(self,id,message):
+        self.write(u"edi {timestamp} {message}".format(timestamp=repr(id),message=message))
+        
     def failure(self,failure):
         ''' Failure handles any exceptions '''
         dtb = failure.getTraceback(detail='verbose')
