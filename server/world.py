@@ -150,7 +150,7 @@ class World(object):
     def sendEdit(self,id,message):
         #TEST
         for player in self.players:
-            player.connection.sendEdit(id,message) 
+            player.connection.sendEdit(id,player.replaceCharacterNames(message))
             
             
     def updatePlayers(self):

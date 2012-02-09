@@ -34,6 +34,39 @@ edit_index   = -1;
 edit_mem     = ''; 
 editing = 0;
 
+function EditHistoryName(msg){
+    var pattern = /\$\(disp\=(.*?)\)/;
+    var match = pattern.exec(msg);
+    while (match != null) {
+        var name = match[1];
+        msg = msg.replace('$(disp='+name+')','$(name)');
+        
+        match = pattern.exec(msg);
+    }
+    
+    var pattern2 = /\<font color\=\"(.*?)\"\>/;
+    var match = pattern2.exec(msg);
+    while (match != null) {
+        var color = match[1];
+        msg = msg.replace('<font color="'+color+'">','<'+color+'>');
+        
+        match = pattern2.exec(msg);
+    }
+    
+    var pattern3 = /\<\/font\>/;
+    var match = pattern3.exec(msg);
+    while (match != null) {
+        var color = match[1];
+        msg = msg.replace('</font>','<reset>');
+        
+        match = pattern3.exec(msg);
+    }
+    
+    return msg;
+}
+
+// This function handles the up and down arrow key presses
+// To allow users to browse and edit history of their previous writings
 function EditHistory(event) {
     if (autocomplete_stage != 0 || isPassword) {
         if (event.preventDefault) { event.preventDefault(); }
@@ -63,16 +96,18 @@ function EditHistory(event) {
     else if (edit_index > -1 && editing == 0) {
         edit_mem = $("#entrybox").val();
         editing = 1;
-        $("#entrybox").val(edit_history[edit_history.length - 1 - edit_index][1]);
+        var msg = edit_history[edit_history.length - 1 - edit_index][1]
+        $("#entrybox").val(EditHistoryName(msg));
     }
     
     else if (edit_index > -1 && editing == 1) {
-        $("#entrybox").val(edit_history[edit_history.length - 1 - edit_index][1]);
+        var msg = edit_history[edit_history.length - 1 - edit_index][1]
+        $("#entrybox").val(EditHistoryName(msg));
     }
-    displayOfftopic(false,editing+" "+edit_index+"  - ")
+    //displayOfftopic(false,editing+" "+edit_index+"  - ")
 }
 
-
+// This function updates the green blocks left of entrybox
 function displayAutocomplete() {
     var text = "";
     for (var i in autocomplete_buffer) {
@@ -93,6 +128,7 @@ function displayAutocomplete() {
     $("#autocomplete").html(text);
 }
 
+// This function handles all autocomplete related events
 function AutoComplete(event) {
     // There are 3 stages
     // 1 - command autocomplete
@@ -189,6 +225,7 @@ function AutoComplete(event) {
         
     }
 }
+// Generates a visual timestamp from unix time
 function  makeTimestamp(id) {
     var d = new Date(parseFloat(id)*1000);
     var hours = d.getHours();
@@ -219,6 +256,7 @@ function displayOfftopic(id,msg) {
 }
 function displayMain(id,msg) {
     msg = diceParse(msg); // '<font color="#aaaaff">' 
+    msg = nameParse(msg);
     var timestamp = '';
     var spanid = '';
 
@@ -229,6 +267,19 @@ function displayMain(id,msg) {
     document.getElementById('leftbottom').innerHTML += '<span class="msg"' + spanid + ">" + timestamp + msg + "</span>";  
     document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
 }
+
+function nameParse(msg) {
+    var pattern = /\$\(disp\=(.*?)\)/;
+    var match = pattern.exec(msg);
+    while (match != null) {
+        var name = match[1];
+        msg = msg.replace('$(disp='+name+')',name);
+        
+        match = pattern.exec(msg);
+    }
+    return msg;
+}
+
 function diceParse(msg) {
     var results = msg.match(/\$\(dice\=.*?\)/g);
     if (results) { 
@@ -384,7 +435,8 @@ function ws_init(url) {
                 }
             }
             // Update text
-            displayOfftopic(false,"Updating id "+timestamp);
+            message = nameParse(message);
+            //displayOfftopic(false,"Updating id "+timestamp);
             //$("#"+timestamp).html(message);
             var element = document.getElementById(timestamp);
             if (element != null) { element.innerHTML = "[EDITED  ] " + message }
@@ -488,6 +540,7 @@ $(document).ready(function(){
             else if (editing) {
                 var header = 'edi ' + edit_history[edit_history.length - 1 - edit_index][0]
                 var content = $("#entrybox").val();
+                //displayOfftopic(false,"Sending content: "+content)
                 editing = 0
                 edit_index = -1
                 $("#entrybox").val("");

@@ -90,8 +90,8 @@ class Player(object):
         message = message.strip()
         
         # To avoid players being able to create their own variables.. remove $(
-        message = message.replace('$(','')
-        tok = message.split()
+        content = message.replace('$(','')
+        tok = content.split(" ")
         if tok[0] == 'msg' or tok[0] == 'cmd':
             response = self.handler(tok[0]," ".join(tok[1:]))
 
@@ -107,7 +107,8 @@ class Player(object):
                 self.world.updatePlayer(self)
         
         elif tok[0] == 'edi':
-            self.handler(tok[0]," ".join(tok[1:]))
+            print "editok",tok
+            self.handler(tok[0]," ".join(message.split(' ')[1:]))
                 
 
         elif tok[0] == 'pnt':
@@ -512,16 +513,16 @@ class Player(object):
         
         
         elif header == 'edi':
-            print "HANDLING EDI"
+            print "HANDLING EDI:",content
             args = content.split()
             timestamp = float(args[0])
             content = " ".join(args[1:])
-            
+            print "p-content",content
             # Note, this should be connection specific decolor convert
             # But since webclient is the only client supported atm, doing it the simple way
-            content = content.replace('</font>','<reset>')
-            content = content.replace('<font color="','<')
-            content = content.replace('">','>')
+            #content = content.replace('</font>','<reset>')
+            #content = content.replace('<font color="','<')
+            #content = content.replace('">','>')
             
             # TODO check the owner of the message!
             
@@ -529,8 +530,22 @@ class Player(object):
                 print "******* TIMESTAMP",timestamp,"NOT FOUND IN WORLD MESSAGES"
                 return 
             
+            # TODO find matching $(name strings and replace.
             message = self.character.world.messages[timestamp]
             print "Updating",message
+            if message[0] != self.account.name:
+                print "!*!*!*!* INVALID OWNER",message[0],self.account.name 
+                return 
+            
+            # Replace the name holders
+            snames = re.findall("\$\(name=.+?\)", message[1])
+            for name in snames:
+                print "content:",content
+                print "Replacing name..",name
+                content = content.replace("$(name)",name,1)
+                
+            
+            
             message = (message[0],content)
             print "To",message
             self.character.world.messages[timestamp] = message 
@@ -581,7 +596,7 @@ class Player(object):
         for match in re.finditer(nameregex,message):
             name = self.getCharacterName(match)
             print "Replacing..",match.group(),name
-            message = message.replace(match.group(),name,1)
+            message = message.replace(match.group(),"$(disp=%s)"%name,1)
         
         return message
     
@@ -980,7 +995,7 @@ class Player(object):
                 message = message[1:].strip()
             if len(message) == 0: 
                 return 
-            self.character.location.sendMessage('''%s %s'''%(self.character.rename(), message))
+            self.character.location.sendMessage((self.account.name,u"%s %s"%(self.character.rename(), message)))
             
     def handle_me(self,*args):
         self.handle_action(*args)
@@ -991,7 +1006,7 @@ class Player(object):
             if not isinstance(self.character,world.Soul) or self.gamemaster:
                 if message[0] == '#':
                     message = message[1:]
-                self.character.location.sendMessage("""%s (%s)"""%(message, self.account.name))
+                self.character.location.sendMessage((self.account.name,u"%s (%s)"%(message, self.account.name)))
         
     def handle_setcolor(self,*args):
         """
