@@ -497,15 +497,15 @@ class WebPlayer(Protocol):
             buf = []
             # Extract parts
             for part in message: 
-                buf.append("{0} {1}".format(part[1],part[0]))
+                buf.append(u"{0} {1}".format(part[1],part[0]))
             
             # Construct message
-            message = "\x1b".join(buf)
+            message = u"\x1b".join(buf)
             
         elif isinstance(message,tuple):
             content = message[0]
             timestamp = message[1]
-            message = "{0} {1}".format(timestamp,content)
+            message = u"{0} {1}".format(timestamp,content)
             
         else:
             print "Got invalid offtopic data",message
