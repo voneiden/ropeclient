@@ -636,7 +636,7 @@ class Player(object):
         unique = int(match.group()[7:-1])
         character = [character for character in self.world.characters if character.unique == unique]
         if not character:
-            return u"Connecting.."
+            return u"Joining.."
         print "Checking my memory.."
         
         if not self.character:

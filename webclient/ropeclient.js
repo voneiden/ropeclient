@@ -468,7 +468,7 @@ function updatePlayer(playerinfo) {
     var typing = info.shift()
     if (typing == "1") { typing = "*" }
     else { typing = "" }
-    var char = info.shift()
+    var char = nameParse(info.shift());
     var pattern = new RegExp("<pre>"+name+'.*?</pre>');
     //var results = document.getElementById('righttop').innerHTML.match(pattern);
     var results = $("#righttop").html().match(pattern);
@@ -484,7 +484,7 @@ function updatePlayerList(playerList) {
         var info = playerList.shift().split(':')
         var name = info.shift()
         var typing = info.shift()
-        var char = info.shift()
+        var char = nameParse(info.shift());
         if (typing == "1") { typing = "*" }
         else { typing = "" }
         document.getElementById('righttop').innerHTML += "<pre>"+name+typing+" ("+char+")</pre>";

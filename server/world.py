@@ -179,8 +179,10 @@ class World(object):
              #else: typinglist.append("%s:0:$(name=%s)"%(player.name,player.character.name))
         lop = ";".join(typinglist)
         for player in self.players:
-            player.connection.write("plu %s"%player.replaceCharacterNames(lop))
+            print "LOP",lop
+            print "REP",player.replaceCharacterNames(lop)
             
+            player.connection.write("plu %s"%player.replaceCharacterNames(lop))
              
     def updatePlayer(self,player):
         print "Updating just one player"
@@ -190,13 +192,10 @@ class World(object):
             typing=player.typing,
             charname=player.character.name if player.character else "None")
         print "Got buffer as",buffer
-        #if player.typing: 
-        #    buffer = "%s:1:$(name=%s)"%(player.name,player.character.name)
-        #else: 
-        #    buffer = "%s:0:$(name=%s)"%(player.name,player.character.name)
+
         for player in self.players:
             player.connection.write("ptu %s"%player.replaceCharacterNames(buffer))
-            
+        
     def addPlayer(self,player):
         if [p for p in self.players if p.name == player.name]:
             p.connection.disconnect() #This will automatically call remPlayer etc.
