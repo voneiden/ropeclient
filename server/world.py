@@ -121,6 +121,8 @@ class World(object):
             
         
         content = self.doDice(content)
+        if content[0] != '<':
+            content = '<default>' + content
         self.messages[timestamp] = (owner,content)
         print "Preparing to message"
         if len(recipients) == 0:
@@ -135,6 +137,9 @@ class World(object):
         # connecting, the last.. say, 50 lines will be sent.
         # Do the dice rolling too..
         content = self.doDice(content)
+        if content[0] != '<':
+            content = '<offtopic>' + content
+            
         timestamp = self.timestamp()
         
         # Send to every user and log
@@ -148,9 +153,13 @@ class World(object):
             player.sendOfftopic((content,timestamp))
             
     def sendEdit(self,id,message):
-        #TEST
+        #TEST>
+        if message[0] != '<':
+            message = '<default>'+message
         for player in self.players:
-            player.connection.sendEdit(id,player.replaceCharacterNames(message))
+            content = player.replaceCharacterNames(message)
+            content = player.createHighlights(content)
+            player.connection.sendEdit(id,content)
             
             
     def updatePlayers(self):

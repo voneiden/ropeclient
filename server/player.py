@@ -24,7 +24,7 @@
 # TODO input should be checked for invalid characters more often..
 
 import server,re, world, time, random, string
-
+from cgi import escape 
 class Player(object):
     '''
     Player class handles client input and a big
@@ -129,6 +129,15 @@ class Player(object):
         else:
             return self.account.name    
     
+    def createHighlights(self,content):
+        print "****CREATING HILIGHTS*****"
+        if not self.account:
+            return content
+            
+        for regex,color in self.account.hilights.items():
+            content = regex.sub(lambda match: "<{}>{}<reset>".format(color,match.group()),content)
+        return content
+        
         
     def sendMessage(self, message): #TODO remove this function
         ''' This function will also do some parsing stuff! '''
@@ -154,6 +163,7 @@ class Player(object):
             timestamp = message[0]
             owner = message[1]
             content = self.replaceCharacterNames(message[2])
+            content = self.createHighlights(content)
             if owner == self.account.name:
                 owner = 1
             else:
@@ -161,10 +171,14 @@ class Player(object):
             message = (timestamp,owner,content)
             
         elif isinstance(message,str): # Send just text, ignore ownwer.
-            message = unicode(self.replaceCharacterNames(message))
+            message = unicode(message)
+            message = self.replaceCharacterNames(message)
+            message = self.createHighlights(message)
+            
             
         elif isinstance(message,unicode):
             message = self.replaceCharacterNames(message)
+            message = self.createHighlights(message)
         else:
             print "********* Fatal error in sendMessage at player********"
             return False    
@@ -177,21 +191,32 @@ class Player(object):
             print "Sending %i offtopic lines (list)"%len(message)
             parsedMessages = []
             for content,timestamp in message:
-                parsedMessages.append((self.replaceCharacterNames(content),timestamp))
+                content = self.replaceCharacterNames(content)
+                content = self.createHighlights(content)
+                parsedMessages.append((content,timestamp))
             message = parsedMessages
             
         
         elif isinstance(message,tuple):
             print "Sending offtopic (tuple): ",message
             content = self.replaceCharacterNames(message[0])
+            content = self.createHighlights(content)
             timestamp = message[1]
             message = (content,timestamp)
             
         
         elif isinstance(message,str):
             print "!! Sending offtopic (string) !!",message
+            content = unicode(message)
+            content = self.replaceCharacterNames(content)
+            content = self.createHighlights(content)
+            timestamp = 0
+            message = (content,timestamp)
+            
+        elif isinstance(message,unicode):
+            timestamp = 0
             content = self.replaceCharacterNames(message)
-            timestamp = time.time()
+            content = self.createHighlights(content)
             message = (content,timestamp)
             
         self.connection.sendOfftopic(message)
@@ -1041,6 +1066,34 @@ class Player(object):
                 
         return u"\n".join(buffer)
     
+    def handle_sethilight(self,*args):
+        print "Handle highlight",len(args)
+        if len(args) == 0:
+            if len(self.account.hilights) == 0:
+                return "(You have no highlights"
+            else:
+                buf = ["Your current highlights",""]
+                for regex,color in self.account.hilights.items():
+                    buf.append("{:<3}) {:<10} -> {:<10}".format(self.account.hilights.keys().index(regex),escape(regex.pattern),color))
+                return u"("+u"\r\n".join(buf)
+        elif len(args) == 1:
+            try: 
+                r = int(args[0])
+            except:
+                return "(<fail>Please use an index number to define what you wish to remove."
+            
+            try:
+                regex = self.account.hilights.keys()[r]
+            except IndexError:
+                return "(<fail>Index out of bounds"
+            
+            del self.account.hilights[regex]
+            return "(<ok>Deleted."
+        else:
+            regex = args[0]
+            color = args[1]
+            self.account.hilights[re.compile(regex)] = color 
+            return "(<ok>Highlight set!"
     def handle_settalk(self,*args):
         if len(args) < 1:
             return 

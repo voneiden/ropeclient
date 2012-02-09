@@ -54,6 +54,7 @@ from twisted.internet import defer
 
 from txws import WebSocketFactory
 
+from collections import OrderedDict
 
 import time
 import os
@@ -82,6 +83,7 @@ class Core(object):
         return None
         
     def loadAccounts(self):
+        print "Loading accounts." 
         try:
             f = open('accounts.db', 'rb')
             self.accounts = cPickle.load(f)
@@ -99,7 +101,10 @@ class Core(object):
             if not hasattr(account,"font"):
                 print "Fixing missing font data"
                 account.font = ("Monospace",8)
-    
+            if not hasattr(account,"hilights"):
+                print "Fixing missing hilights data"
+                account.hilights = OrderedDict()
+                
     def saveAccounts(self):
         f = open('accounts.db','wb')
         cPickle.dump(self.accounts,f)
@@ -460,12 +465,15 @@ class WebPlayer(Protocol):
             for part in message:
                 buf.append("{timestamp}\x1f{editable}\x1f{content}".format(
                            timestamp=repr(part[0]),editable=part[1],content=part[2]))
-            message = "\x1b".join(buf)
+            message = u"\x1b".join(buf)
         elif isinstance(message,tuple):
-            message = "{timestamp}\x1f{editable}\x1f{content}".format(
+            message = u"{timestamp}\x1f{editable}\x1f{content}".format(
                        timestamp=repr(message[0]),editable=message[1],content=message[2])
         elif isinstance(message,unicode):
-            message = "{timestamp}\x1f{editable}\x1f{content}".format(
+            message = u"{timestamp}\x1f{editable}\x1f{content}".format(
+                       timestamp=0,editable=0,content=message)
+        elif isinstance(message,str):
+            message = u"{timestamp}\x1f{editable}\x1f{content}".format(
                        timestamp=0,editable=0,content=message)
         else:
             print type(message)
@@ -554,7 +562,7 @@ class Account:
         self.style = style
         
         self.colors = {}
-
+        self.hilights = OrderedDict()
         self.font = ("Monospace",8)
 
 

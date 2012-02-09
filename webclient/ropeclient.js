@@ -24,6 +24,7 @@ autocomplete_commands = {
     'tell':["Who?","Message?"],
     'setcolor':["Enter to list/Color name (from)?","Enter to erase definition/Color name (to)?"],
     'setfont':["Font name?","Font size?"],
+    'sethilight':["Enter to list/Regex pattern/Index number to delete","Color to change matching patterns"],
     'settalk':["To color?"],
     'spawn':["Character name?","Short description? (Max 40 chars)","Long description"]
 };
@@ -33,6 +34,9 @@ edit_history = [];
 edit_index   = -1;
 edit_mem     = ''; 
 editing = 0;
+
+// Special colors
+color_timestamp = 'gray';
 
 function EditHistoryName(msg){
     var pattern = /\$\(disp\=(.*?)\)/;
@@ -237,14 +241,14 @@ function  makeTimestamp(id) {
     if (seconds < 10) { seconds = "0" + seconds;}
     
     
-    return "[" + hours + ":" + minutes + ":" + seconds + "] "
+    return '<font color="' + color_timestamp + '">[' + hours + ":" + minutes + ":" + seconds + "]</font> "
     
 }
 function displayOfftopic(id,msg) {
     msg = diceParse(msg);
     var timestamp = '';
     var spanid = '';
-    if (id) {
+    if (id && id != "0") {
         spanid = ' id="' + id + '"';
         timestamp = makeTimestamp(id);
         
@@ -409,9 +413,11 @@ function ws_init(url) {
                 $("#entrybox").css("background-color",c2);
                 
             }
-            else if (c1 == 'timestamp') { }
             else if (c1 == 'input') { 
                 $("#entrybox").css("color",c2);
+            }
+            else if (c1 == 'timestamp') {
+                color_timestamp = c2;
             }
             else { displayOfftopic(false,"Unknown color received.. bug?"); }
         }
