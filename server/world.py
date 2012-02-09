@@ -457,12 +457,15 @@ class Character(object):
         self.owner  = player.account.name
         self.player.character = self
         self.player.connection.write("clr main")
-        for message in self.read[-50:]:
-            self.message(message)
-        while len(self.unread):
-            message = self.unread.pop(0)
-            self.message(message)
+        #for message in self.read[-50:]:
+        #    self.message(message)
+        #while len(self.unread):
+        #    message = self.unread.pop(0)
+        #    self.message(message)
             #self.read.append(message)
+        self.message(self.read[-50:] + self.unread)
+        self.unread = []
+        
         self.player.sendOfftopic("<ok>Attached to %s!"%self.name)
         
             
@@ -470,16 +473,32 @@ class Character(object):
             self.player.character = None
             self.player = None
         
-    def message(self,timestamp): 
-        print "sending message id",timestamp
+    def message(self,stuff): 
+        #print "sending message id",timestamp
         if self.player:
-            print "To player",self.player,self.player.name
-            message = self.world.messages[timestamp]
-            self.player.sendMessage((timestamp,message[0],message[1]))
-            if timestamp not in self.read:
-                self.read.append(timestamp)
+            
+            if isinstance(stuff,list):
+                buf = []
+                for timestamp in stuff:
+                    message = self.world.messages[timestamp]
+                    buf.append((timestamp,message[0],message[1]))
+                    if timestamp not in self.read:
+                        self.read.append(timestamp)
+                message = buf
+                
+            elif isinstance(stuff,float):
+                print "To player",self.player,self.player.name
+                message = self.world.messages[stuff]
+                message = (stuff,message[0],message[1])
+                if stuff not in self.read:
+                    self.read.append(stuff)
+                    
+                    
+            print "character.message:",message
+            self.player.sendMessage(message)
         else:
-            self.unread.append(timestamp) 
+            if isinstance(stuff,float):
+                self.unread.append(stuff) 
             
     #def parse(self,message):
     #    ''' This functions solves name-memory '''
@@ -531,10 +550,11 @@ class Soul(Character):
         self.attach(player)
  
     def attach(self,player):
-        for msg in self.location.history[-50:]:
-            self.message(msg)
-            
+        #for msg in self.location.history[-50:]:
+        #    self.message(msg)
+           
         Character.attach(self,player)
+        self.message(self.location.history[-50:]) 
         
     def detach(self):
         print "Destroying soul!!!"

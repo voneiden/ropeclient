@@ -148,13 +148,16 @@ class Player(object):
         if isinstance(message,list):
             buf = []
             for part in message:
-                timestamp = message[0]
-                owner = message[1]
-                content = self.replaceCharacterNames(message[2])
+                timestamp = part[0]
+                owner = part[1]
+                content = self.replaceCharacterNames(part[2])
+                content = self.createHighlights(content)
+                if content[0] != '<': content = '<default>' + content
                 if owner == self.account.name and "$(dice=" not in content:
                     owner = 1
                 else:
                     owner = 0
+                    
                 buf.append((timestamp,owner,content))
             message = buf
             
@@ -164,6 +167,7 @@ class Player(object):
             owner = message[1]
             content = self.replaceCharacterNames(message[2])
             content = self.createHighlights(content)
+            if content[0] != '<': content = '<default>' + content
             if owner == self.account.name:
                 owner = 1
             else:
@@ -174,11 +178,13 @@ class Player(object):
             message = unicode(message)
             message = self.replaceCharacterNames(message)
             message = self.createHighlights(message)
-            
+            if message[0] != '<': message = '<default>' + message
             
         elif isinstance(message,unicode):
             message = self.replaceCharacterNames(message)
             message = self.createHighlights(message)
+            if message[0] != '<': message = '<default>' + message
+
         else:
             print "********* Fatal error in sendMessage at player********"
             return False    
