@@ -138,6 +138,12 @@ class Player(object):
             content = regex.sub(lambda match: "<{}>{}<reset>".format(color,match.group()),content)
         return content
         
+    def createTalk(self,content):
+        return re.sub('".+?"',lambda match: '"{talk}{text}<reset>"'.format(
+                                                        talk=self.character.talk,
+                                                        text=match.group()[1:-1]),
+                                                        content)
+                                                        
         
     def sendMessage(self, message): #TODO remove this function
         ''' This function will also do some parsing stuff! '''
@@ -1026,6 +1032,7 @@ class Player(object):
                 message = message[1:].strip()
             if len(message) == 0: 
                 return 
+            message = self.createTalk(message) 
             self.character.location.sendMessage((self.account.name,u"%s %s"%(self.character.rename(), message)))
             
     def handle_me(self,*args):
@@ -1037,6 +1044,7 @@ class Player(object):
             if not isinstance(self.character,world.Soul) or self.gamemaster:
                 if message[0] == '#':
                     message = message[1:]
+                message = self.createTalk(message) 
                 self.character.location.sendMessage((self.account.name,u"%s (%s)"%(message, self.account.name)))
         
     def handle_setcolor(self,*args):
@@ -1168,8 +1176,8 @@ class Player(object):
             else:
                 says = 'says'
                 # had color #8888ff #TODO rename()
-            self.character.location.sendMessage((self.account.name,u'{name} {says}, "{talk}{text}<reset>"'.format(
-                                                       talk=self.character.talk,
+            message = self.createTalk(message) 
+            self.character.location.sendMessage((self.account.name,u'{name} {says}, "{text}"'.format(
                                                        name=self.character.rename(),
                                                        says=says,
                                                        text=message)))
