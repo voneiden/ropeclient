@@ -104,3 +104,10 @@ span.msg
     height:50%;
 }
 
+
+#bottomlp,#toplp
+{
+    height: 15px;
+    color: transparent; 
+    background: url("hr1.gif") no-repeat scroll center center rgb(0, 0, 0);
+}

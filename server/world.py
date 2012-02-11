@@ -306,7 +306,10 @@ class World(object):
                     allrolls.append(roll[1])
             except OverflowError:
                 return message
-            total = eval(resultequation)
+            try: 
+                total = eval(resultequation)
+            except SyntaxError:
+                return resultmessage
             resultmessage = resultmessage.replace("!%s"%equation,"$(dice=[%s: %i];%s)"%(equation,total,str(allrolls)),1)
                 
         return resultmessage

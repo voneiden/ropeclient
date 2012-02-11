@@ -9,24 +9,25 @@ autocomplete_cycle = [];
 autocomplete_index = 0;
 autocomplete_buffer = [];
 autocomplete_commands = {
-    'action':["Message?"],
-    'attach':["Who?/To?","To?"],
-    'chars':[],
-    'create':["Title?","Description?","Exit name (or blank)?", "Return exit name (or blank?"],
-    'detach':[],
-    'editlocation':['Choose attribute to edit: name/description','set to?'],
-    'locs':[],
-    'look':["Enter/At who?"],
-    'kill':["Who?"],
-    'me':["Message?"],
-    'notify':["Who?","Message?"],
-    'players':[],
-    'tell':["Who?","Message?"],
-    'setcolor':["Enter to list/Color name (from)?","Enter to erase definition/Color name (to)?"],
-    'setfont':["Font name?","Font size?"],
-    'sethilight':["Enter to list/Regex pattern/Index number to delete","Color to change matching patterns"],
-    'settalk':["To color?"],
-    'spawn':["Character name?","Short description? (Max 40 chars)","Long description"]
+    'action':[1,"Message?"],
+    'attach':[1,"Who?/To?","To?"],
+    'chars':[0],
+    'create':[4,"Title?","Description?","Exit name (or blank)?", "Return exit name (or blank?"],
+    'detach':[0],
+    'editlocation':[2,'Choose attribute to edit: name/description','set to?'],
+    'getlog':[3,'E-Mail','Mode (1=talk, 2=offtopic, 3=all)','Max age in hours'],
+    'locs':[0],
+    'look':[0,"Enter/At who?"],
+    'kill':[1,"Who?"],
+    'me':[1,"Message?"],
+    'notify':[2,"Who?","Message?"],
+    'players':[0],
+    'tell':[2,"Who?","Message?"],
+    'setcolor':[0,"Enter to list/Color name (from)?","Enter to erase definition/Color name (to)?"],
+    'setfont':[2,"Font name?","Font size?"],
+    'sethilight':[0,"Enter to list/Regex pattern/Index number to delete","Color to change matching patterns"],
+    'settalk':[1,"To color?"],
+    'spawn':[3,"Character name?","Short description? (Max 40 chars)","Long description"]
 };
 
 // Message edit variables
@@ -120,12 +121,12 @@ function displayAutocomplete() {
     if (autocomplete_buffer.length > 0) { // This is a neat feature!
         var cmd = autocomplete_buffer[0];
         var questions = autocomplete_commands[cmd]
-        //displayOfftopic(questions.length + " qlen")
-        if (questions.length < autocomplete_buffer.length) {
+        // -1 because of the required args number
+        if (questions.length  - 1< autocomplete_buffer.length) {
             text += "Press Enter"
         }
         else {
-            text += questions[autocomplete_buffer.length - 1];
+            text += questions[autocomplete_buffer.length];
         }
          
     }
@@ -500,7 +501,21 @@ function ws_close() {
     log("closing connection..");
     ws.close();
 }
+$(window).blur(function(event){
+    displayOfftopic(0,"Lost focus");
+    $("#bottomlp").remove();
+    $("#toplp").remove();
+    $("#leftbottom").append('<hr id="bottomlp">');
+    $("#lefttop").append('<hr id="toplp">');
+    document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
+    document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
+    
+});
 
+$(window).focus(function(event){
+    displayOfftopic(0,"Got focus");
+    setTimeout(function() { $("#entrybox").focus(); }, 0);
+});
 $(document).ready(function(){
     isTyping = 0;
     isPassword = 0;
@@ -595,7 +610,7 @@ $(document).ready(function(){
     });
     
     $("#entrybox").focusout(function(event){
-        setTimeout(function() { $("#entrybox").focus(); }, 0);
+        //setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
 
     ws_init("ws://localhost:9091")

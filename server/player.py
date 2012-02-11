@@ -24,6 +24,8 @@
 # TODO input should be checked for invalid characters more often..
 
 import server,re, world, time, random, string
+from collections import OrderedDict 
+
 from cgi import escape 
 class Player(object):
     '''
@@ -582,7 +584,8 @@ class Player(object):
                 content = content.replace("$(name)",name,1)
                 
             
-            
+            if not len(content):
+                return "(<fail>Deleting not supported yet."
             message = (message[0],content)
             print "To",message
             self.character.world.messages[timestamp] = message 
@@ -1047,6 +1050,65 @@ class Player(object):
                 message = self.createTalk(message) 
                 self.character.location.sendMessage((self.account.name,u"%s (%s)"%(message, self.account.name)))
         
+    def handle_getlog(self,*args):
+        # 0 - email address
+        # 1 - 1 main only, 2 offtopic only, 3 both
+        # 2 - max age
+        
+        if len(args) < 3:
+            return "(<fail>This command requires 3 arguments."
+        email = args[0]
+        mode = args[1]
+        age = args[2]
+        if not re.match('^.+?\@.+?\..+',email):
+            return "(<fail>Bad email address"
+        
+        try:
+            mode = int(mode)
+            age = int(age)
+        except:
+            return "(<fail>Bad parameters, needs numbers"
+        
+        if not 0 < mode < 4:
+            return "(<fail>Mode needs to be 1 (main chat), 2 (offtopic) or 3 (both)"
+            
+        maxage = time.time() - age * 60 * 60
+        
+        buffer = OrderedDict()
+        # First we collect the appropriate messages.
+        if mode == 2 or mode == 3:
+            for (content,timestamp) in self.world.offtopicHistory:
+                if timestamp < maxage:
+                    continue
+                else:
+                    buffer[timestamp] = content
+        if mode == 1 or mode == 3:
+            for timestamp,message in self.world.messages.items():
+                if timestamp < maxage:
+                    continue
+                else:
+                    buffer[timestamp] = message[1]
+                    
+        print "Exporting"
+        keys = buffer.keys()
+        keys.sort()
+        f = open('log.html','w')
+        for key in keys:
+            line = buffer[key]
+            line = self.replaceCharacterNames(line)
+            line = self.connection.colorConvert(line)
+            line = re.sub("\$\(disp\=.+?\)", lambda match: match.group()[7:-1], line)
+            line = line.encode('utf-8')
+            f.write("%s<br>\n"%line)
+        f.close()
+        print "Export completed"
+        print "Mailing"
+        import subprocess
+        subprocess.call("""cat log.html | mailx -s "Ropeclient log" %s"""%email,shell=True)
+        print "Sent!"
+        return "(<ok>Your log should arrive shortly. It's in HTML plaintext and encoded utf-8"
+        
+    
     def handle_setcolor(self,*args):
         """
         This command is used to set custom colors
