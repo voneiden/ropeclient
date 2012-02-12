@@ -1245,11 +1245,12 @@ class Player(object):
             else:
                 says = 'says'
                 # had color #8888ff #TODO rename()
-            message = self.createTalk(message) 
+            
             self.character.location.sendMessage((self.account.name,u'{name} {says}, "{text}"'.format(
                                                        name=self.character.rename(),
                                                        says=says,
                                                        text=message)))
+            message = self.createTalk(message) 
         else:
             #self.offtopic("You are mute! You can't talk")
             self.handle_offtopic(message)
