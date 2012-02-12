@@ -91,6 +91,13 @@ span.msg
     left:0;
     right:12%;
 }
+
+#entrybox
+{
+    background-color:black;
+    color:white;
+
+}
 #righttop
 {
     background-color:black;

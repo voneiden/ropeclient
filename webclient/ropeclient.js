@@ -39,6 +39,10 @@ editing = 0;
 // Special colors
 color_timestamp = 'gray';
 
+// separator line
+update_separator = false;
+
+
 function EditHistoryName(msg){
     var pattern = /\$\(disp\=(.*?)\)/;
     var match = pattern.exec(msg);
@@ -502,18 +506,20 @@ function ws_close() {
     ws.close();
 }
 $(window).blur(function(event){
-    displayOfftopic(0,"Lost focus");
-    $("#bottomlp").remove();
-    $("#toplp").remove();
-    $("#leftbottom").append('<hr id="bottomlp">');
-    $("#lefttop").append('<hr id="toplp">');
-    document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
-    document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
-    
+    //displayOfftopic(0,"Lost focus");
+    if (update_separator) {
+        $("#bottomlp").remove();
+        $("#toplp").remove();
+        $("#leftbottom").append('<hr id="bottomlp">');
+        $("#lefttop").append('<hr id="toplp">');
+        document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
+        document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
+        update_separator = false;
+    }
 });
 
 $(window).focus(function(event){
-    displayOfftopic(0,"Got focus");
+    //displayOfftopic(0,"Got focus");
     setTimeout(function() { $("#entrybox").focus(); }, 0);
 });
 $(document).ready(function(){
@@ -599,6 +605,7 @@ $(document).ready(function(){
             
             if (isTyping == 0 && $("#entrybox").val().length > 0) {    
                 isTyping = 1;
+                update_separator = true;
                 ws_send("pit")
             }
             else if (isTyping == 1 && $("#entrybox").val().length == 0) {
@@ -613,5 +620,5 @@ $(document).ready(function(){
         //setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
 
-    ws_init("ws://localhost:9091")
+    ws_init("ws://ninjabox.sytes.net:9091")
 });

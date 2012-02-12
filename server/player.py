@@ -161,7 +161,7 @@ class Player(object):
                 content = self.replaceCharacterNames(part[2])
                 content = self.createHighlights(content)
                 if content[0] != '<': content = '<default>' + content
-                if owner == self.account.name and "$(dice=" not in content:
+                if self.account and owner == self.account.name and "$(dice=" not in content:
                     owner = 1
                 else:
                     owner = 0
@@ -288,19 +288,26 @@ class Player(object):
             
         elif self.handlerstate == 12:
             if self.temp['password'] == message[0]:
-                self.handlerstate = 13
-                f = open('text/stylehelp.txt','r')
-                buf = [f.read()]
-                buf.append(u"Choose your style (can be changed later!): irc/mud")
-                f.close()
+                #self.handlerstate = 13
+                #f = open('text/stylehelp.txt','r')
+                #buf = [f.read()]
+                #buf.append(u"Choose your style (can be changed later!): irc/mud")
+                #f.close()
                 
-                return u"\n".join(buf)                
+                #return u"\n".join(buf)                
+                print u"New accont with",self.temp['name'],self.temp['password']
+            
+                self.account = server.Account(self.temp['name'],self.temp['password'])
+                self.core.accounts.append(self.account)
+                self.core.saveAccounts()
+                self.name = self.account.name
+                return self.login()
                 
             else:
                 self.handlerstate = 11
                 self.connection.write('pwd\r\n')
                 return u"Password mismatch, try again! Your password?"
-                
+        '''        
         elif self.handlerstate == 13:
             if message[0].lower() == 'irc':
                 self.temp['style'] = 'irc'
@@ -316,7 +323,7 @@ class Player(object):
             self.core.saveAccounts()
             self.name = self.account.name
             return self.login()
-    
+        '''
     
     def disconnect(self):
         if self in self.core.players:

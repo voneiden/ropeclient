@@ -350,7 +350,7 @@ class WebPlayer(Protocol):
         buf = []
         for line in self.core.greeting:
             buf.append((0,0,line))
-        self.sendMessage(buf)
+        self.player.sendMessage(buf)
         
         self.player.recv = self.player.recvMessage
         self.pingTimer = False
@@ -426,8 +426,10 @@ class WebPlayer(Protocol):
                 color = 'green'
             elif color == 'default':
                 color = '#aaaaff'
+            elif color == 'offtopic':
+                color = '#4554ff'
             elif color == 'talk':
-                color = '#8888ff'
+                color = '#4554ff'
             elif color == 'notify':
                 color = 'orange'
             elif color == 'timestamp':
@@ -556,10 +558,9 @@ class TelnetNetwork(Factory):
         self.core = core
 
 class Account:
-    def __init__(self,name,password,style):
+    def __init__(self,name,password):
         self.name = name
         self.password = password
-        self.style = style
         
         self.colors = {}
         self.hilights = OrderedDict()
