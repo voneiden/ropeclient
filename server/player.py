@@ -782,7 +782,9 @@ class Player(object):
             return u"(Color set to %s."%tok[1]
     '''      
     def handle_attach(self,*args): 
-        if len(args) == 1:
+        if len(args) == 0:
+            return "(<fail>This command needs arguments"
+        elif len(args) == 1:
             targetName = re.compile(args[0],re.IGNORECASE)
             player = [self]
             character = [character for character in self.world.characters if re.match(targetName,character.name)]
