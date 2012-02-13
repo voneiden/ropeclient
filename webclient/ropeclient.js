@@ -99,11 +99,13 @@ function EditHistory(event) {
         }
     else if (edit_index == -1 && editing == 1) {
         editing = 0;
+        $("#autocomplete").html("");
         $("#entrybox").val(edit_mem);
         edit_mem = '';
     }  
     else if (edit_index > -1 && editing == 0) {
         edit_mem = $("#entrybox").val();
+        $("#autocomplete").html("Editing");
         editing = 1;
         var msg = edit_history[edit_history.length - 1 - edit_index][1]
         $("#entrybox").val(EditHistoryName(msg));
@@ -569,6 +571,7 @@ $(document).ready(function(){
                 var content = $("#entrybox").val();
                 //displayOfftopic(false,"Sending content: "+content)
                 editing = 0
+                $("#autocomplete").html("");
                 edit_index = -1
                 $("#entrybox").val("");
             }
