@@ -469,7 +469,7 @@ class Character(object):
         self.unread = []
         
         self.player.sendOfftopic("<ok>Attached to %s!"%self.name)
-        self.world.updatePlayer(self,self.player):
+        self.world.updatePlayer(self.player)
             
     def detach(self):
             self.player.character = None

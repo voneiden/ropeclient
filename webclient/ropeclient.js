@@ -510,10 +510,10 @@ function ws_close() {
 $(window).blur(function(event){
     //displayOfftopic(0,"Lost focus");
     if (update_separator) {
-        $("#bottomlp").remove();
-        $("#toplp").remove();
-        $("#leftbottom").append('<hr id="bottomlp">');
-        $("#lefttop").append('<hr id="toplp">');
+        $("#bottomlw").remove();
+        $("#toplw").remove();
+        $("#leftbottom").append('<hr id="bottomlw">');
+        $("#lefttop").append('<hr id="toplw">');
         document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
         document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
         update_separator = false;
@@ -579,6 +579,17 @@ $(document).ready(function(){
             else if (autocomplete_buffer.length == 0) {
                 var header = 'msg';
                 var content = $("#entrybox").val();
+                // Move the last write delimiter?
+                if (content[0] == '(') {
+                    $("#toplw").remove();
+                    $("#lefttop").append('<hr id="toplw">');
+                    document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
+                }
+                else {
+                    $("#bottomlw").remove();
+                    $("#leftbottom").append('<hr id="bottomlw">');
+                    document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
+                }
             }
             else {
                 var header = "cmd";
@@ -623,5 +634,5 @@ $(document).ready(function(){
         //setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
 
-    ws_init("ws://localhost:9091")
+    ws_init("ws://ninjabox.sytes.net:9091")
 });
