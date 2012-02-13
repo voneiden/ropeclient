@@ -634,5 +634,5 @@ $(document).ready(function(){
         //setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
 
-    ws_init("ws://ninjabox.sytes.net:9091")
+    ws_init("ws://localhost:9091")
 });

@@ -804,7 +804,7 @@ class Player(object):
         else:
             character = character[0]
             
-        if character.owner is not player.account.name and not self.gamemaster:
+        if character.owner != player.account.name and not self.gamemaster:
             return u"(<fail>You may not attach to this character"
         
         if character.player:
