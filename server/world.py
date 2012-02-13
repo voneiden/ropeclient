@@ -56,7 +56,7 @@ class World(object):
         
     def timestamp(self):
         timestamp = time.time()
-        print "timestamp",timestamp,self.messages.keys()
+        #print "timestamp",timestamp,self.messages.keys()
         while timestamp in self.messages.keys():
             timestamp += 0.01
         return timestamp
