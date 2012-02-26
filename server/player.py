@@ -1411,6 +1411,8 @@ class Player(object):
                 target = self.core.find(self,pattern,self.character)
                 if not target:
                     return u"(<fail>%s is not here.."%targetname
+                else:
+                    target = target[0]
             elif len(target) > 1:
                 return u"(<fail>Multiple targets, be more specific"
             else:
