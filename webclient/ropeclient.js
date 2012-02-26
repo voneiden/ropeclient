@@ -251,31 +251,13 @@ function  makeTimestamp(id) {
     return '<font color="' + color_timestamp + '">[' + hours + ":" + minutes + ":" + seconds + "]</font> "
     
 }
-function displayOfftopic(id,msg) {
-    msg = diceParse(msg);
-    var timestamp = '';
-    var spanid = '';
-    if (id && id != "0") {
-        spanid = ' id="' + id + '"';
-        timestamp = makeTimestamp(id);
-        
-    }
-
-    document.getElementById('lefttop').innerHTML += '<span class="msg"' + spanid + ">" + timestamp + msg + "</span>";  
+function displayOfftopic(text) {
+    $("#lefttop").append(text);
     document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
 
 }
-function displayMain(id,msg) {
-    msg = diceParse(msg); // '<font color="#aaaaff">' 
-    msg = nameParse(msg);
-    var timestamp = '';
-    var spanid = '';
-
-    if (id && id != '0') {
-        spanid = ' id="' + id + '"';
-        timestamp = makeTimestamp(id);
-    }
-    document.getElementById('leftbottom').innerHTML += '<span class="msg"' + spanid + ">" + timestamp + msg + "</span>";  
+function displayMain(text) {
+    $("#leftbottom").append(text);
     document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
 }
 
@@ -328,10 +310,10 @@ function ws_init(url) {
         ws = new WebSocket(url);
     }
     
-    displayOfftopic(false,"Connecting to " + url + "... socket state "+ws.readyState+"<br>");
+    displayOfftopic("Connecting to " + url + "... socket state "+ws.readyState+"<br>");
     
     ws.onopen = function() {
-        displayOfftopic(false,"Connection established.<br>");
+        displayOfftopic("Connection established.<br>");
     };
     
     ws.onmessage = function(e) {
@@ -344,6 +326,8 @@ function ws_init(url) {
         if (hdr == "msg") {
             var everything = tok.join(" ");
             var lines = everything.split("\x1b");
+            var output = [];
+            
             while (lines.length) {
                 var line = lines.shift();
                 var linetok = line.split("\x1f");
@@ -351,26 +335,60 @@ function ws_init(url) {
                 //displayOfftopic(false,timestamp)
                 var editable = linetok.shift();
                 var message = linetok.shift();
-                displayMain(timestamp,message);
-                //displayMain(false,line);
                 
                 if (editable == "1") {
                     edit_history.push([timestamp,message])
                 }
+                while (edit_history.length > 10) {
+                    edit_history.shift()
+                }
+                
+                message = diceParse(message);
+                message = nameParse(message);
+                var spanid = '';
+                if (timestamp && timestamp != "0") {
+                    spanid = ' id="' + timestamp + '"';
+                    timestamp = makeTimestamp(timestamp);
+                }
+                else {
+                    timestamp = '';
+                }
+                output.push('<span class="msg"' + spanid + ">" + timestamp + message + "</span>");
             }
+            displayMain(output.join(""));
         }
         else if (hdr == "oft") {
             //A lot faster method of displaying a lot of text at once.
+            //Still needs improving, so lets try..
+            
             var everything = tok.join(" ");
             var lines = everything.split("\x1b");
+            var output = [];
             while (lines.length) {
                 var line = lines.shift();
                 var linetok = line.split(" ");
                 var timestamp = linetok.shift();
                 var message = linetok.join(" ");
-                //output.push('<pre>'+message+'</pre>'); 
-                displayOfftopic(timestamp,message);
+                
+                message = diceParse(message);
+                var spanid = '';
+                if (timestamp && timestamp != "0") {
+                    spanid = ' id="' + timestamp + '"';
+                    timestamp = makeTimestamp(timestamp);
+                }
+                else {
+                    timestamp = '';
+                }
+                output.push('<span class="msg"' + spanid + ">" + timestamp + message + "</span>");
+                //var timestamp = '';
+                //var spanid = '';
+                // if (id && id != "0") {
+                //    spanid = ' id="' + id + '"';
+                //    timestamp = makeTimestamp(id);
+                //    
+                //}
             }
+            displayOfftopic(output.join(''));
             //displayOfftopic(false,output.join(""));
         }
         else if (hdr == 'pwd') {
@@ -634,5 +652,5 @@ $(document).ready(function(){
         //setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
 
-    ws_init("ws://localhost:9091")
+    ws_init("ws://ninjabox.sytes.net:9091")
 });
