@@ -245,6 +245,7 @@ class Player(object):
         State 12 - asking one more time for password
         '''
         if header == 'cmd': return
+        if len(message) == 0: return 
         message = message.split()
         if self.handlerstate == 1:
             self.temp['name'] = message[0]
