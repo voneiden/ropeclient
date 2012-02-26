@@ -209,7 +209,7 @@ class World(object):
         
         # Deliver a list to player.sendOfftopic
         
-        player.sendOfftopic(self.offtopicHistory[-1000:])
+        player.sendOfftopic(self.offtopicHistory[-100:])
         #if offtopic:
         #    player.sendOfftopic("".join(offtopic),self.offtopicHistory[-100:][0][1])
         
