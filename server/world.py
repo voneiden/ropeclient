@@ -54,6 +54,8 @@ class World(object):
         
         self.limitSpawn = True
         
+        # Experimental
+        self.calledRolls = {}
     def timestamp(self):
         timestamp = time.time()
         #print "timestamp",timestamp,self.messages.keys()
@@ -72,6 +74,7 @@ class World(object):
     def setup(self,core):
         print "Setting up loaded world '{0}'".format(self.name)
         self.players = []
+        self.calledRolls = {}
         
         oldworld = [world for world in core.worlds if world.name.lower() == self.name.lower()]
         if oldworld:
@@ -112,7 +115,6 @@ class World(object):
         
         timestamp = self.timestamp() # Message ID
         if isinstance(message,tuple):
-            print "**** ATTENTION SHOPPERS, VOLDEMORT KILLS SNAPES *****"
             owner = message[0]
             content = message[1]
         else:
@@ -120,7 +122,7 @@ class World(object):
             content = message 
             
         
-        content = self.doDice(content)
+        #content = self.diceSub(content) #This is now handled in player class
         if content[0] != '<':
             content = '<default>' + content
         self.messages[timestamp] = (owner,content)
@@ -136,7 +138,7 @@ class World(object):
         # TODO all offtopic needs to be logged, and upon player
         # connecting, the last.. say, 50 lines will be sent.
         # Do the dice rolling too..
-        content = self.doDice(content)
+        #content = self.diceSub(content) This is now handled in player
         if content[0] != '<':
             content = '<offtopic>' + content
             
@@ -234,87 +236,34 @@ class World(object):
             player.gamemaster = False
             
     
-    '''
-    def findOwner(self,owner,target):
-        """ 
-            Will search target list for an identity.
-            Returns None if not found, object if single
-            occurence found, or a list if multiple choices
-            were found
-        """
-        print "FINDOWNERS"
-        print target
-        print owner
-        results = []
-        for obj in target:
-            if owner.lower() in obj.owner.lower(): results.append(obj)
-        if len(results) == 0: 
-            return None
-        #elif len(results) == 1: 
-        #    return results[0]
-        else:
-            return results   
-    '''
-    '''  
-    def findId(self,ident,objects):
-        print "findID",ident
-        try:
-            int(ident)
-        except ValueError:
-            return False
         
-        if int(ident) < len(objects):
-            return [objects[int(ident)]]
-        else:
-            print "Searching for static id"
-            print self.idents.keys()
-            if ident in self.idents.keys():
-                obj = self.idents[ident]
-                print "obj found"
-                if obj in objects:
-                    return [obj]
-                else:
-                    print "Not in objects"
-                    return False
-            else:
-                print "not found"
-                return False
-    '''
-    '''
-    def findAny(self,key,target):
-        match = self.findId(key,target)
-        if match: return match
-        match = self.find(key,target)
-        if match: return match
-    '''    
+    def diceSub(self,message):
+        ''' This function performs a regex substitution for a string of text '''
+        return re.sub("\![d0-9\+\-\*\/]+",self.diceParse,message)
         
-
-    def doDice(self,message):
-        evalregex = "\![d0-9\+\-\*\/]+"
+    def diceParse(self,match):
         diceregex = "[0-9]*d[0-9]+"
-        resultmessage = message[:]
-        for equation in re.finditer(evalregex,message):
-            equation = equation.group()[1:]
-            resultequation = equation
-            allrolls = []
-            try:
-                for dice in re.finditer(diceregex,message):
-                    dice = dice.group()
-                    tok = dice.split('d')
-                    roll = self.doRoll(tok[0],tok[1])
-                    resultequation = resultequation.replace(dice,str(roll[0]),1)
-                    allrolls.append(roll[1])
-            except OverflowError:
-                return message
-            try: 
-                total = eval(resultequation)
-            except SyntaxError:
-                return resultmessage
-            resultmessage = resultmessage.replace("!%s"%equation,"$(dice=[%s: %i];%s)"%(equation,total,str(allrolls)),1)
-                
-        return resultmessage
-                
-    def doRoll(self,x,y):
+        equation = match.group()[1:]
+        resultequation = equation
+        allrolls = []
+        try:
+            for dice in re.finditer(diceregex,equation):
+                dice = dice.group()
+                tok = dice.split('d')
+                roll = self.diceRoll(tok[0],tok[1])
+                resultequation = resultequation.replace(dice,str(roll[0]),1)
+                allrolls.append(roll[1])
+        except OverflowError:
+            return message
+        try: 
+            total = eval(resultequation)
+        except SyntaxError:
+            return "$(dice=[Bad syntax];N/A)"
+        return "$(dice=[%s: %i];%s)"%(equation,total,str(allrolls))
+            
+            # Handle special rolls here?
+                  
+    def diceRoll(self,x,y):
         if x == '': x = 1
         x = int(x)
         y = int(y)

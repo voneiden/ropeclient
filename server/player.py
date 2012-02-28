@@ -132,7 +132,7 @@ class Player(object):
             return self.account.name    
     
     def createHighlights(self,content):
-        print "****CREATING HILIGHTS*****"
+        #print "****CREATING HILIGHTS*****"
         if not self.account:
             return content
             
@@ -532,16 +532,16 @@ class Player(object):
             
                 
             if content[0] == '(':
-                self.handle_offtopic(content)
+                return self.handle_offtopic(content)
                 
             elif content[0] == '#':
-                self.handle_describe(content)
+                return self.handle_describe(content)
             elif content[0] == '!':
-                self.handle_offtopic(content)
+                return self.handle_offtopic(content)
             elif content[0] == '%':
-                self.handle_action(content)
+                return self.handle_action(content)
             else:
-                self.handle_say(content)
+                return self.handle_say(content)
                 
         elif header == 'cmd':
             # Fix the tokens
@@ -601,49 +601,14 @@ class Player(object):
             
         else:
             print "UNKNOWN HEADER"
-        '''    
-        print "Handlering"
-        print "style is",self.account.style
-        if len(tok) > 0:
-            if self.account.style == 'irc' and tok[0][0] != '/': #IRC STYLE
-                return self.handle_say(tok)
-            elif self.account.style == 'irc':
-                command = tok[0][1:]
-            elif self.account.style == 'mud':
-                command = tok[0]
-            if self.account.style == 'mud' and command[0] == '/': #Combatibility for /memorize command
-                command = command[1:] #TODO this could be part of elif
-                
-            command = "handle_%s"%command
-            print "gameHandler: Searching for command",command
-            print locals().keys()
-            try:
-                handle = getattr(self,command)
-            except AttributeError:
-                handle = False
-            except UnicodeEncodeError: 
-                # This happens if the player tries a command that contains scandics..
-                handle = False
-            if handle:
-                return handle(tok[1:]) # I assume we can drop the original trigger..
-                
-            elif tok[0][0] == '(':
-                return self.handle_offtopic(tok)
-            elif tok[0][0] == '#' and len(tok[0]) > 1:
-                return self.handle_describe(" ".join(tok)[1:].split(' ')) # Bugfix done here.
-            elif tok[0][0] == '!':
-                return self.handle_offtopic(tok)
-            elif self.handle_move(tok):
-                return
-        '''
 
     def replaceCharacterNames(self,message):
         ''' This functions solves name-memory '''
         nameregex = "\$\(name\=.+?\)"
-        print "Parsing.."
+        #print "Parsing.."
         for match in re.finditer(nameregex,message):
             name = self.getCharacterName(match)
-            print "Replacing..",match.group(),name
+            #print "Replacing..",match.group(),name
             message = message.replace(match.group(),"$(disp=%s)"%name,1)
         
         return message
@@ -654,67 +619,13 @@ class Player(object):
         character = [character for character in self.world.characters if character.unique == unique]
         if not character:
             return u"Joining.."
-        print "Checking my memory.."
+        #print "Checking my memory.."
         
         if not self.character:
             return character[0].name #TODO return actually character short description, just a quick hack
         return character[0].name
            
-        #else: #TODO needs fixing srsly
-        #    print self.character.memory
-        #    for key in self.character.memory.keys():
-        #        print "Remembering",key,type(key)
-        #    
-        #    character = self.world.find(name,self.world.characters)
-        #   
-        #    if not character: 
-        #        print "character not found"
-        #        return name
-        #    else:
-        #        character = character[0] #TODO temp fix
-        #    if character in self.memory.keys():
-        #        return self.memory[character]
-        #    elif character == self:
-        #        return character.name
-        #    else:
-        #        return character.info
-        
-    
-    
 
-    # ######################
-    # Player related handles
-    # ######################
-    #def handle_gm(self, tok):
-    #    key = " ".join(tok)
-    #    print "Testing",key
-    #    if key == self.core.gmKey or self.gamemaster:
-    #        self.gamemaster = not self.gamemaster
-    #        self.db.save()
-    #        if self.gamemaster:
-    #            return u"(GM status enabled"
-    #        else:
-    #            return u"(GM status disabled"
-    #    else:
-    #        self.send("(Not authorized")
-    '''        
-    def handle_del(self,tok):
-        if not self.gamemaster:
-            return u"(<fail>Not authorized"
-        character = " ".join(tok)
-        if len(character) == 0:
-            return u"(<fail>Usage: del charid"
-        character = self.world.findAny(character,self.world.characters)
-        if not character:
-            return u"(<fail>Character not found"
-        else:
-            character = character[0]
-        if character.player:
-            character.player.send("(<fail>Your character has been terminated!")
-            character.detach()
-        self.world.remCharacter(character)
-        return u"(<ok>Done."
-    '''
     def handle_players(self,*args):
         print "players",len(self.world.players)
         players = [player for player in self.core.players if player.world]
@@ -904,50 +815,7 @@ class Player(object):
             return u"(Not authorized"
             
             
-    # Changing it so that a character is owned by whoever last was attached to it.   
-    def creatorCharacter(self,tok):
-        ''' This is a handler for character generation '''
-        msg = " ".join(tok)
-        if msg.lower() == 'abort':
-            self.handler = self.handlerGame
-            return u"Aborted"
-            
-        elif self.handlerstate  == 0:
-            self.handlerstate = 1
-            return u"Character name [or 'abort']:"
 
-            
-        elif self.handlerstate == 1:
-            matched = [character for character in self.world.characters if character.name == msg]
-            if matched:
-                self.sendMessage("<fail>Warning, a character with that name already exists!")
-            elif len(msg) < 2:
-                return("That's a too short name..! Try again:")
-            self.temp['name'] = msg
-            self.handlerstate = 2
-            return u"Short description [max 5 words OR blank to set same as name]:"
-           
-        elif self.handlerstate == 2:
-            if len(tok) > 6:
-                return u"Too long, keep it brief.."
-            if len(tok) == 0:
-                self.temp['info'] = self.temp['name']
-            else:
-                self.temp['info'] = msg
-            
-            self.handlerstate = 3
-            return u"Long description?"
-        
-        elif self.handlerstate == 3:
-            self.temp['description'] = msg
-            newchar = world.Character(self.world,self.name,
-                                      self.temp['name'],self.temp['info'],
-                                      self.temp['description'],
-                                      self.character.location)
-            #newchar.move(self.character.location)
-            self.handler = self.handlerGame
-            return u"Character created succesfully!"
-            
             
     def handle_create(self, *args):
         # 0 Title
@@ -1045,7 +913,9 @@ class Player(object):
                 message = message[1:].strip()
             if len(message) == 0: 
                 return 
+                
             message = self.createTalk(message) 
+            message = self.diceSub(message)
             self.character.location.sendMessage((self.account.name,u"%s %s"%(self.character.rename(), message)))
             
     def handle_me(self,*args):
@@ -1057,7 +927,9 @@ class Player(object):
             if not isinstance(self.character,world.Soul) or self.gamemaster:
                 if message[0] == '#':
                     message = message[1:]
+                    
                 message = self.createTalk(message) 
+                message = self.diceSub(message)
                 self.character.location.sendMessage((self.account.name,u"%s (%s)"%(message, self.account.name)))
         
     def handle_getlog(self,*args):
@@ -1217,42 +1089,101 @@ class Player(object):
         if len(message) == 0: return
         
         message = u"{name}: {message}".format(name=self.name, message=message)
-        self.world.sendOfftopic(message) #TODO we want seperate function for sending offtopic?
+        
+        message = self.diceSub(message)
+        self.world.sendOfftopic(message)
         
     def handle_say(self, *args):
         message = args[0]
         
         if not self.character.mute and not isinstance(self.character,world.Soul):
-            #if self.account.style == 'mud':
-            #    message = " ".join(tok[1:])
-            #else:
-            #    message = " ".join(tok)
-        
             if len(message) == 0: return u"<fail>Say what?"
             
             print "Attempting to say",message
-            #print tok
-            if message[-2:] == ':)': 
-                says = "smiles and says"
+            
+            
+            # Some ideas are borrowed from
+            # http://www.achaea.com/game/helpview/achaea/conversing
+   
+            pre  = ''
+            says = ''
+            post = ''
+            
+            emoteS = message[-2:].upper()
+            if emoteS == ':)': 
+                pre = "smiles and "
                 message = message[:-2].strip()
-            elif message[-2:].upper() == ':D':
-                says = "laughingly says"
+            elif emoteS == ':]': 
+                pre = "smiles broadly and "
                 message = message[:-2].strip()
-            elif message[-2:] == ':(':
-                says = "looks grim and says"
+            elif emoteS == ';>': 
+                pre = "smiles mischievously and "
                 message = message[:-2].strip()
+            elif emoteS == ';)': 
+                pre = "smiles with a wink and "
+                message = message[:-2].strip()
+            elif emoteS == ':D':
+                pre = "laughingly "
+                message = message[:-2].strip()
+            elif emoteS == ':(':
+                post = " grimly"
+                message = message[:-2].strip()
+            elif emoteS == ':P':
+                pre = "jokingly "
+                message = message[:-2].strip() 
+            elif emoteS == ':@':
+                pre = "angrily "
+                message = message[:-2].strip() 
+            elif emoteS == ':S':
+                pre = "looks confused and "
+                message = message[:-2].strip() 
+                
+            if len(message) < 1:
+                return u"(<fail>Nope. Don't say that."
+                
+            emoteS = message[-2:].upper()
+            if emoteS == ':O':
+                message = message[:-2].strip()
+                says = "gasps"
+                pre = ""
+                post = ""
+            elif emoteS == ':?':
+                message = message[:-2].strip()
+                says = "wonders"
+                pre = ""
+                post = ""
+            elif emoteS == ':~':
+                message = message[:-2].strip()
+                says = "sings"
+                pre = ""
+                post = ""
+            elif message[-2:] == '!!':
+                says = "shouts"
+                message = message[:-1]
+                
             elif message[-1] == '!':
                 says = "exclaims"
             elif message[-1] == '?':
                 says = "asks"
+            
+            elif message[-1] == '.':
+                says = 'says'
             else:
                 says = 'says'
-                # had color #8888ff #TODO rename()
-            message  = u'{name} {says}, "{text}"'.format(
+                message += '.'
+            
+            if message[0] not in string.uppercase:
+                message = message[0].upper() + message[1:]
+                
+            message  = u'{name} {pre}{says}{post}, "{text}"'.format(
                                                        name=self.character.rename(),
+                                                       pre=pre,
                                                        says=says,
+                                                       post=post,
                                                        text=message)
-            message = self.createTalk(message)                                            
+            message = self.createTalk(message)   
+            
+            message = self.diceSub(message)                                         
             self.character.location.sendMessage((self.account.name,message))
             
         else:
@@ -1285,37 +1216,7 @@ class Player(object):
         if len(character) != 1:
             return u"(<fail>Invalid character)"
         
-        #aregex = '^\d+$'   # tp 0
-        #bregex = '^(.+?) to (\d+)$'
-        #cregex = '^(.+?) to (.+)$'
-        #msg = " ".join(tok)
-        #if re.search(aregex,msg):
-        #    character = self.character.ident
-        #    location  = msg
-            
-        #else:
-        #    bsearch = re.search(bregex,msg)
-        #    csearch = re.search(cregex,msg)
-        #    if bsearch:
-        #        groups = bsearch.groups()
-        #        character = groups[0]
-        #        location = groups[1]
-        #    elif csearch:
-        #        groups = csearch.groups()
-        #        character = groups[0]
-        #        location = groups[1]
-        #    else:
-        #        return u"(<fail>Usage: teleport [locationid] OR teleport [charactername] to [locationid/locationname]"
-       
 
-        #character = self.world.findAny(character,self.world.characters)
-        #location  = self.world.findAny(location,self.world.locations)
-        
-        #if not character:
-        #    return u"(<fail>Character could not be resolved"
-        #if not location:
-        #    return u"(<fail>Location could not be resolved"
-        
         character[0].move(location[0])
         if self.character != character[0]:
             if character[0].player:
@@ -1522,3 +1423,118 @@ class Player(object):
                 self.temp['target'].link(backlink,self.character.location)
                 
             return u"(<ok>Done"
+
+    def handle_calldice(self,*args):
+        if len(args) < 3:
+            return u"(<fail>calldice requires 3 arguments: list of targets, roll expression and a query string"
+        rawtargets = args[0]
+        roll = args[1]
+        query = args[2]
+        
+        targets = []
+        rawtargets = rawtargets.split(',')
+        for target in rawtargets:
+            target = self.core.find(self,target.strip(),self.character)
+            if len(target):
+                targets.append(target[0])
+        if not len(targets):
+            return u"(<fail>calldice could not locate any targets"
+            
+            
+        print "Targets",targets
+        
+        operators = re.search("[\<\>\=]+",roll)
+        if operators:
+            operators = operators.group()
+            tok = roll.split(operators)
+            dreq = tok[0].strip()
+            dtar = tok[1].strip() 
+            
+            if not len(dreq) or not len(dtar):
+                return u"(<fail>Invalid syntax"
+            
+            if dreq[0] == "1":
+                dreq = dreq[1:]
+                
+            for target in targets:
+                if target not in self.world.calledRolls.keys():
+                    self.world.calledRolls[target] = (dreq,operators,dtar)
+                    print "Target level set at",(dreq,operators,dtar)
+                message = u"<offtopic>{self}: <notify>{name} roll {dreq} ({query})<reset><reset>".format(
+                            self=self.name,
+                            name=target.name,
+                            dreq=dreq,
+                            query=query)
+                self.world.sendOfftopic(message)
+                
+        else:            
+            for target in targets:
+                message = u"<offtopic>{self}: <notify>{name} roll {dreq} ({query})<reset><reset>".format(
+                            self=self.name,
+                            name=target.name,
+                            dreq=roll,
+                            query=query)
+                self.world.sendOfftopic(message)
+                
+            
+        
+    def diceSub(self,message):
+        ''' This function performs a regex substitution for a string of text '''
+        return re.sub("\![d0-9\+\-\*\/]+",self.diceParse,message)
+        
+    def diceParse(self,match):
+        diceregex = "[0-9]*d[0-9]+"
+        equation = match.group()[1:]
+        resultequation = equation
+        allrolls = []
+        try:
+            for dice in re.finditer(diceregex,equation):
+                dice = dice.group()
+                tok = dice.split('d')
+                roll = self.diceRoll(tok[0],tok[1])
+                resultequation = resultequation.replace(dice,str(roll[0]),1)
+                allrolls.append(roll[1])
+        except OverflowError:
+            return "$(dice=[Overflow];N/A)"
+        try: 
+            total = eval(resultequation)
+        except SyntaxError:
+            return "$(dice=[Bad syntax];N/A)"
+            
+        # if self.character: #shouldn't be necessary to tes this
+        if self.character in self.character.world.calledRolls.keys():
+            calledroll = self.character.world.calledRolls[self.character]
+            if calledroll[0] in equation:
+                del self.character.world.calledRolls[self.character]
+                # Just for testing, harnmaster specific behaviour..
+                s1 = eval(str(total)+calledroll[1]+calledroll[2])
+                if s1:
+                    s1 = "success"
+                else:
+                    s1 = "failure"
+                if not total%5:
+                    s2 = "Critical"
+                else:
+                    s2 = "Marginal"
+                return "${dice=[%s: %i - %s %s!];%s}"%(equation,total,s2,s1,str(allrolls))
+                
+        return "${dice=[%s: %i];%s}"%(equation,total,str(allrolls))
+            
+            # Handle special rolls here?
+                  
+    def diceRoll(self,x,y):
+        if x == '': x = 1
+        x = int(x)
+        y = int(y)
+        if x > 20 or x < 1: 
+            raise OverflowError
+        if y > 100 or y < 1: 
+            raise OverflowError
+        
+        total = 0
+        rolls = []
+        for i in xrange(x):
+            r = random.randint(1,y)
+            total += r
+            rolls.append(r)
+        return (total,rolls)

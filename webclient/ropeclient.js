@@ -11,6 +11,7 @@ autocomplete_buffer = [];
 autocomplete_commands = {
     'action':[1,"Message?"],
     'attach':[1,"Who?/To?","To?"],
+    'calldice':[3,"Targets, sep. with comma","Roll request","Query"],
     'chars':[0],
     'create':[4,"Title?","Description?","Exit name (or blank)?", "Return exit name (or blank?"],
     'detach':[0],
@@ -274,7 +275,7 @@ function nameParse(msg) {
 }
 
 function diceParse(msg) {
-    var results = msg.match(/\$\(dice\=.*?\)/g);
+    var results = msg.match(/\$\{dice\=.*?\}/g);
     if (results) { 
         while (results.length) {
             var result = results.shift();
@@ -478,7 +479,8 @@ function ws_init(url) {
     };
     
     ws.onclose = function() {
-        displayOfftopic(false,"Connection closed.");
+        displayMain('<font size="+2" color="red">Disconnected, hit F5 to reconnect</font>')
+        displayOfftopic('<font size="+2" color="red">Disconnected, hit F5 to reconnect</font>')
     };
     
     ws.onerror = function (error) {
@@ -652,5 +654,5 @@ $(document).ready(function(){
         //setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
 
-    ws_init("ws://ninjabox.sytes.net:9091")
+    ws_init("ws://localhost:9091")
 });

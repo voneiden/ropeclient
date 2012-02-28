@@ -465,7 +465,7 @@ class WebPlayer(Protocol):
         if isinstance(message,list):
             buf = []
             for part in message:
-                buf.append("{timestamp}\x1f{editable}\x1f{content}".format(
+                buf.append(u"{timestamp}\x1f{editable}\x1f{content}".format(
                            timestamp=repr(part[0]),editable=part[1],content=part[2]))
             message = u"\x1b".join(buf)
         elif isinstance(message,tuple):
