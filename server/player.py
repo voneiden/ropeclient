@@ -1116,7 +1116,7 @@ class Player(object):
             elif emoteS == ':]': 
                 pre = "smiles broadly and "
                 message = message[:-2].strip()
-            elif emoteS == ';>': 
+            elif emoteS == ':>': 
                 pre = "smiles mischievously and "
                 message = message[:-2].strip()
             elif emoteS == ';)': 
