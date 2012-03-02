@@ -124,6 +124,12 @@ class Core(object):
         print "CORE: Save the worlds from destruction!"
         for world in core.worlds:
             world.saveWorld()
+            
+    def escape(self,text):
+        text = text.replace('<','&lt;')
+        text = text.replace('>','&gt;')
+        text = text.replace('=','&#61;')
+        return text
     '''      
     def find(self,objID,objList):
         """ 
@@ -167,7 +173,7 @@ class Core(object):
                 return False
     
         # Second case is testing for local name match, applies only to characters
-        pattern = re.compile(pattern+'$',re.IGNORECASE)
+        pattern = re.compile(pattern,re.IGNORECASE)
         
         if isinstance(instance,world.Character):
             l = source.character.location.characters

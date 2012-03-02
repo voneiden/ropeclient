@@ -23,7 +23,7 @@
 # Todo avoid deleting of souls somehow.. :D
 # TODO input should be checked for invalid characters more often..
 
-import server,re, world, time, random, string
+import server,re, world, time, random, string, cgi
 from collections import OrderedDict 
 
 from cgi import escape 
@@ -1460,10 +1460,12 @@ class Player(object):
                 if target not in self.world.calledRolls.keys():
                     self.world.calledRolls[target] = (dreq,operators,dtar)
                     print "Target level set at",(dreq,operators,dtar)
-                message = u"<offtopic>{self}: <notify>{name} roll {dreq} ({query})<reset><reset>".format(
+                message = u"<offtopic>{self}: <notify>{name}, roll {dreq} ({query} - Target: {op}{tar})<reset><reset>".format(
                             self=self.name,
                             name=target.name,
                             dreq=dreq,
+                            op=cgi.escape(operators),
+                            tar=dtar,
                             query=query)
                 self.world.sendOfftopic(message)
                 
@@ -1476,15 +1478,33 @@ class Player(object):
                             query=query)
                 self.world.sendOfftopic(message)
                 
-            
+    def handle_cancelcall(self,*args):
+        if len(args) < 1:
+            return u"(<fail>Argument required"
+        name = args[0].lower()
+        match = [character for character in self.world.calledRolls if character.name.lower() == name]
+        if len(match):
+            for m in match:
+                del self.world.calledRolls[m]
+            return u"(<ok>%i called rolls removed."%len(match)
+        return u"(<fail>No rolls found under that name."
         
     def diceSub(self,message):
         ''' This function performs a regex substitution for a string of text '''
-        return re.sub("\![d0-9\+\-\*\/]+",self.diceParse,message)
+        return re.sub("\![d0-9\+\-\*\/\<\>\=]+",self.diceParse,message)
         
     def diceParse(self,match):
         diceregex = "[0-9]*d[0-9]+"
         equation = match.group()[1:]
+        
+        operators = re.search("[\<\>\=]+",equation)
+        if operators:
+            tok = equation.split(operators.group())
+            equation = tok[0]
+            operators = [operators.group(),tok[1]]
+        else:
+            operators = False
+        
         resultequation = equation
         allrolls = []
         try:
@@ -1508,6 +1528,17 @@ class Player(object):
                 del self.character.world.calledRolls[self.character]
                 # Just for testing, harnmaster specific behaviour..
                 s1 = eval(str(total)+calledroll[1]+calledroll[2])
+                op = self.core.escape(calledroll[1])
+                tl = calledroll[2]
+                
+        elif operators:
+            s1 = eval(str(total)+operators[0]+operators[1])
+            op = self.core.escape(operators[0])
+            tl = operators[1]
+        else:
+            s1 = None
+            
+        if s1 != None:
                 if s1:
                     s1 = "success"
                 else:
@@ -1516,9 +1547,9 @@ class Player(object):
                     s2 = "Critical"
                 else:
                     s2 = "Marginal"
-                return "${dice=[%s: %i - %s %s!];%s}"%(equation,total,s2,s1,str(allrolls))
+                return "${dice|[%s %s%s: %i - %s %s!]|%s}"%(equation,op,tl,total,s2,s1,str(allrolls))
                 
-        return "${dice=[%s: %i];%s}"%(equation,total,str(allrolls))
+        return "${dice|[%s: %i]|%s}"%(equation,total,str(allrolls))
             
             # Handle special rolls here?
                   

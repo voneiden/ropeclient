@@ -275,11 +275,13 @@ function nameParse(msg) {
 }
 
 function diceParse(msg) {
-    var results = msg.match(/\$\{dice\=.*?\}/g);
+    var results = msg.match(/\$\{dice\|.*?\}/g);
     if (results) { 
         while (results.length) {
             var result = results.shift();
-            var tok = result.split('=').pop().split(';');
+            //var tok = result.split('=').pop().split(';');
+            var tok = result.split('|');
+            tok.shift();
             var d1 = tok.shift();
             var d2 = tok.shift().slice(0,-1);
             var id = 'dice-'+Math.random() 
@@ -527,6 +529,11 @@ function ws_close() {
     log("closing connection..");
     ws.close();
 }
+$(window).resize(function() {
+    document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
+    document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
+});
+
 $(window).blur(function(event){
     //displayOfftopic(0,"Lost focus");
     if (update_separator) {
@@ -653,6 +660,6 @@ $(document).ready(function(){
     $("#entrybox").focusout(function(event){
         //setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
-
-    ws_init("ws://localhost:9091")
+    //ws_init("ws://localhost:9091")
+    ws_init("ws://ninjabox.sytes.net:9091")
 });
