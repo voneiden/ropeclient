@@ -28,6 +28,15 @@ span.msg
     margin-left:10px;
     white-space: pre-wrap;
 }
+span.dice
+{
+    color:lime;
+    border-style:dashed;
+    border-width:1px;
+    border-color:green;
+    display:inline-block;
+}
+
 #main
 {
     height:100%;

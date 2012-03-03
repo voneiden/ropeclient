@@ -286,7 +286,7 @@ function diceParse(msg) {
             var d2 = tok.shift().slice(0,-1);
             var id = 'dice-'+Math.random() 
                           
-            msg = msg.replace(result,'<span id="'+id+'" onclick="swapDice(\''+id+'\',\''+d1+'\',\''+d2+'\')" style="color:lime;border-style:solid;border-width:1px;border-color:lime;">'+d1+'</span>');
+            msg = msg.replace(result,'<span id="'+id+'" onclick="swapDice(\''+id+'\',\''+d1+'\',\''+d2+'\')" class="dice">'+d1+'</span>');
             //msg.replace('voneiden','aasdufihiuahshafsud');
         }
         return msg; 
@@ -660,6 +660,6 @@ $(document).ready(function(){
     $("#entrybox").focusout(function(event){
         //setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
-    //ws_init("ws://localhost:9091")
-    ws_init("ws://ninjabox.sytes.net:9091")
+    ws_init("ws://localhost:9091")
+    //ws_init("ws://ninjabox.sytes.net:9091")
 });
