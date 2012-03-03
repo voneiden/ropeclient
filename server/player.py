@@ -1491,7 +1491,7 @@ class Player(object):
         
     def diceSub(self,message):
         ''' This function performs a regex substitution for a string of text '''
-        return re.sub("\![d0-9\+\-\*\/\<\>\=]+",self.diceParse,message)
+        return re.sub(\![d0-9\+\-\*\/]+([\<\>\=]+[0-9]+),self.diceParse,message)
         
     def diceParse(self,match):
         diceregex = "[0-9]*d[0-9]+"
