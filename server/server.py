@@ -51,6 +51,7 @@ from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 from twisted.protocols.telnet import Telnet
 from twisted.internet import defer
+from twisted.python import log
 
 from txws import WebSocketFactory
 
@@ -64,6 +65,7 @@ import world
 import cPickle
 import re
 
+log.startLogging(sys.stdout)
 
 class Core(object):
     """ This class contains some core information.."""

@@ -1,4 +1,22 @@
-# Copyright (c) 2011 Oregon State University
+# Copyright (c) 2011 Oregon State University Open Source Lab
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+#    The above copyright notice and this permission notice shall be included
+#    in all copies or substantial portions of the Software.
+#
+#    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+#    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+#    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+#    NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+#    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+#    OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+#    USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
 Blind reimplementation of WebSockets as a standalone wrapper for Twisted
@@ -26,14 +44,16 @@ class WSException(Exception):
     """
 
 # Flavors of WS supported here.
-# HYBI00 - Hixie-76, HyBi-00. Challenge/response after headers, very minimal
-#          framing. Tricky to start up, but very smooth sailing afterwards.
-# HYBI07 - HyBi-07. Modern "standard" handshake. Bizarre masked frames, lots
-#          of binary data packing.
-# HYBI10 - HyBi-10. Just like HyBi-07. No, seriously. *Exactly* the same,
-#          except for the protocol number.
+# HYBI00  - Hixie-76, HyBi-00. Challenge/response after headers, very minimal
+#           framing. Tricky to start up, but very smooth sailing afterwards.
+# HYBI07  - HyBi-07. Modern "standard" handshake. Bizarre masked frames, lots
+#           of binary data packing.
+# HYBI10  - HyBi-10. Just like HyBi-07. No, seriously. *Exactly* the same,
+#           except for the protocol number.
+# RFC6455 - RFC 6455. The official WebSocket protocol standard. The protocol
+#           number is 13, but otherwise it is identical to HyBi-07.
 
-HYBI00, HYBI07, HYBI10 = range(3)
+HYBI00, HYBI07, HYBI10, RFC6455 = range(4)
 
 # States of the state machine. Because there are no reliable byte counts for
 # any of this, we don't use StatefulProtocol; instead, we use custom state
@@ -371,7 +391,7 @@ class WebSocketProtocol(ProtocolWrapper):
 
         if self.flavor == HYBI00:
             parser = parse_hybi00_frames
-        elif self.flavor in (HYBI07, HYBI10):
+        elif self.flavor in (HYBI07, HYBI10, RFC6455):
             parser = parse_hybi07_frames
         else:
             raise WSException("Unknown flavor %r" % self.flavor)
@@ -409,7 +429,7 @@ class WebSocketProtocol(ProtocolWrapper):
 
         if self.flavor == HYBI00:
             maker = make_hybi00_frame
-        elif self.flavor in (HYBI07, HYBI10):
+        elif self.flavor in (HYBI07, HYBI10, RFC6455):
             maker = make_hybi07_frame
         else:
             raise WSException("Unknown flavor %r" % self.flavor)
@@ -471,6 +491,11 @@ class WebSocketProtocol(ProtocolWrapper):
                 log.msg("Starting HyBi-10 conversation")
                 self.sendHyBi07Preamble()
                 self.flavor = HYBI10
+                self.state = FRAMES
+            elif version == "13":
+                log.msg("Starting RFC 6455 conversation")
+                self.sendHyBi07Preamble()
+                self.flavor = RFC6455
                 self.state = FRAMES
             else:
                 log.msg("Can't support protocol version %s!" % version)
@@ -544,6 +569,16 @@ class WebSocketProtocol(ProtocolWrapper):
         self.pending_frames.append(data)
         self.sendFrames()
 
+    def writeSequence(self, data):
+        """
+        Write a sequence of data to the transport.
+
+        This method will only be called by the underlying protocol.
+        """
+
+        self.pending_frames.extend(data)
+        self.sendFrames()
+
     def close(self, reason=""):
         """
         Close the connection.
@@ -556,7 +591,9 @@ class WebSocketProtocol(ProtocolWrapper):
         shouldn't be a problem.
         """
 
-        if self.flavor in (HYBI07, HYBI10):
+        # Send a closing frame. It's only polite. (And might keep the browser
+        # from hanging.)
+        if self.flavor in (HYBI07, HYBI10, RFC6455):
             frame = make_hybi07_frame(reason, opcode=0x8)
             self.transport.write(frame)
 

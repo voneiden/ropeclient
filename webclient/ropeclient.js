@@ -660,6 +660,6 @@ $(document).ready(function(){
     $("#entrybox").focusout(function(event){
         //setTimeout(function() { $("#entrybox").focus(); }, 0);
     });
-    ws_init("ws://localhost:9091")
-    //ws_init("ws://ninjabox.sytes.net:9091")
+    //ws_init("ws://localhost:9091")
+    ws_init("ws://ninjabox.sytes.net:9091")
 });
