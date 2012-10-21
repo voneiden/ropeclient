@@ -1,44 +1,26 @@
-0.0 Development notes
+1.0 About
+Ropeclient is a text based virtual tabletop for roleplaying online.
 
-Current MASTER branch is relatively stable. DEV branch is not used.
+- Project homepage: http://www.eiden.fi/ropeclient
+- Discussion: http://groups.google.com/group/ropeclient
 
-Thanks for Oregon State University for providing smoothly working websocket code
 
+2.0 Development notes
+The MASTER branch should be up to date with the 
+public server running at ninjabox.sytes.net. To view the most recent
+developments, check out the DEV branch.
 
-1.0 Installation notes
-Ropeclient runs on any nix system that has python 2.x and the following 
-dependencies installed:
-- Tkinter          Ships with python.
+3.0 Ropeclient Server Installation notes
+Ropeclient runs on any system that meets the following conditions:
+- Python 2.7 (2.4 may or may not work - not tested)
 - Twisted          http://twistedmatrix.com/trac/
 -- zope.interfaces http://pypi.python.org/pypi/zope.interface#download
 
-The win32 builds ship with all the dependencies and python included in 
-one convinient package (py2exe). Any patches released on win32 build only
-need to replace the executable.
-
-2.0 Contact
-The project has a google groups at 
-http://groups.google.com/group/ropeclient
-
-
-
 3.0 Usage
+Please look at the project homepage, section 1.0
 
-Please look at the wiki.
-
-4.0 Recent updates
-- Support for the Tk client will be dropped as I've chosen to focus on 
-the browser client.
-- The browser client now features an autocomplete system and no longer 
-features the two different input styles. Now we have our own input 
-style. To speak, simply write your words. To write offtopic, start your 
-sentence with an opening bracket (. To use commands, input the command 
-name either fully or partially and press tab. Follow the questions and 
-press TAB to move forward or enter to send the command.
-
-- Objects no longer gain an unique number. Instead their referencing ID 
-is based on their position in the object list.
-
+4.0 Development Roadmap
+Logical restructuring ahead.
 
 5.0 Personal notes
 \x1f is the unit seperator if needed
