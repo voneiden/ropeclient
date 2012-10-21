@@ -23,7 +23,7 @@ Blind reimplementation of WebSockets as a standalone wrapper for Twisted
 protocols.
 """
 
-__version__ = "0.6.2"
+__version__ = "0.7.1"
 
 from base64 import b64encode, b64decode
 from hashlib import md5, sha1
@@ -33,7 +33,21 @@ from struct import pack, unpack
 from twisted.internet.interfaces import ISSLTransport
 from twisted.protocols.policies import ProtocolWrapper, WrappingFactory
 from twisted.python import log
-from twisted.web.http import datetimeToString
+#rom twisted.web.http import datetimeToString
+
+weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+monthname = [None,'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun','Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+def datetimeToString(msSinceEpoch=None):
+    """
+    Convert seconds since epoch to HTTP datetime string.
+    """
+    if msSinceEpoch == None:
+        msSinceEpoch = time.time()
+    t = time.gmtime(msSinceEpoch)
+    wd = t[6]
+    s = time.strftime("{}, %d {} %Y %H:%M:%S GMT".format(weekdayname[wd],monthname[month]),t)
+    return s
 
 class WSException(Exception):
     """
@@ -398,7 +412,7 @@ class WebSocketProtocol(ProtocolWrapper):
 
         try:
             frames, self.buf = parser(self.buf)
-        except WSException, wse:
+        except WSException as wse:
             # Couldn't parse all the frames, something went wrong, let's bail.
             self.close(wse.args[0])
             return

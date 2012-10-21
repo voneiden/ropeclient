@@ -10,6 +10,8 @@ The MASTER branch should be up to date with the
 public server running at ninjabox.sytes.net. To view the most recent
 developments, check out the DEV branch.
 
+DEV branch features python3 migration.
+
 3.0 Ropeclient Server Installation notes
 Ropeclient runs on any system that meets the following conditions:
 - Python 2.7 (2.4 may or may not work - not tested)
