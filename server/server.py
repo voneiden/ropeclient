@@ -28,14 +28,14 @@ from twisted.internet import defer
 from txws import WebSocketFactory
 from collections import OrderedDict
 import logging
-from logging import info as log # <- I'm seriously breaking some rules here!
+from logging import info as log 
 
 import time
 import os
 import sys
 import player
 import world
-import cPickle
+import pickle
 import re
 
 #log.startLogging(sys.stdout)
@@ -48,7 +48,10 @@ class Core(object):
         #streamhandler = logging.StreamHandler(stream=sys.stdout)
         #logger = logging.getLogger()
         #logger.addHandler(streamhandler)
-        logging.basicConfig(stream=sys.stdout,format="%(asctime)s %(module)s:%(funcName)s:%(lineno)d: %(message)s",level=logging.INFO)
+        logging.basicConfig(stream=sys.stdout,
+                            format="%(asctime)s %(module)s:%(funcName)s:%(lineno)d: %(message)s",
+                            level=logging.INFO,
+                            datefmt="%y%m%d-%H:%M:%S")
         
         
         self.version = "0.e"
@@ -57,6 +60,7 @@ class Core(object):
         self.loadAccounts()
         self.loadWorlds()
         self.players = []
+        log("Server ready")
         
     def __getstate__(self):
         return None
@@ -65,12 +69,13 @@ class Core(object):
         log("Loading player accounts.")
         try:
             f = open('players.db', 'rb')
-            self.players = cPickle.load(f)
+            self.players = pickle.load(f)
             f.close()
             if type(self.players) != list:
                 log("Invalid type, clearing.")
                 self.players = []
         except IOError:
+            log("IOError, clearing.")
             self.players = []
             
         for player in self.players:
@@ -86,16 +91,19 @@ class Core(object):
                 account.hilights = OrderedDict()
                 
     def saveAccounts(self):
+        log("Saving accounts")
         f = open('players.db','wb')
         cPickle.dump(self.players,f)
         f.close()
         
     def loadWorlds(self):
+        log("Loading worlds")
         for path,subfolders,files in os.walk('./worlds'):
             for fname in files:
                 if fname[-6:] == '.world':
+                    log("Loading world {}".format(fname))
                     f = open("{0}/{1}".format(path,fname),'rb')
-                    world = cPickle.load(f)
+                    world = pickle.load(f)
                     f.close()
                     world.setup(self)
                     
@@ -376,7 +384,7 @@ class WebNetwork(Factory):
     def __init__(self,core):
         self.protocol = WebPlayer
         self.core = core
-        
+        log("Networking initialized")
 
 
 class Account:

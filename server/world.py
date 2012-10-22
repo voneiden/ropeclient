@@ -32,7 +32,7 @@ attributes
 #TODO Make it so that souls can see the last 100 lines that have been happening in a location.
 
 
-import cPickle, time, re, random
+import pickle, time, re, random
 from collections import OrderedDict
 
 class World(object):
@@ -72,7 +72,7 @@ class World(object):
         pass #TODO should also modify the world save location!
         
     def setup(self,core):
-        print "Setting up loaded world '{0}'".format(self.name)
+        log("Setting up loaded world '{0}'".format(self.name))
         self.players = []
         self.calledRolls = {}
         
@@ -80,14 +80,14 @@ class World(object):
         if oldworld:
             #TODO move all old players to the new world
             core.worlds.remove(oldworld[0])
-            print "Removing old world",oldworld[0].name
+            log("Removing old world {}".format(oldworld[0].name))
         core.worlds.append(self)
         
         # Fix soul bug, temporary
-        print "Fixing soul bug"
+        log( "Fixing soul bug")
         for character in self.characters:
             if isinstance(character,Soul):
-                print "Destroying soul"
+                log( "Destroying soul")
                 self.remCharacter(character)
                 continue
             if not hasattr(character,"talk"):
@@ -95,18 +95,18 @@ class World(object):
                 
         for location in self.locations:
             if not hasattr(location,'history'):
-                print "Fixing history"
+                log( "Fixing history")
                 location.history = []
                 
         # Updating to new message format and ordereddict.
         if not isinstance(self.messages,OrderedDict):
-            print "Regenerating message list"
+            log( "Regenerating message list")
             newmessages = OrderedDict()
             oldkeys = self.messages.keys()
             oldkeys.sort()
             for key in oldkeys:
                 newmessages[key] = (None,self.messages[key])
-            print "Done.."
+            log( "Done..")
             self.messages = newmessages
 
     def sendMessage(self,message,recipients=[]):
@@ -126,7 +126,7 @@ class World(object):
         if content[0] != '<':
             content = '<default>' + content
         self.messages[timestamp] = (owner,content)
-        print "Preparing to message"
+        #print "Preparing to message"
         if len(recipients) == 0:
             recipients = self.characters
 
@@ -150,7 +150,7 @@ class World(object):
             self.offtopicHistory.append((content,timestamp))
             
         
-        print "Sending offtopic message",content
+        #print "Sending offtopic message",content
         for player in recipients:
             player.sendOfftopic((content,timestamp))
             
@@ -165,7 +165,7 @@ class World(object):
             
             
     def updatePlayers(self):
-        print "Updating player list.."
+        #print "Updating player list.."
         typinglist = []
         for player in self.players: #TODO update here
             typinglist.append(
@@ -181,19 +181,19 @@ class World(object):
              #else: typinglist.append("%s:0:$(name=%s)"%(player.name,player.character.name))
         lop = ";".join(typinglist)
         for player in self.players:
-            print "LOP",lop
-            print "REP",player.replaceCharacterNames(lop)
+            #print "LOP",lop
+            #print "REP",player.replaceCharacterNames(lop)
             
             player.connection.write("plu %s"%player.replaceCharacterNames(lop))
              
     def updatePlayer(self,player):
-        print "Updating just one player"
+        #print "Updating just one player"
         #if not player.character: return
         buffer = "{name}:{typing}:{charname}".format(
             name=player.name,
             typing=player.typing,
             charname=player.character.name if player.character else "None")
-        print "Got buffer as",buffer
+        #print "Got buffer as",buffer
 
         for player in self.players:
             player.connection.write("ptu %s"%player.replaceCharacterNames(buffer))
@@ -222,11 +222,11 @@ class World(object):
             player.gamemaster = True
             player.sendOfftopic("<notify>GM mode enabled!")
         
-        print "Do looky"
+        #print "Do looky"
         player.sendMessage(player.handle_look())
             
     def remPlayer(self,player):
-        print "REMOVING player"
+        #print "REMOVING player"
         if player in self.players:
             self.players.remove(player)
             self.updatePlayers()
@@ -298,7 +298,7 @@ class World(object):
         self.remObject(location)
         
     def addCharacter(self,character):
-        print "DEBUG",character.player
+        #print "DEBUG",character.player
         self.characters.append(character)
         self.addObject(character)
         if character.location == None:
@@ -384,9 +384,9 @@ class Character(object):
     def move(self,location):
         ''' Move the character to a location. '''
         ''' If location is the same that's already set, don't display arrive or leave messages '''
-        print "DEBUG2",self.player
+        #print "DEBUG2",self.player
         if self.location is not None and self.location is not location:
-            print "Left from location"
+            #print "Left from location"
             if self in self.location.characters:
                 if not self.invisible:
                     self.location.sendMessage("%s has left."%(self.rename()))
@@ -438,14 +438,14 @@ class Character(object):
                 message = buf
                 
             elif isinstance(stuff,float):
-                print "To player",self.player,self.player.name
+                #print "To player",self.player,self.player.name
                 message = self.world.messages[stuff]
                 message = (stuff,message[0],message[1])
                 if stuff not in self.read:
                     self.read.append(stuff)
                     
                     
-            print "character.message:",message
+            #print "character.message:",message
             self.player.sendMessage(message)
         else:
             if isinstance(stuff,float):
@@ -483,7 +483,7 @@ class Character(object):
     #    else:
     #        return character.info
     def introduce(self,name):
-        print "Introducing.."
+        #print "Introducing.."
         self.location.announce("%s introduces himself as %s"%
                               (self.rename,"$(clk2cmd:%s;notify;/memorize %s %s;%s)"%
                               (self.name,self.ident,name,name)))
@@ -508,7 +508,7 @@ class Soul(Character):
         self.message(self.location.history[-50:]) 
         
     def detach(self):
-        print "Destroying soul!!!"
+        #print "Destroying soul!!!"
         self.player.character = None
         self.player = None
         self.world.remCharacter(self)
@@ -539,21 +539,22 @@ class Location(object):
             in the location, removes the ignored (which is not a list..)
             and forwards it to world.sendMessage'''
         recipients = self.characters[:]
-        print "Announcing to",recipients,message
+        #print "Announcing to",recipients,message
         if ignore in recipients: recipients.remove(ignore)
         if len(recipients) > 0: 
             timestamp = self.world.sendMessage(message,recipients)
             self.history.append(timestamp)
         else:
-            print "Nobody to receive this message, ignoring.."
-
+            #print "Nobody to receive this message, ignoring.."
+            log("Message sent to nobody: {}".format(message))
     
     def link(self,name,destination):
         
         # First check that exit name is not yet in use
         if not isinstance(destination,Location):
-            print "FAIL FAIL FAIL"
-            print destination
+            #print "FAIL FAIL FAIL"
+            #print destination
+            log("Major error in destination")
         if [link for link in self.links if link.name == name]:
             return "(<fail>Exit name exists already"
         

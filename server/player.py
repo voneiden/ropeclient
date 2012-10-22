@@ -25,6 +25,9 @@
 
 import server,re, world, time, random, string, cgi
 from collections import OrderedDict 
+import logging
+from logging import info as log 
+
 
 from cgi import escape 
 class Player(object):
@@ -88,7 +91,7 @@ class Player(object):
         It passes all msg packets forward to the handler
         '''
         
-        print "Recv", message
+        log("Got: {}".format(message))
         message = message.strip()
         
         # To avoid players being able to create their own variables.. remove $(
@@ -97,8 +100,8 @@ class Player(object):
         if tok[0] == 'msg' or tok[0] == 'cmd':
             response = self.handler(tok[0]," ".join(tok[1:]))
 
-            print "Got resp",response
-            print "Type",type(response)
+            log("Response: {}".format(response))
+            log("Type: {}".format(type(response)))
             if type(response) is str or type(response) is unicode:
                 if response[0] == '(':
                     self.sendOfftopic(response[1:])
@@ -109,7 +112,7 @@ class Player(object):
                 self.world.updatePlayer(self)
         
         elif tok[0] == 'edi':
-            print "editok",tok
+            log("Edit tok: {}".format(tok))
             self.handler(tok[0]," ".join(message.split(' ')[1:]))
                 
 
@@ -132,7 +135,6 @@ class Player(object):
             return self.account.name    
     
     def createHighlights(self,content):
-        #print "****CREATING HILIGHTS*****"
         if not self.account:
             return content
             
@@ -194,7 +196,7 @@ class Player(object):
             if message[0] != '<': message = '<default>' + message
 
         else:
-            print "********* Fatal error in sendMessage at player********"
+            log( "********* Fatal error in sendMessage at player********")
             return False    
         self.connection.sendMessage(message)
     
@@ -202,7 +204,7 @@ class Player(object):
         ''' message can be either a tuple (content,timestamp) or a list '''
         
         if isinstance(message,list):
-            print "Sending %i offtopic lines (list)"%len(message)
+            log( "Sending  {} offtopic lines (list)".format(len(message)))
             parsedMessages = []
             for content,timestamp in message:
                 content = self.replaceCharacterNames(content)
@@ -212,7 +214,7 @@ class Player(object):
             
         
         elif isinstance(message,tuple):
-            print "Sending offtopic (tuple): ",message
+            log( "Sending offtopic (tuple): {}".format(message))
             content = self.replaceCharacterNames(message[0])
             content = self.createHighlights(content)
             timestamp = message[1]
@@ -220,7 +222,7 @@ class Player(object):
             
         
         elif isinstance(message,str):
-            print "!! Sending offtopic (string) !!",message
+            log( "Sending offtopic (string): {}".format(message))
             content = unicode(message)
             content = self.replaceCharacterNames(content)
             content = self.createHighlights(content)
@@ -296,7 +298,7 @@ class Player(object):
                 #f.close()
                 
                 #return u"\n".join(buf)                
-                print u"New accont with",self.temp['name'],self.temp['password']
+                log( u"New account ({})".format(self.temp['name']))
             
                 self.account = server.Account(self.temp['name'],self.temp['password'])
                 self.core.accounts.append(self.account)
@@ -341,22 +343,13 @@ class Player(object):
         self.connection.transport.loseConnection()
         
     def login(self):
-        # We need to check for old player connections and disconnect them.
-        #if self.name in self.core.players:
-        #    print "Disconnecting old player"
-        #    self.core.players[self.name].connection.disconnect()
-        # TODO: UPDATE
-        
-        #player = self.core.find(self.name,self.core.players)
-        #Moved to world login..
-            
         self.core.players.append(self)
-        print "CHECKING COLORS",self.account.colors
+        log( "CHECKING COLORS {}".format(self.account.colors))
         if 'background' in self.account.colors:
-            print "Sending custom background color"
+            log( "Sending custom background color")
             self.connection.sendColor("background",self.account.colors['background'])
         if 'timestamp' in self.account.colors:
-            print "Sending custom timestamp color"
+            log( "Sending custom timestamp color")
             self.connection.sendColor("timestamp",self.account.colors['timestamp'])
         if 'input' in self.account.colors:
             self.connection.sendColor("input",self.account.colors['input'])
@@ -414,10 +407,10 @@ class Player(object):
     def handlerWorldMenu(self, header,message):
         if header == 'cmd': return 
         tok = message.split()
-        print "worldmenu",tok
+        log( "worldmenu {}".format(tok))
         if len(tok) == 0: return
         elif len(tok[0]) == 0: 
-            print "my god",tok
+            log( "my god {}".format(tok))
             return #This probably shouldn't happen? 
         if self.handlerstate == 10:
             if tok[0] == self.temp['choice'].pw:
@@ -470,7 +463,7 @@ class Player(object):
        
     def creatorWorld(self,header,*args): 
         tok = args
-        print "Tok:",tok
+        log("Tok: {}".format(tok))
         if self.handlerstate == 0:
             self.handlerstate = 1
             return u"Name of your new game world? Keep it below 60 chars."
@@ -560,11 +553,11 @@ class Player(object):
         
         
         elif header == 'edi':
-            print "HANDLING EDI:",content
+            log("HANDLING EDI: {}".format(content))
             args = content.split()
             timestamp = float(args[0])
             content = " ".join(args[1:])
-            print "p-content",content
+            log("p-content {}".format(content))
             # Note, this should be connection specific decolor convert
             # But since webclient is the only client supported atm, doing it the simple way
             #content = content.replace('</font>','<reset>')
@@ -574,33 +567,33 @@ class Player(object):
             # TODO check the owner of the message!
             
             if timestamp not in self.character.world.messages:
-                print "******* TIMESTAMP",timestamp,"NOT FOUND IN WORLD MESSAGES"
+                log("******* TIMESTAMP {} NOT FOUND IN WORLD MESSAGES".format(timestamp))
                 return 
             
             # TODO find matching $(name strings and replace.
             message = self.character.world.messages[timestamp]
-            print "Updating",message
+            log("Updating {}".format(message))
             if message[0] != self.account.name:
-                print "!*!*!*!* INVALID OWNER",message[0],self.account.name 
+                log( "!*!*!*!* INVALID OWNER {} {}".format(message[0],self.account.name)) 
                 return 
             
             # Replace the name holders
             snames = re.findall("\$\(name=.+?\)", message[1])
             for name in snames:
-                print "content:",content
-                print "Replacing name..",name
+                log("content: {}".format(content))
+                log("Replacing name {}".format(name))
                 content = content.replace("$(name)",name,1)
                 
             
             if not len(content):
                 return "(<fail>Deleting not supported yet."
             message = (message[0],content)
-            print "To",message
+            log("To {}".format(message))
             self.character.world.messages[timestamp] = message 
             self.character.world.sendEdit(timestamp,content)
             
         else:
-            print "UNKNOWN HEADER"
+            log("UNKNOWN HEADER")
 
     def replaceCharacterNames(self,message):
         ''' This functions solves name-memory '''
@@ -627,7 +620,7 @@ class Player(object):
            
 
     def handle_players(self,*args):
-        print "players",len(self.world.players)
+        #print "players",len(self.world.players)
         players = [player for player in self.core.players if player.world]
         players.sort(key=lambda player: player.world)
         buffer = ['Players online',20*'-']
@@ -637,7 +630,7 @@ class Player(object):
         return u"\n".join(buffer)
         
     def handle_chars(self, *args):
-        print "Listing chars"
+        #print "Listing chars"
         ownedchars = [character for character in self.world.characters if character.owner == self.name]
         
         buffer = []
@@ -745,7 +738,7 @@ class Player(object):
                 
  
     def handle_locs(self, *args):
-        print "Listing locations"
+        #print "Listing locations"
         buf = ["(<green>{:<10} - {}".format("Unique ID", "Location name")]
         for loc in self.world.locations:
             buf.append("<green>{:<10} - <spring green>{}".format(self.world.locations.index(loc),loc.name))
@@ -757,14 +750,14 @@ class Player(object):
     def handle_look(self, *args):
         buffer = []
         if len(args) == 0:
-            print "GENERAL LOOK"
+            #print "GENERAL LOOK"
             location = self.character.location
             buffer.append("<purple>%s<reset>"%location.name)
             buffer.append("<light sky blue>%s<reset>"%location.description)
             
             characters = [character.rename() for character in location.characters if not 
                           isinstance(character,world.Soul) and character != self.character]
-            print "Chars",len(characters),characters
+            #print "Chars",len(characters),characters
             if len(characters) == 0:
                 buffer.append("<turquoise>You are alone<reset>")
             elif len(characters) == 1:
@@ -780,7 +773,7 @@ class Player(object):
                 buffer.append("<ok>Exits: %s"%", ".join([link.name for link in location.links]))
             return u"\n".join(buffer)
         else:
-            print "LOOK AT"
+            #print "LOOK AT"
             charname = match.group()
             char = self.world.findAny(charname,self.character.location.characters)
             if not char or not isinstance(char,world.Character): return u"(<fail>There is no one with that id here (%s).."%charname
@@ -895,7 +888,7 @@ class Player(object):
     # #########################
     def handle_move(self,tok):
         if len(tok) > 0:
-            print "Trying to move to",tok
+            #print "Trying to move to",tok
             name = tok[0].lower()
             link = self.character.location.findLink(name=name)
             if link:
@@ -971,7 +964,7 @@ class Player(object):
                 else:
                     buffer[timestamp] = message[1]
                     
-        print "Exporting"
+        #print "Exporting"
         keys = buffer.keys()
         keys.sort()
         f = open('log.html','w')
@@ -983,11 +976,11 @@ class Player(object):
             line = line.encode('utf-8')
             f.write("%s<br>\n"%line)
         f.close()
-        print "Export completed"
-        print "Mailing"
+        #print "Export completed"
+        #print "Mailing"
         import subprocess
         subprocess.call("""cat log.html | mailx -s "Ropeclient log" %s"""%email,shell=True)
-        print "Sent!"
+        #print "Sent!"
         return "(<ok>Your log should arrive shortly. It's in HTML plaintext and encoded utf-8"
         
     
@@ -1025,7 +1018,7 @@ class Player(object):
         return u"\n".join(buffer)
     
     def handle_sethilight(self,*args):
-        print "Handle highlight",len(args)
+        #print "Handle highlight",len(args)
         if len(args) == 0:
             if len(self.account.hilights) == 0:
                 return "(You have no highlights"
@@ -1072,7 +1065,7 @@ class Player(object):
             size = args[1]
         else:
             size = 8
-        print "Setting font",font,"with size",size
+        #print "Setting font",font,"with size",size
         self.account.font = (font,size)
         self.connection.sendFont(font,size)
         
@@ -1099,7 +1092,7 @@ class Player(object):
         if not self.character.mute and not isinstance(self.character,world.Soul):
             if len(message) == 0: return u"<fail>Say what?"
             
-            print "Attempting to say",message
+            #print "Attempting to say",message
             
             
             # Some ideas are borrowed from
@@ -1201,7 +1194,7 @@ class Player(object):
         ''' ex2: tp xxx to yyy --- Teleport character xxx to location with name/id yyy'''
         if len(tok) == 1:
             try:
-                print "got toks",tok
+                #print "got toks",tok
                 unique = int(tok[0])
             except:
                 return u"(<fail>Destination must be unique id"
@@ -1337,8 +1330,8 @@ class Player(object):
         else:
             return u"(Not authorized"
     def removerLink(self,tok):
-        print "linkremover",tok
-        print type(tok)
+        #print "linkremover",tok
+        #print type(tok)
         msg = " ".join(tok)
         if msg.lower() == 'abort':
             self.handler = self.handlerGame
@@ -1376,8 +1369,8 @@ class Player(object):
     
     def creatorLink(self,tok):
         #self.handlerstate += 1
-        print "linkcreator",tok
-        print type(tok)
+        #print "linkcreator",tok
+        #print type(tok)
         msg = " ".join(tok)
         if msg.lower() == 'abort':
             self.handler = self.handlerGame
@@ -1441,7 +1434,7 @@ class Player(object):
             return u"(<fail>calldice could not locate any targets"
             
             
-        print "Targets",targets
+        #print "Targets",targets
         
         operators = re.search("[\<\>\=]+",roll)
         if operators:
@@ -1459,7 +1452,7 @@ class Player(object):
             for target in targets:
                 if target not in self.world.calledRolls.keys():
                     self.world.calledRolls[target] = (dreq,operators,dtar)
-                    print "Target level set at",(dreq,operators,dtar)
+                    #print "Target level set at",(dreq,operators,dtar)
                 message = u"<offtopic>{self}: <notify>{name}, roll {dreq} ({query} - Target: {op}{tar})<reset><reset>".format(
                             self=self.name,
                             name=target.name,
