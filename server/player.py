@@ -502,7 +502,7 @@ class Player(object):
                 newworld = world.World(self.temp['name'],None,[self.name])
                 self.core.worlds.append(newworld)
                 self.handler = self.handlerWorldMenu
-                return self.handler("msg",['refresh'])
+                return self.handler("msg",'refresh')
                 
         elif self.handlerstate == 10:
             self.handlerstate = 11
@@ -516,7 +516,7 @@ class Player(object):
                 self.core.worlds.append(newworld)
                 # TODO save
                 self.handler = self.handlerWorldMenu
-                return self.handler(['refresh'])
+                return self.handler("msg",'refresh')
                 
             else:
                 self.handlerstate = 2
