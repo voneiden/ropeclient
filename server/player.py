@@ -788,8 +788,8 @@ class Player(object):
             if not char: 
                 return u"(<fail>There is no one with that id here (%s).."%charname
             else:
-                buffer.append("Looking at %s.."%char.rename())
-                buffer.append("%s"%char.description)
+                buffer.append("Looking at %s.."%char[0].rename())
+                buffer.append("%s"%char[0].description)
                 return u"\n".join(buffer)
 
           
