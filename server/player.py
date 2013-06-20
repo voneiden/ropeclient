@@ -780,13 +780,17 @@ class Player(object):
                 buffer.append("<ok>Exits: %s"%", ".join([link.name for link in location.links]))
             return u"\n".join(buffer)
         else:
-            print "LOOK AT"
-            charname = match.group()
-            char = self.world.findAny(charname,self.character.location.characters)
-            if not char or not isinstance(char,world.Character): return u"(<fail>There is no one with that id here (%s).."%charname
-            buffer.append("Looking at %s.."%char.rename())
-            buffer.append("%s"%char.description)
-            return u"\n".join(buffer)
+            #print "LOOK AT"
+            #charname = match.group()
+            charname = " ".join(args)
+            #char = self.world.findAny(charname,self.character.location.characters)
+            char = [character for character in self.character.location.characters if charname.lower() in character.rename()]
+            if not char: 
+                return u"(<fail>There is no one with that id here (%s).."%charname
+            else:
+                buffer.append("Looking at %s.."%char.rename())
+                buffer.append("%s"%char.description)
+                return u"\n".join(buffer)
 
           
     def handle_spawn(self, *args):
