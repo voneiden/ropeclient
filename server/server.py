@@ -229,40 +229,38 @@ class WebPlayer(Protocol):
         
     def colorConvert(self,data):
         # Ensure that color is always reseted to default (</font>)
-        
+        # TODO: ^ is this implemented? 2013-11-30
+        # This function finds color references like <red> in the text, 
+        # And converts them into HTML
         stack = []
         fallback = "gray"
         regex = '\<.*?\>'
-        #print "Pre-parse:",data
+        color_table = {"fail": "red",
+                       "ok": "green",
+                       "default": "#aaaaff",
+                       "offtopic": "#4554ff",
+                       "notify": "orange",
+                       "timestamp": "grey"}
+        
         for match in re.finditer(regex,data):
             match = match.group()
             color = match[1:-1]
+            
+            # Sanitize!
+            color = re.sub("[^^a-zA-Z0-9\#]+", color)
+  
             if self.player.account and color in self.player.account.colors:
                 color = self.player.account.colors[color]
-            elif color == 'fail':
-                color = 'red'
-            elif color == 'ok':
-                color = 'green'
-            elif color == 'default':
-                color = '#aaaaff'
-            elif color == 'offtopic':
-                color = '#4554ff'
-            elif color == 'talk':
-                color = '#4554ff'
-            elif color == 'notify':
-                color = 'orange'
-            elif color == 'timestamp':
-                color = 'grey'
+            elif color in color_table:
+                color = color_table[color]
+            
             if color == 'reset':
                 try:
                     stack.pop()
-                    #recolor = stack[-1]
                     color = 0
                 except:
                     color = '#aaaaff'
                     stack.append(color)
-                
-                
             else:
                 stack.append(color)
                 
@@ -271,7 +269,6 @@ class WebPlayer(Protocol):
             else:
                 data = data.replace(match,'</font>',1)
         data = data + '</font>'*len(stack)
-        #print "Finished:",data
         return data
         
     def sendMessage(self,message):
