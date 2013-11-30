@@ -233,7 +233,7 @@ class WebPlayer(Protocol):
         # This function finds color references like <red> in the text, 
         # And converts them into HTML
         stack = []
-        fallback = "gray"
+        fallback = "grey"
         regex = '\<.*?\>'
         color_table = {"fail": "red",
                        "ok": "green",
@@ -246,14 +246,16 @@ class WebPlayer(Protocol):
             match = match.group()
             color = match[1:-1]
             
-            # Sanitize!
+            # Sanitize user input!
             color = re.sub("[^^a-zA-Z0-9\#]+", color)
-  
+            
+            # Check for custom color maps
             if self.player.account and color in self.player.account.colors:
                 color = self.player.account.colors[color]
             elif color in color_table:
                 color = color_table[color]
             
+            # Handle color reset
             if color == 'reset':
                 try:
                     stack.pop()
@@ -264,6 +266,7 @@ class WebPlayer(Protocol):
             else:
                 stack.append(color)
                 
+            # Replace the actual data
             if color:
                 data = data.replace(match,'<font color="%s">'%color,1)
             else:
