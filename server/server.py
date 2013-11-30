@@ -27,7 +27,6 @@ from twisted.internet import defer
 from txws import WebSocketFactory
 from collections import OrderedDict
 import logging
-from logging import info as log 
 
 import pickle
 import os
@@ -43,64 +42,71 @@ class Core(object):
     """ This class is the core object of the server. It links everything else together. """
     def __init__(self):
         
-        # Setup logging
-        #streamhandler = logging.StreamHandler(stream=sys.stdout)
-        #logger = logging.getLogger()
-        #logger.addHandler(streamhandler)
-        logging.basicConfig(stream=sys.stdout,
-                            format="%(asctime)s %(module)s:%(funcName)s:%(lineno)d: %(message)s",
-                            level=logging.INFO,
-                            datefmt="%y%m%d-%H:%M:%S")
         
+        #logging.basicConfig(stream=sys.stdout,
+        #                    format="%(asctime)s %(module)s:%(funcName)s:%(lineno)d: %(message)s",
+        #                    level=logging.INFO,
+        #                    datefmt="%y%m%d-%H:%M:%S")
         
+        logger = logging.getLogger("")
+        logger.handlers = []
+        
+        logger.setLevel(logging.DEBUG)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+        console_formatter = logging.Formatter('%(asctime)s %(module)-10s:%(lineno)-3s %(levelname)-7s %(message)s',"%y%m%d-%H:%M:%S")
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
+        logging.info("Logger configured")
+		
         self.version = "0.e"
         self.greeting = open('motd.txt', 'r').readlines()
         self.worlds = [world.World("Official sandbox",None,['voneiden'])]
         self.loadAccounts()
         self.loadWorlds()
         self.players = []
-        log("Server ready")
+        logging.info("Server ready")
         
     def __getstate__(self):
         return None
         
     def loadAccounts(self):
-        log("Loading player accounts.")
+        logging.info("Loading player accounts.")
         try:
             f = open('players.db', 'rb')
             self.players = pickle.load(f)
             f.close()
             if type(self.players) != list:
-                log("Invalid type, clearing.")
+                logging.info("Invalid type, clearing.")
                 self.players = []
         except IOError:
-            log("IOError, clearing.")
+            logging.info("IOError, clearing.")
             self.players = []
             
         for player in self.players:
             #TODO: Consider this
             if not hasattr(account,"colors"):
-                log("Fixing missing account color table")
+                logging.info("Fixing missing account color table")
                 account.colors = {}
             if not hasattr(account,"font"):
-                log("Fixing missing font data")
+                logging.info("Fixing missing font data")
                 account.font = ("Monospace",8)
             if not hasattr(account,"hilights"):
-                log("Fixing missing hilights data")
+                logging.info("Fixing missing hilights data")
                 account.hilights = OrderedDict()
                 
     def saveAccounts(self):
-        log("Saving accounts")
+        logging.info("Saving accounts")
         f = open('players.db','wb')
         cPickle.dump(self.players,f)
         f.close()
         
     def loadWorlds(self):
-        log("Loading worlds")
+        logging.info("Loading worlds")
         for path,subfolders,files in os.walk('./worlds'):
             for fname in files:
                 if fname[-6:] == '.world':
-                    log("Loading world {}".format(fname))
+                    logging.info("Loading world {}".format(fname))
                     f = open("{0}/{1}".format(path,fname),'rb')
                     world = pickle.load(f)
                     f.close()
@@ -108,7 +114,7 @@ class Core(object):
                     
         
     def saveWorlds(self):
-        log("CORE: Save the worlds from destruction!")
+        logging.info("CORE: Save the worlds from destruction!")
         for world in core.worlds:
             world.saveWorld()
             
@@ -185,7 +191,7 @@ class Core(object):
 class WebPlayer(Protocol):
     def connectionMade(self):
         #TODO: require version from weblclient too
-        log("Web connection made")
+        logging.info("Web connection made")
         self.core = self.factory.core
         self.player = player.Player(self, self.core)
         self.sendFont("Monospace")
@@ -204,7 +210,7 @@ class WebPlayer(Protocol):
     def doPing(self,*args):
         self.pingTimer = False
         if self.pingTime != False: # This means last request was not replied
-            log("ping not replied, disconnecting")
+            logging.info("ping not replied, disconnecting")
             self.disconnect()
         else:
             self.pingTime = time.time()
@@ -223,7 +229,7 @@ class WebPlayer(Protocol):
     
         
     def connectionLost(self,reason):
-        log("Connection lost")
+        logging.info("Connection lost")
         self.disconnect()
         
     def dataReceived(self,data):
@@ -234,7 +240,7 @@ class WebPlayer(Protocol):
             self.pingTime = False
             return
             
-        log("Web connection data recv: {}".format(data))
+        logging.info("Web connection data recv: {}".format(data))
         d = defer.Deferred()
         d.addCallback(self.player.recv)
         d.addErrback(self.failure)
@@ -317,9 +323,9 @@ class WebPlayer(Protocol):
             message = u"{timestamp}\x1f{editable}\x1f{content}".format(
                        timestamp=0,editable=0,content=message)
         else:
-            log( type(message))
-            log(message)
-            log("******** UNABLE TO PROCESS ******"*50)
+            logging.info( type(message))
+            logging.info(message)
+            logging.info("******** UNABLE TO PROCESS ******"*50)
             return               
         self.write(u'msg {message}'.format(message=message))
         
@@ -333,7 +339,7 @@ class WebPlayer(Protocol):
         Offtopic format:
         oft timestamp content \x1b timestamp content \x1b.. etc
         '''
-        log( "server.sendOfftopic {}".format(message))
+        logging.info( "server.sendOfftopic {}".format(message))
         if isinstance(message,list):
             buf = []
             # Extract parts
@@ -349,10 +355,10 @@ class WebPlayer(Protocol):
             message = u"{0} {1}".format(timestamp,content)
             
         else:
-            log( "Got invalid offtopic data {}".format(message))
+            logging.info( "Got invalid offtopic data {}".format(message))
             return 
             
-        log( "-> Offtopic ->")
+        logging.info( "-> Offtopic ->")
         self.write(u"oft {message}".format(message=message))
         
     def sendEdit(self,id,message):
@@ -362,11 +368,11 @@ class WebPlayer(Protocol):
         ''' Failure handles any exceptions '''
         dtb = failure.getTraceback(detail='verbose')
         tb = failure.getTraceback(detail='brief')
-        log("!"*30)
-        log(failure.getErrorMessage())
-        log("?"*30)
-        log(tb)
-        log("!"*30)
+        logging.info("!"*30)
+        logging.info(failure.getErrorMessage())
+        logging.info("?"*30)
+        logging.info(tb)
+        logging.info("!"*30)
         logid = str(int(time.time())) + "-" + str(self.player.name)
         f=open('failures/{logid}.txt'.format(logid=logid),'w')
         f.write(dtb)
@@ -383,7 +389,7 @@ class WebNetwork(Factory):
     def __init__(self,core):
         self.protocol = WebPlayer
         self.core = core
-        log("Networking initialized")
+        logging.info("Networking initialized")
 
 
 class Account:
