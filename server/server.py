@@ -15,8 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-    Copyright 2010-2012 Matti Eiden <snaipperi()gmail.com>
+    Copyright 2010-2013 Matti Eiden <snaipperi()gmail.com>
 '''
 
 from twisted.internet.protocol import Factory, Protocol
@@ -30,18 +29,18 @@ from collections import OrderedDict
 import logging
 from logging import info as log 
 
-import time
-import os
-import sys
-import player
-import world
 import pickle
+import os
+import player
 import re
+import sys
+import time
+import world
 
 #log.startLogging(sys.stdout)
 
 class Core(object):
-    """ This class contains some core information.."""
+    """ This class is the core object of the server. It links everything else together. """
     def __init__(self):
         
         # Setup logging
