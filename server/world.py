@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-    Copyright 2010-2011 Matti Eiden <snaipperi()gmail.com>
+    Copyright 2010-2013 Matti Eiden <snaipperi()gmail.com>
 
     The world class file should be saveable as a whole
 '''
