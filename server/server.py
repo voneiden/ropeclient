@@ -26,10 +26,11 @@ from twisted.internet import defer
 
 from txws import WebSocketFactory
 from collections import OrderedDict
-import logging
 
-import pickle
+import json
+import logging
 import os
+import pickle
 import player
 import re
 import sys
@@ -188,40 +189,39 @@ class WebPlayer(Protocol):
             self.disconnect()
         else:
             self.pingTime = time.time()
-            self.write("png")
+            self.write(json.dumps({"cmd":"ping"}))
             self.pingTimer = reactor.callLater(10,self.doPing)
-            #print "Ping asked"
             
     def disconnect(self):
         #if self.pingTimer:
         #    self.pingTimer.cancel()
         #    self.pingTimer = False
-            
+        # TODO: ^ why is this commented out? 2013-11-30
         if self.player: self.player.disconnect()
         else:
             self.transport.loseConnection()
     
         
     def connectionLost(self,reason):
-        logging.info("Connection lost")
+        player = self.player.name if self.player else "Unknown player"
+        logging.info("Connection lost: %s"%(player))
         self.disconnect()
         
     def dataReceived(self,data):
-        data = data.decode("utf-8")
-        data = data.strip()
-        if data == "png":
-            #print "Ping received, latency",time.time()-self.pingTime
+        content = json.loads(data)
+        
+        if content["cmd"] == "ping":
             self.pingTime = False
             return
             
-        logging.info("Web connection data recv: {}".format(data))
         d = defer.Deferred()
         d.addCallback(self.player.recv)
         d.addErrback(self.failure)
-        d.callback(data)
+        d.callback(content)
+        # ^TODO: update player.recv
         
     def write(self,data):
-        
+        # TODO: json
         data = self.colorConvert(data)
         #data = data.replace("\n",'<br>')
 
@@ -277,6 +277,7 @@ class WebPlayer(Protocol):
         msg timestamp editable content \x1b timestamp editable content \1b etc
         '''
         #Todo: maybe send timestamp and default colors to client too?
+        #TODO: change message format into dictionary
         
         if isinstance(message,list):
             buf = []
