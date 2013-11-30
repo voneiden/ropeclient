@@ -40,17 +40,11 @@ import world
 
 class Core(object):
     """ This class is the core object of the server. It links everything else together. """
-    def __init__(self):
-        
-        
-        #logging.basicConfig(stream=sys.stdout,
-        #                    format="%(asctime)s %(module)s:%(funcName)s:%(lineno)d: %(message)s",
-        #                    level=logging.INFO,
-        #                    datefmt="%y%m%d-%H:%M:%S")
-        
+    def __init__(self):    
         logger = logging.getLogger("")
         logger.handlers = []
         
+        # Initialize logging
         logger.setLevel(logging.DEBUG)
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.DEBUG)
@@ -59,7 +53,7 @@ class Core(object):
         logger.addHandler(console_handler)
         logging.info("Logger configured")
 		
-        self.version = "0.e"
+        self.version = "0.f"
         self.greeting = open('motd.txt', 'r').readlines()
         self.worlds = [world.World("Official sandbox",None,['voneiden'])]
         self.loadAccounts()
@@ -77,7 +71,7 @@ class Core(object):
             self.players = pickle.load(f)
             f.close()
             if type(self.players) != list:
-                logging.info("Invalid type, clearing.")
+                logging.info("Invalid type loaded, clearing.")
                 self.players = []
         except IOError:
             logging.info("IOError, clearing.")
@@ -123,27 +117,7 @@ class Core(object):
         text = text.replace('>','&gt;')
         text = text.replace('=','&#61;')
         return text
-    '''      
-    def find(self,objID,objList):
-        """ 
-            Search objList for name or unique matching objID
-        """
-        try:
-            unique = int(objID)
-            
-        except ValueError:
-            obj = [obj for obj in objList if obj.name.lower() == objID.lower()]
-            if not obj:
-                return False
-            else:
-                return obj
-        else:
-            obj = [obj for obj in objList if obj.unique == unique]
-            if not obj:
-                return False
-            else:
-                return obj
-        '''
+
     def find(self,source,pattern,instance):
         # source = player object
         # Pattern = pattern to be found
