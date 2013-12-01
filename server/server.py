@@ -57,15 +57,15 @@ class Core(object):
         self.version = "0.f"
         self.greeting = open('motd.txt', 'r').readlines()
         self.worlds = [world.World("Official sandbox",None,['voneiden'])]
-        self.loadAccounts()
-        self.loadWorlds()
+        self.accounts_load()
+        self.worlds_load()
         self.players = []
         logging.info("Server ready")
         
     def __getstate__(self):
         return None
         
-    def loadAccounts(self):
+    def accounts_load(self):
         logging.info("Loading player accounts.")
         try:
             f = open('players.db', 'rb')
@@ -90,13 +90,13 @@ class Core(object):
                 logging.info("Fixing missing hilights data")
                 account.hilights = OrderedDict()
                 
-    def saveAccounts(self):
+    def accounts_save(self):
         logging.info("Saving accounts")
         f = open('players.db','wb')
         cPickle.dump(self.players,f)
         f.close()
         
-    def loadWorlds(self):
+    def worlds_load(self):
         logging.info("Loading worlds")
         for path,subfolders,files in os.walk('./worlds'):
             for fname in files:
@@ -108,11 +108,12 @@ class Core(object):
                     world.setup(self)
                     
         
-    def saveWorlds(self):
+    def worlds_save(self):
         logging.info("CORE: Save the worlds from destruction!")
         for world in core.worlds:
             world.saveWorld()
-            
+    
+    # TODO improve this function        
     def escape(self,text):
         text = text.replace('<','&lt;')
         text = text.replace('>','&gt;')
