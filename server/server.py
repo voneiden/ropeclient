@@ -27,7 +27,8 @@ from twisted.internet import defer
 from txws import WebSocketFactory
 from collections import OrderedDict
 
-import json
+import cgi     # Used for HTML escaping
+import json    
 import logging
 import os
 import pickle
@@ -35,6 +36,7 @@ import player
 import re
 import sys
 import time
+import webcolors
 import world
 
 #log.startLogging(sys.stdout)
@@ -120,6 +122,36 @@ class Core(object):
         text = text.replace('=','&#61;')
         return text
 
+    def color_convert(self, match):
+        ''' 
+        Converts a colour value into hex
+        and if it's not a valid value, default to white
+        '''
+        color = match[1:-1].lower()
+        if color != "reset":
+            try:
+                webcolor.name_to_hex(color) # Check if colour is a valid name
+            except ValueError:
+                try:
+                    webcolors.normalize_hex(color) # Check if colour is a valid hex
+                except AttributeError:
+                    return "#ffffff"  # Default to white
+                
+        return "$(c={0})".format(color)
+        
+    def sanitize(self, text):
+        ''' 
+        Use this function to sanitize any user input.
+        It first converts colors and then strips <>& characters
+        Note it does not currently strip "
+        '''
+        
+        text = re.sub("\<[\w#]+?\>", self.color_convert, text)
+        text = cgi.escape(text, True)
+        
+        return text
+        
+        
     def find(self,source,pattern,instance):
         # source = player object
         # Pattern = pattern to be found
@@ -214,12 +246,13 @@ class WebPlayer(Protocol):
         if content["cmd"] == "ping":
             self.pingTime = False
             return
-            
+        
+        # Forward the handling of the message to player class
         d = defer.Deferred()
         d.addCallback(self.player.recv)
         d.addErrback(self.failure)
         d.callback(content)
-        # ^TODO: update player.recv
+        
         
     def write(self,data):
         # TODO: json
@@ -228,11 +261,13 @@ class WebPlayer(Protocol):
 
         self.transport.write(data.encode("utf-8"))
         
-    def colorConvert(self,data):
-        # Ensure that color is always reseted to default (</font>)
-        # TODO: ^ is this implemented? 2013-11-30
-        # This function finds color references like <red> in the text, 
-        # And converts them into HTML
+    
+    
+    def color_check(self, text):
+        """
+        This function applies user defined colours, handles colour resets
+        and converts the final result into valid HTML
+        """
         stack = []
         fallback = "grey"
         regex = '\<.*?\>'
@@ -241,15 +276,12 @@ class WebPlayer(Protocol):
                        "default": "#aaaaff",
                        "offtopic": "#4554ff",
                        "notify": "orange",
-                       "timestamp": "grey"}
+                       "timestamp": "grey"} # TODO: should this be in core?
         
-        for match in re.finditer(regex,data):
-            match = match.group()
-            color = match[1:-1]
-            
-            # Sanitize user input!
-            color = re.sub("[^^a-zA-Z0-9\#]+", color)
-            
+        
+        for color in re.findall("\$\(c\=([\w#]+?)\)", text):
+            match = "$(c={0})".format(color)
+
             # Check for custom color maps
             if self.player.account and color in self.player.account.colors:
                 color = self.player.account.colors[color]
@@ -269,9 +301,9 @@ class WebPlayer(Protocol):
                 
             # Replace the actual data
             if color:
-                data = data.replace(match,'<font color="%s">'%color,1)
+                data = data.replace(match, '<font color="%s">'%color,1)
             else:
-                data = data.replace(match,'</font>',1)
+                data = data.replace(match, '</font>',1)
         data = data + '</font>'*len(stack)
         return data
         
