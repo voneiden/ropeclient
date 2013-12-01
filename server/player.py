@@ -25,7 +25,6 @@
 import server,re, world, time, random, string, cgi
 from collections import OrderedDict 
 import logging
-from logging import info as log 
 
 
 from cgi import escape 
@@ -54,43 +53,14 @@ class Player(object):
         """ Players will never be pickled when world is 
             saved as they contain references to networking """
         return None
-
-    def recvIgnore(self, message):
-        ''' This function simply ignores all received data '''
-        pass
     
-    def recvHandshake(self,message):
-        ''' This function receives the handshake and gets 
-            angry at the client if its wrong '''
-        message = message.strip()
-        tok = message.split()
-        
-        if tok[0] == 'hsk' and len(tok) > 1:
-            if tok[1] != self.core.version:
-                buf = ["<fail>ATTENTION - As of February 2011, the ropeclient ",
-                       "Tk client is no longer supported. To use this server, ",
-                       "Please login at <cyan>http://eiden.fi/ropeclient.html<fail> ",
-                       "Thanks!"]
-                self.sendMessage("".join(buf).format(clientversion=tok[1],
-                                              version=self.core.version))
-                self.recv = self.recvIgnore
-            else:
-                self.clearOfftopic()
-                self.sendMessage("Version up to date!")
-                self.sendMessage("".join(self.core.greeting))
-                self.recv = self.recvMessage
-        else:
-            self.sendMessage("Hi, you're not supposed to be here, are you? :) Curren" +
-                      "tly logins are only supported by the official client")
-            self.recv = self.recvIgnore
-    
-    def recvMessage(self, message):
+    def process_message(self, message):
         '''
-        This s the standard message receiver.
-        It passes all msg packets forward to the handler
+        This is the standard message parser.
+        message - json object
         '''
         
-        log("Got: {}".format(message))
+        logging.info("Got: {}".format(message))
         message = message.strip()
         
         # To avoid players being able to create their own variables.. remove $(
@@ -99,8 +69,8 @@ class Player(object):
         if tok[0] == 'msg' or tok[0] == 'cmd':
             response = self.handler(tok[0]," ".join(tok[1:]))
 
-            log("Response: {}".format(response))
-            log("Type: {}".format(type(response)))
+            logging.info("Response: {}".format(response))
+            logging.info("Type: {}".format(type(response)))
             if type(response) is str or type(response) is unicode:
                 if response[0] == '(':
                     self.sendOfftopic(response[1:])
@@ -111,7 +81,7 @@ class Player(object):
                 self.world.updatePlayer(self)
         
         elif tok[0] == 'edi':
-            log("Edit tok: {}".format(tok))
+            logging.info("Edit tok: {}".format(tok))
             self.handler(tok[0]," ".join(message.split(' ')[1:]))
                 
 
@@ -126,7 +96,7 @@ class Player(object):
                 self.world.updatePlayer(self)
         
 
-        
+    
     def getName(self): # Obsolete?
         if self.character:
             return u"<%s>%s<reset>"%(self.character.color,self.account.name)
@@ -195,7 +165,7 @@ class Player(object):
             if message[0] != '<': message = '<default>' + message
 
         else:
-            log( "********* Fatal error in sendMessage at player********")
+            logging.info( "********* Fatal error in sendMessage at player********")
             return False    
         self.connection.sendMessage(message)
     
@@ -203,7 +173,7 @@ class Player(object):
         ''' message can be either a tuple (content,timestamp) or a list '''
         
         if isinstance(message,list):
-            log( "Sending  {} offtopic lines (list)".format(len(message)))
+            logging.info( "Sending  {} offtopic lines (list)".format(len(message)))
             parsedMessages = []
             for content,timestamp in message:
                 content = self.replaceCharacterNames(content)
@@ -213,7 +183,7 @@ class Player(object):
             
         
         elif isinstance(message,tuple):
-            log( "Sending offtopic (tuple): {}".format(message))
+            logging.info( "Sending offtopic (tuple): {}".format(message))
             content = self.replaceCharacterNames(message[0])
             content = self.createHighlights(content)
             timestamp = message[1]
@@ -221,7 +191,7 @@ class Player(object):
             
         
         elif isinstance(message,str):
-            log( "Sending offtopic (string): {}".format(message))
+            logging.info( "Sending offtopic (string): {}".format(message))
             content = unicode(message)
             content = self.replaceCharacterNames(content)
             content = self.createHighlights(content)
@@ -297,7 +267,7 @@ class Player(object):
                 #f.close()
                 
                 #return u"\n".join(buf)                
-                log( u"New account ({})".format(self.temp['name']))
+                logging.info( u"New account ({})".format(self.temp['name']))
             
                 self.account = server.Account(self.temp['name'],self.temp['password'])
                 self.core.accounts.append(self.account)
@@ -343,12 +313,12 @@ class Player(object):
         
     def login(self):
         self.core.players.append(self)
-        log( "CHECKING COLORS {}".format(self.account.colors))
+        logging.info( "CHECKING COLORS {}".format(self.account.colors))
         if 'background' in self.account.colors:
-            log( "Sending custom background color")
+            logging.info( "Sending custom background color")
             self.connection.sendColor("background",self.account.colors['background'])
         if 'timestamp' in self.account.colors:
-            log( "Sending custom timestamp color")
+            logging.info( "Sending custom timestamp color")
             self.connection.sendColor("timestamp",self.account.colors['timestamp'])
         if 'input' in self.account.colors:
             self.connection.sendColor("input",self.account.colors['input'])
@@ -406,10 +376,10 @@ class Player(object):
     def handlerWorldMenu(self, header,message):
         if header == 'cmd': return 
         tok = message.split()
-        log( "worldmenu {}".format(tok))
+        logging.info( "worldmenu {}".format(tok))
         if len(tok) == 0: return
         elif len(tok[0]) == 0: 
-            log( "my god {}".format(tok))
+            logging.info( "my god {}".format(tok))
             return #This probably shouldn't happen? 
         if self.handlerstate == 10:
             if tok[0] == self.temp['choice'].pw:
@@ -462,7 +432,7 @@ class Player(object):
        
     def creatorWorld(self,header,*args): 
         tok = args
-        log("Tok: {}".format(tok))
+        logging.info("Tok: {}".format(tok))
         if self.handlerstate == 0:
             self.handlerstate = 1
             return u"Name of your new game world? Keep it below 60 chars."
@@ -552,11 +522,11 @@ class Player(object):
         
         
         elif header == 'edi':
-            log("HANDLING EDI: {}".format(content))
+            logging.info("HANDLING EDI: {}".format(content))
             args = content.split()
             timestamp = float(args[0])
             content = " ".join(args[1:])
-            log("p-content {}".format(content))
+            logging.info("p-content {}".format(content))
             # Note, this should be connection specific decolor convert
             # But since webclient is the only client supported atm, doing it the simple way
             #content = content.replace('</font>','<reset>')
@@ -566,33 +536,33 @@ class Player(object):
             # TODO check the owner of the message!
             
             if timestamp not in self.character.world.messages:
-                log("******* TIMESTAMP {} NOT FOUND IN WORLD MESSAGES".format(timestamp))
+                logging.info("******* TIMESTAMP {} NOT FOUND IN WORLD MESSAGES".format(timestamp))
                 return 
             
             # TODO find matching $(name strings and replace.
             message = self.character.world.messages[timestamp]
-            log("Updating {}".format(message))
+            logging.info("Updating {}".format(message))
             if message[0] != self.account.name:
-                log( "!*!*!*!* INVALID OWNER {} {}".format(message[0],self.account.name)) 
+                logging.info( "!*!*!*!* INVALID OWNER {} {}".format(message[0],self.account.name)) 
                 return 
             
             # Replace the name holders
             snames = re.findall("\$\(name=.+?\)", message[1])
             for name in snames:
-                log("content: {}".format(content))
-                log("Replacing name {}".format(name))
+                logging.info("content: {}".format(content))
+                logging.info("Replacing name {}".format(name))
                 content = content.replace("$(name)",name,1)
                 
             
             if not len(content):
                 return "(<fail>Deleting not supported yet."
             message = (message[0],content)
-            log("To {}".format(message))
+            logging.info("To {}".format(message))
             self.character.world.messages[timestamp] = message 
             self.character.world.sendEdit(timestamp,content)
             
         else:
-            log("UNKNOWN HEADER")
+            logging.info("UNKNOWN HEADER")
 
     def replaceCharacterNames(self,message):
         ''' This functions solves name-memory '''
@@ -924,7 +894,7 @@ class Player(object):
                 message = self.diceSub(message)
                 self.character.location.sendMessage((self.account.name,u"%s (%s)"%(message, self.account.name)))
         
-    def handle_getlog(self,*args):
+    def handle_getlogging.info(self,*args):
         # 0 - email address
         # 1 - 1 main only, 2 offtopic only, 3 both
         # 2 - max age
