@@ -234,15 +234,23 @@ class WebPlayer(Protocol):
         else:
             self.transport.loseConnection()
     
+    def get_player(self):
+        return self.player.name if self.player else "Unknown player"
         
-    def connectionLost(self,reason):
-        player = self.player.name if self.player else "Unknown player"
-        logging.info("Connection lost: %s"%(player))
+    def connectionLost(self, reason):
+        logging.info("Connection lost: %s"%(self.get_player()))
         self.disconnect()
         
-    def dataReceived(self,data):
-        content = json.loads(data)
+    def dataReceived(self, data):
+        try:
+            content = json.loads(data)
+        except ValueError:
+            logging.error("Invalid data received from {} (data: {})".format(self.get_player(), data))
         
+        if "cmd" not in content:
+            logging.error("Invalid content received from {} (content: {})".format(self.get_player(), content))
+            return
+            
         if content["cmd"] == "ping":
             self.pingTime = False
             return
