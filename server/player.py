@@ -61,7 +61,25 @@ class Player(object):
         '''
         
         logging.info("Got: {}".format(message))
-        message = message.strip()
+        
+        cmd = message["cmd"]
+        
+        if cmd == "msg" or cmd == "cmd":
+            self.set_typing(False)
+            # Handle this
+        elif cmd == "edi":
+            self.set_typing(False)
+            # Handle this
+            
+        elif cmd == "pnt":
+            self.set_typing(False)
+            
+        elif cmd == "pit":
+            self.set_typing(True)
+
+                
+        
+        return
         
         # To avoid players being able to create their own variables.. remove $(
         content = message.replace('$(','')
@@ -96,7 +114,14 @@ class Player(object):
                 self.world.updatePlayer(self)
         
 
-    
+    def set_typing(self, typing):
+        typing = True if typing else False
+        if self.typing != typing:
+            self.typing = typing
+            pass
+            # TODO update
+            
+        
     def getName(self): # Obsolete?
         if self.character:
             return u"<%s>%s<reset>"%(self.character.color,self.account.name)
@@ -894,7 +919,7 @@ class Player(object):
                 message = self.diceSub(message)
                 self.character.location.sendMessage((self.account.name,u"%s (%s)"%(message, self.account.name)))
         
-    def handle_getlogging.info(self,*args):
+    def handle_getlog(self,*args):
         # 0 - email address
         # 1 - 1 main only, 2 offtopic only, 3 both
         # 2 - max age
