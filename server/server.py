@@ -62,6 +62,8 @@ class Core(object):
         self.accounts_load()
         self.worlds_load()
         self.players = []
+        
+        self.settings = {"max_login_name_length": 30}
         logging.info("Server ready")
         
     def __getstate__(self):
@@ -242,6 +244,9 @@ class WebPlayer(Protocol):
         self.disconnect()
         
     def dataReceived(self, data):
+        """ 
+        Decode received data and forward it to the respective handler function
+        """
         try:
             content = json.loads(data)
         except ValueError:
@@ -255,9 +260,12 @@ class WebPlayer(Protocol):
             self.pingTime = False
             return
         
-        # Forward the handling of the message to player class
+        # Forward the request to appropriate handler
+        # Example: self.player.handler.process_msg
+        f = getattr(self.player.handler, "process_{}".format(content["cmd"]))
+        
         d = defer.Deferred()
-        d.addCallback(self.player.recv)
+        d.addCallback(f)
         d.addErrback(self.failure)
         d.callback(content)
         

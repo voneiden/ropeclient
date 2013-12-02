@@ -24,6 +24,7 @@
 
 import server,re, world, time, random, string, cgi
 from collections import OrderedDict 
+import handler
 import logging
 
 
@@ -35,18 +36,18 @@ class Player(object):
     '''
 
     def __init__(self, connection, core):
-        self.connection = connection    # RopePlayer class
-        self.core = core                # Core class
-        self.world = None               # Current world, None = menu
-        self.name = None                # On login, accunt.name
-        self.account = None             # Kind of unnecessary..
+        self.connection = connection     # RopePlayer class
+        self.core = core                 # Core class
+        self.world = None                # Current world, None = menu
+        self.name = None                 # On login, accunt.name
+        self.account = None              # Kind of unnecessary..
         self.typing = 0              
-        self.handler = self.handlerLogin# Current function that handles all input
-        self.character = None           # Current character
-        self.gamemaster = False         # Is gamemaster
-        self.handlerstate = 1           # A counter used by some handlers
-        self.temp = {}                  # Temporary storage for handlers
-        self.recv = self.recvHandshake  # Function that parses & feeds handler
+        self.handler = handler.HandlerLogin(self) # Current function that handles all input
+        self.character = None            # Current character
+        self.gamemaster = False          # Is gamemaster
+        self.handlerstate = 1            # A counter used by some handlers
+        self.temp = {}                   # Temporary storage for handlers
+        self.recv = self.recvHandshake   # Function that parses & feeds handler
         
         
     def __getstate__(self): 
@@ -54,7 +55,7 @@ class Player(object):
             saved as they contain references to networking """
         return None
     
-    def process_message(self, message):
+    def process_message(self, message): #TODO this is obsolete
         '''
         This is the standard message parser.
         message - json object
@@ -64,7 +65,10 @@ class Player(object):
         
         cmd = message["cmd"]
         
-        if cmd == "msg" or cmd == "cmd":
+        if cmd == "msg":
+            self.set_typing(False)
+            self.handler
+        elif cmd == "cmd":
             self.set_typing(False)
             # Handle this
         elif cmd == "edi":
@@ -232,7 +236,7 @@ class Player(object):
         self.connection.sendOfftopic(message)
         
         
-    def handlerLogin(self,header, message):
+    def handler_login(self, header, message):
         '''
         State 1 - asking for name
         State 2 - asking for password
