@@ -82,7 +82,8 @@ class Player(object):
             self.set_typing(True)
 
                 
-        
+        else:
+            logging.error("Unimplemented message cmd: %s"%(str(message)))
         return
         
         # To avoid players being able to create their own variables.. remove $(

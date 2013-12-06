@@ -552,8 +552,8 @@ $(window).focus(function(event){
     setTimeout(function() { $("#entrybox").focus(); }, 0);
 });
 $(document).ready(function(){
-    isTyping = 0;
-    isPassword = 0;
+    input_typing = false;
+    input_password = false;
     playerList = new Array();
     
     $("#entrybox").focus();
@@ -575,24 +575,25 @@ $(document).ready(function(){
             AutoComplete(event);
         }
     });
-    $("#entrybox").keyup(function(event){
-        if(event.keyCode == 13){
-            // Check if it's a command or message
-            
-            if (isPassword) {
-                header = "msg";
-                isPassword = 0;
-                var content = $("#entrybox").val();
-                $("#entrybox").val("");
+	
+	// Key event to the input box
+    $("#input").keyup(function(event){
+        if(event.keyCode == 13){ // ENTER key pressed
+			var message = {};
+            if (input_password == true) { // Currently typing a password
+                message.key = "pwd";
                 
-                marker = $('<span />').insertBefore('#entrybox');
-                $('#entrybox').detach().attr('type', 'text').insertAfter(marker);
-                marker.remove();
-                $("#entrybox").focus();
-                
-                var shaObj = new jsSHA(content+'r0p3s4lt');
-                content = shaObj.getHash("SHA-256","HEX");
-            }
+				var shaObj = new jsSHA($("#input").val()+'r0p3s4lt'); // TODO: deal with this poor static salt
+                message.value = shaObj.getHash("SHA-256","HEX");
+				
+                $("#input").val(""); // Clear input
+                marker = $('<span />').insertBefore('#input'); // Place a marker
+                $('#input').detach().attr('type', 'text').insertAfter(marker); // Detach #input, change mode and reattach it
+                marker.remove(); // Remove marker
+                $("#input").focus(); // Return focus to input
+
+				input_password = false;
+            } // TODO: Continue here
             else if (editing) {
                 var header = 'edi ' + edit_history[edit_history.length - 1 - edit_index][0]
                 var content = $("#entrybox").val();
@@ -657,9 +658,8 @@ $(document).ready(function(){
         
     });
     
-    $("#entrybox").focusout(function(event){
-        //setTimeout(function() { $("#entrybox").focus(); }, 0);
-    });
-    //ws_init("ws://localhost:9091")
+    //$("#input").focusout(function(event){
+    //    setTimeout(function() { $("#entrybox").focus(); }, 0);
+    //});
     ws_init("ws://ninjabox.sytes.net:9091")
 });

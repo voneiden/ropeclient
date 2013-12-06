@@ -252,17 +252,17 @@ class WebPlayer(Protocol):
         except ValueError:
             logging.error("Invalid data received from {} (data: {})".format(self.get_player(), data))
         
-        if "cmd" not in content:
+        if "key" not in content:
             logging.error("Invalid content received from {} (content: {})".format(self.get_player(), content))
             return
             
-        if content["cmd"] == "ping":
+        if content["key"] == "ping":
             self.pingTime = False
             return
         
         # Forward the request to appropriate handler
         # Example: self.player.handler.process_msg
-        f = getattr(self.player.handler, "process_{}".format(content["cmd"]))
+        f = getattr(self.player.handler, "process_{}".format(content["key"]))
         
         d = defer.Deferred()
         d.addCallback(f)
