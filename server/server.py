@@ -116,13 +116,6 @@ class Core(object):
         logging.info("CORE: Save the worlds from destruction!")
         for world in core.worlds:
             world.saveWorld()
-    
-    # TODO improve this function        
-    def escape(self,text):
-        text = text.replace('<','&lt;')
-        text = text.replace('>','&gt;')
-        text = text.replace('=','&#61;')
-        return text
 
     def color_convert(self, match):
         ''' 
@@ -279,60 +272,16 @@ class WebPlayer(Protocol):
 
         self.transport.write(data.encode("utf-8"))
         
-    
-    
-    def color_check(self, text):
-        """
-        This function applies user defined colours, handles colour resets
-        and converts the final result into valid HTML
-        """
-        stack = []
-        fallback = "grey"
-        regex = '\<.*?\>'
-        color_table = {"fail": "red",
-                       "ok": "green",
-                       "default": "#aaaaff",
-                       "offtopic": "#4554ff",
-                       "notify": "orange",
-                       "timestamp": "grey"} # TODO: should this be in core?
-        
-        # \<[\w#]+?\>
-        # old re \$\(c\=([\w#]+?)\)
-        for color in re.findall("\$\(c\=([\w#]+?)\)", text):
-            match = "$(c={0})".format(color)
-
-            # Check for custom color maps
-            if self.player.account and color in self.player.account.colors:
-                color = self.player.account.colors[color]
-            elif color in color_table:
-                color = color_table[color]
-            
-            # Handle color reset
-            if color == 'reset':
-                try:
-                    stack.pop()
-                    color = 0
-                except:
-                    color = '#aaaaff'
-                    stack.append(color)
-            else:
-                stack.append(color)
-                
-            # Replace the actual data
-            if color:
-                text = text.replace(match, '<font color="%s">'%color,1)
-            else:
-                text = text.replace(match, '</font>',1)
-        text = text + '</font>'*len(stack)
-        return text
         
     def sendMessage(self,message):
         '''
-        Message format
-        msg timestamp editable content \x1b timestamp editable content \1b etc
+        message may be either a dictionary or a list of dictionaries
+        a dictionary must contain "value" key which is the body of the text
+        it may also contain: 
+            - timestamp  - if defined, the client will display a timestamp
+            - edit       - if true, the user can edit the line
         '''
-        #Todo: maybe send timestamp and default colors to client too?
-        #TODO: change message format into dictionary
+
         try:
             if isinstance(message, list):
                 for submessage in message:    
@@ -349,33 +298,12 @@ class WebPlayer(Protocol):
             self.write(json.dumps({"key":"msg_list", "value":message}))
         else:
             self.write(json.dumps({"key":"msg", "value": message}))
-        """    
-        if isinstance(message,list):
-            buf = []
-            for part in message:
-                buf.append(u"{timestamp}\x1f{editable}\x1f{content}".format(
-                           timestamp=repr(part[0]),editable=part[1],content=part[2]))
-            message = u"\x1b".join(buf)
-        elif isinstance(message,tuple):
-            message = u"{timestamp}\x1f{editable}\x1f{content}".format(
-                       timestamp=repr(message[0]),editable=message[1],content=message[2])
-        elif isinstance(message,unicode):
-            message = u"{timestamp}\x1f{editable}\x1f{content}".format(
-                       timestamp=0,editable=0,content=message)
-        elif isinstance(message,str):
-            message = u"{timestamp}\x1f{editable}\x1f{content}".format(
-                       timestamp=0,editable=0,content=message)
-        else:
-            logging.info( type(message))
-            logging.info(message)
-            logging.info("******** UNABLE TO PROCESS ******"*50)
-            return               
-        self.write(u'msg {message}'.format(message=message))
-        """
+
         
     def sendColor(self,c1,c2):
         self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))
-    def sendFont(self,font,size=8):
+        
+    def sendFont(self,font,size=12):
         self.write(json.dumps({"key":"font", "font": font, "size": size}))
         
     def sendOfftopic(self,message):
