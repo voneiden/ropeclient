@@ -33,21 +33,7 @@ from struct import pack, unpack
 from twisted.internet.interfaces import ISSLTransport
 from twisted.protocols.policies import ProtocolWrapper, WrappingFactory
 from twisted.python import log
-#rom twisted.web.http import datetimeToString
-
-weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-monthname = [None,'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun','Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-def datetimeToString(msSinceEpoch=None):
-    """
-    Convert seconds since epoch to HTTP datetime string.
-    """
-    if msSinceEpoch == None:
-        msSinceEpoch = time.time()
-    t = time.gmtime(msSinceEpoch)
-    wd = t[6]
-    s = time.strftime("{}, %d {} %Y %H:%M:%S GMT".format(weekdayname[wd],monthname[month]),t)
-    return s
+from twisted.web.http import datetimeToString
 
 class WSException(Exception):
     """
@@ -121,7 +107,7 @@ def is_websocket(headers):
     Determine whether a given set of headers is asking for WebSockets.
     """
 
-    return ("Upgrade" in headers.get("Connection", "")
+    return ("upgrade" in headers.get("Connection", "").lower()
             and headers.get("Upgrade").lower() == "websocket")
 
 def is_hybi00(headers):
@@ -412,7 +398,7 @@ class WebSocketProtocol(ProtocolWrapper):
 
         try:
             frames, self.buf = parser(self.buf)
-        except WSException as wse:
+        except WSException, wse:
             # Couldn't parse all the frames, something went wrong, let's bail.
             self.close(wse.args[0])
             return
