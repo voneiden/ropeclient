@@ -2,7 +2,9 @@
 // See http://www.github.com/voneiden/ropeclient
 // for license
 
-// Autocomplete variables TODO allow server to submit these
+// Customize default url
+default_url = "ws://ninjabox.sytes.net:9091"
+
 autocomplete_stage = 0;
 autocomplete_base  = "";
 autocomplete_cycle = [];
@@ -51,11 +53,16 @@ ws = null;
 
 function initialize()
 {
-    $("#connect_button").click(function() { connect($("#connect_dest").val()) });
-
+    $("#connect_button").click(function() { connect($("#connect_destination").val()) });
+    $("#connect_destination").keypress(function (e) { if (e.which == 13) { connect($("#connect_destination").val()); } });
+    $("#connect_destination").val( $.jStorage.get("last_url", default_url));
 }
 function connect(url) 
 {
+    $.jStorage.set("last_url", url);
+    $("#connect_button").hide();
+    $("#connect_destination").hide();
+    
     if ( $.browser.mozilla ) { ws = new MozWebSocket(url); } // Mozilla compatibility
     else { ws = new WebSocket(url); }
     
