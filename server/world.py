@@ -30,7 +30,7 @@ attributes
 #TODO Make it so that souls can see the last 100 lines that have been happening in a location.
 
 
-import pickle, time, re, random
+import pickle, time, re, random, logging
 from collections import OrderedDict
 
 class World(object):
@@ -63,14 +63,14 @@ class World(object):
         
     def saveWorld(self):
         f = open('worlds/%s.world'%self.name,'wb')
-        cPickle.dump(self,f)
+        pickle.dump(self,f)
         f.close()
         
     def editName(self):
         pass #TODO should also modify the world save location!
         
     def setup(self,core):
-        log("Setting up loaded world '{0}'".format(self.name))
+        logging.info("Setting up loaded world '{0}'".format(self.name))
         self.players = []
         self.calledRolls = {}
         
@@ -78,14 +78,14 @@ class World(object):
         if oldworld:
             #TODO move all old players to the new world
             core.worlds.remove(oldworld[0])
-            log("Removing old world {}".format(oldworld[0].name))
+            logging.info("Removing old world {}".format(oldworld[0].name))
         core.worlds.append(self)
         
         # Fix soul bug, temporary
-        log( "Fixing soul bug")
+        logging.info( "Fixing soul bug")
         for character in self.characters:
             if isinstance(character,Soul):
-                log( "Destroying soul")
+                logging.info( "Destroying soul")
                 self.remCharacter(character)
                 continue
             if not hasattr(character,"talk"):
@@ -93,18 +93,18 @@ class World(object):
                 
         for location in self.locations:
             if not hasattr(location,'history'):
-                log( "Fixing history")
+                logging.info( "Fixing history")
                 location.history = []
                 
         # Updating to new message format and ordereddict.
         if not isinstance(self.messages,OrderedDict):
-            log( "Regenerating message list")
+            logging.info( "Regenerating message list")
             newmessages = OrderedDict()
             oldkeys = self.messages.keys()
             oldkeys.sort()
             for key in oldkeys:
                 newmessages[key] = (None,self.messages[key])
-            log( "Done..")
+            logging.info( "Done..")
             self.messages = newmessages
 
     def sendMessage(self,message,recipients=[]):
@@ -544,7 +544,7 @@ class Location(object):
             self.history.append(timestamp)
         else:
             #print "Nobody to receive this message, ignoring.."
-            log("Message sent to nobody: {}".format(message))
+            logging.info("Message sent to nobody: {}".format(message))
     
     def link(self,name,destination):
         
@@ -552,7 +552,7 @@ class Location(object):
         if not isinstance(destination,Location):
             #print "FAIL FAIL FAIL"
             #print destination
-            log("Major error in destination")
+            logging.info("Major error in destination")
         if [link for link in self.links if link.name == name]:
             return "(<fail>Exit name exists already"
         

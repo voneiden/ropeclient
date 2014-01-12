@@ -41,7 +41,7 @@ class HandlerLogin(Handler):
                 
         
         
-  def handler_login(self, header, message):
+    def handler_login(self, header, message):
         '''
         State 1 - asking for name
         State 2 - asking for password

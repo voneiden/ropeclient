@@ -75,14 +75,23 @@ function connect(url)
 }
 
 
-function receiveMessage(event) {
-    var message = $.trim(e.data);
-    var tok = message.split(" ");
-    var hdr = tok.shift();
+function receiveMessage(e) {
+    var messsage;
+    try { message = JSON.parse(e.data); }
+    catch (SyntaxError) {
+        console.log("Parse error");
+        console.log(e);
+        return
+    }
+    var key = message.key;
     
     //message = message.replace(/\n/g,"<br />");
 
-    if (hdr == "msg") {
+    if (key == "msg") {
+        var msgid = ''
+        var timestamp = message.timestamp || ""
+        displayMain('<span class="msg"' + msgid + ">" + timestamp + format_text(message.value) + "</span>");
+        /*
         var everything = tok.join(" ");
         var lines = everything.split("\x1b");
         var output = [];
@@ -112,11 +121,25 @@ function receiveMessage(event) {
             else {
                 timestamp = '';
             }
+            
             output.push('<span class="msg"' + spanid + ">" + timestamp + message + "</span>");
         }
         displayMain(output.join(""));
+        */
     }
-    else if (hdr == "oft") {
+    else if (key == "msg_list")
+    {
+        var buffer = [];
+        for (var i = 0; i < message.value.length; i++) 
+        {
+            var msgid = ''
+            var timestamp = message.value[i].timestamp || ""
+            buffer.push('<span class="msg"' + msgid + ">" + timestamp + format_text(message.value[i].value) + "</span>");
+        }
+        displayMain(buffer.join(""));
+    }
+    
+    else if (key == "oft") {
         //A lot faster method of displaying a lot of text at once.
         //Still needs improving, so lets try..
         
@@ -150,7 +173,7 @@ function receiveMessage(event) {
         displayOfftopic(output.join(''));
         //displayOfftopic(false,output.join(""));
     }
-    else if (hdr == 'pwd') {
+    else if (key == 'pwd') {
         marker = $('<span />').insertBefore('#entrybox');
         $('#entrybox').detach().attr('type', 'password').insertAfter(marker);
         marker.remove();
@@ -159,7 +182,7 @@ function receiveMessage(event) {
         isPassword = 1;
         //displayOfftopic('pwd toggle');
     }
-    else if (hdr == 'clr') {
+    else if (key == 'clr') {
         var window = tok.shift();
 
         if (window == 'main') {
@@ -173,19 +196,19 @@ function receiveMessage(event) {
             displayOfftopic(false,"Unknown thingy");
         }
     }
-    else if (hdr == 'png') {
-        ws_send('png');
+    else if (key == 'ping') {
+        ws_send(JSON.stringify({"key": "ping"}));
     }
-    else if (hdr == 'ptu') {
+    else if (key == 'ptu') {
         // player type update.. single player!!
         updatePlayer(tok.shift());
     }
-    else if (hdr == 'plu') {
+    else if (key == 'plu') {
         // Player list update!
         updatePlayerList(tok.shift().split(';'));
     
     }
-    else if (hdr == 'col') {
+    else if (key == 'col') {
         c1 = tok.shift();
         c2 = tok.shift();
         if (c1 == 'background') { 
@@ -205,16 +228,16 @@ function receiveMessage(event) {
         }
         else { displayOfftopic(false,"Unknown color received.. bug?"); }
     }
-    else if (hdr == 'fnt') {
+    else if (key == 'font') {
         
-        font = tok.shift();
-        size = tok.shift();
+        font = message.font;
+        size = message.size;
         $("#lefttop").css("font-family",font);
         $("#leftbottom").css("font-family",font);
         $("#lefttop").css("font-size",size);
         $("#leftbottom").css("font-size",size);
     }
-    else if (hdr == 'edi') {
+    else if (key == 'edi') {
         timestamp = tok.shift();
         message = tok.join(" ");
         
@@ -232,11 +255,26 @@ function receiveMessage(event) {
         if (element != null) { element.innerHTML = "[EDITED  ] " + message }
     }
     else {
-        displayOfftopic(false,'unknown header (len:'+hdr.length+': ' + hdr);
+        displayOfftopic(false,'unknown header (len:'+key.length+': ' + key);
     }
 };
 
+function format_text(text) {
+    //Regex pattern $(c: HEX or TEXT ) 
+    var pattern = /\$\(c\:(\#[\da-f]{6}|[a-z]+)\)/
+    while (true)
+    {
+        var match = pattern.exec(text);
+        if (match == null) { break; }
+        
+        if (match[1] == "default") { match[1] = "white" }
+        // TODO deal with resets
+        text = text.replace(match[0], '<font color="' + match[1] + '">')    
+    }
+    
+    return text;
 
+}
 
 
 function EditHistoryName(msg){

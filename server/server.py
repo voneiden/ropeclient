@@ -97,7 +97,7 @@ class Core(object):
     def accounts_save(self):
         logging.info("Saving accounts")
         f = open('players.db','wb')
-        cPickle.dump(self.players,f)
+        pickle.dump(self.players,f)
         f.close()
         
     def worlds_load(self):
@@ -129,17 +129,20 @@ class Core(object):
         Converts a colour value into hex
         and if it's not a valid value, default to white
         '''
-        color = match[1:-1].lower()
-        if color != "reset":
+        color = match.group()[1:-1].lower()
+        if color != "reset" or color != "default":
             try:
-                webcolor.name_to_hex(color) # Check if colour is a valid name
+                webcolors.name_to_hex(color) # Check if colour is a valid name
             except ValueError:
                 try:
                     webcolors.normalize_hex(color) # Check if colour is a valid hex
                 except AttributeError:
-                    return "#ffffff"  # Default to white
+                    return "$(c:default)"  # Default to white
+                except ValueError: #TODO solving a bug here
+                    print ("Match:",match.group())
+                    return "$(c:default)"
                 
-        return "$(c={0})".format(color)
+        return "$(c:{0})".format(color)
         
     def sanitize(self, text):
         ''' 
@@ -209,10 +212,9 @@ class WebPlayer(Protocol):
         # Send MOTD
         buf = []
         for line in self.core.greeting:
-            buf.append((0,0,line))
+            buf.append({"value":line})
         self.player.sendMessage(buf)
         
-        self.player.recv = self.player.recvMessage
         self.pingTimer = False
         self.pingTime = False
         self.doPing()
@@ -224,7 +226,7 @@ class WebPlayer(Protocol):
             self.disconnect()
         else:
             self.pingTime = time.time()
-            self.write(json.dumps({"cmd":"ping"}))
+            self.write(json.dumps({"key":"ping"}))
             self.pingTimer = reactor.callLater(10,self.doPing)
             
     def disconnect(self):
@@ -272,7 +274,7 @@ class WebPlayer(Protocol):
         
     def write(self,data):
         # TODO: json
-        data = self.colorConvert(data)
+        
         #data = data.replace("\n",'<br>')
 
         self.transport.write(data.encode("utf-8"))
@@ -294,7 +296,8 @@ class WebPlayer(Protocol):
                        "notify": "orange",
                        "timestamp": "grey"} # TODO: should this be in core?
         
-        
+        # \<[\w#]+?\>
+        # old re \$\(c\=([\w#]+?)\)
         for color in re.findall("\$\(c\=([\w#]+?)\)", text):
             match = "$(c={0})".format(color)
 
@@ -317,11 +320,11 @@ class WebPlayer(Protocol):
                 
             # Replace the actual data
             if color:
-                data = data.replace(match, '<font color="%s">'%color,1)
+                text = text.replace(match, '<font color="%s">'%color,1)
             else:
-                data = data.replace(match, '</font>',1)
-        data = data + '</font>'*len(stack)
-        return data
+                text = text.replace(match, '</font>',1)
+        text = text + '</font>'*len(stack)
+        return text
         
     def sendMessage(self,message):
         '''
@@ -330,7 +333,23 @@ class WebPlayer(Protocol):
         '''
         #Todo: maybe send timestamp and default colors to client too?
         #TODO: change message format into dictionary
+        try:
+            if isinstance(message, list):
+                for submessage in message:    
+                    assert isinstance(submessage, dict)
+                    submessage["value"] = self.core.sanitize(submessage["value"])
+            else:
+                assert isinstance(message, dict)   
+                message["value"] = self.core.sanitize(message["value"])
+        except:
+            logging.error("sendMessage got invalid format: {}".format(str(message)))
+            return
         
+        if isinstance(message, list) or isinstance(message, tuple):
+            self.write(json.dumps({"key":"msg_list", "value":message}))
+        else:
+            self.write(json.dumps({"key":"msg", "value": message}))
+        """    
         if isinstance(message,list):
             buf = []
             for part in message:
@@ -352,11 +371,12 @@ class WebPlayer(Protocol):
             logging.info("******** UNABLE TO PROCESS ******"*50)
             return               
         self.write(u'msg {message}'.format(message=message))
+        """
         
     def sendColor(self,c1,c2):
         self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))
     def sendFont(self,font,size=8):
-        self.write(u"fnt {font} {size}".format(font=font,size=size))
+        self.write(json.dumps({"key":"font", "font": font, "size": size}))
         
     def sendOfftopic(self,message):
         '''
@@ -435,5 +455,5 @@ if __name__ == '__main__':
     
     reactor.run()
     
-    core.saveWorlds()
-    core.saveAccounts()
+    core.worlds_save()
+    core.accounts_save()

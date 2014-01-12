@@ -47,7 +47,6 @@ class Player(object):
         self.gamemaster = False          # Is gamemaster
         self.handlerstate = 1            # A counter used by some handlers
         self.temp = {}                   # Temporary storage for handlers
-        self.recv = self.recvHandshake   # Function that parses & feeds handler
         
         
     def __getstate__(self): 
@@ -154,6 +153,10 @@ class Player(object):
         #    message = self.character.parse(message)
         
         #NOTE major problem with multi-part messages..8
+        # TODO Message format is now dictionary!
+        self.connection.sendMessage(message)
+        
+        """
         if isinstance(message,list):
             buf = []
             for part in message:
@@ -198,7 +201,8 @@ class Player(object):
             logging.info( "********* Fatal error in sendMessage at player********")
             return False    
         self.connection.sendMessage(message)
-    
+        """
+        
     def sendOfftopic(self,message):
         ''' message can be either a tuple (content,timestamp) or a list '''
         
@@ -970,7 +974,7 @@ class Player(object):
         for key in keys:
             line = buffer[key]
             line = self.replaceCharacterNames(line)
-            line = self.connection.colorConvert(line)
+            line = self.core.color_convert(line) #self.connection.color_convert(line)
             line = re.sub("\$\(disp\=.+?\)", lambda match: match.group()[7:-1], line)
             line = line.encode('utf-8')
             f.write("%s<br>\n"%line)
