@@ -6,13 +6,13 @@ Welcome to ropeclient
 | | | (_) | |_) |  __/ (__| | |  __/ | | | |_    \/'_)/ |
 |_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|    \/( | :
           |_|                                ,---=='='=`===----.
-    <red>I<blue>n <green>c<purple>o<brown>l<yellow>o<cyan>r<white>!<default>     Version 0.E.something!     `---==|  ;  \==---'
+    <red>I<blue>n <green>c<purple>o<brown>l<yellow>o<cyan>r<white>!<default>     Version 0.dev              `---==|  ;  \==---'
                                                    |  ;.  \
         Version notes                              |  `;   \
-         - 0.E Check wiki for usage instructions   |   ;.   \
-           as quite many things have changed.      |   `;    \
-           Alternatively get in touch at the       |    ;.    \
-           ropeclient google groups mailing list!  |    `;     \ 
+         - This is a development version           |   ;.   \
+           Expect things to break..                |   `;    \
+                                                   |    ;.    \
+                                                   |    `;     \ 
                                                    |     ;.     \
                                                    |     `;      \
                                                    `--..._ `  _.-'
