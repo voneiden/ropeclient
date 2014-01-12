@@ -97,7 +97,7 @@ class Player(object):
                 if response[0] == '(':
                     self.sendOfftopic(response[1:])
                 else:
-                    self.sendMessage(response)
+                    self.send_message(response)
             self.typing = 0
             if self.world:
                 self.world.updatePlayer(self)
@@ -147,14 +147,17 @@ class Player(object):
                                                         content)
                                                         
         
-    def sendMessage(self, message): #TODO remove this function
+    def send_message(self, message): #TODO remove this function
         ''' This function will also do some parsing stuff! '''
         #if self.character: #TODO fix
         #    message = self.character.parse(message)
         
         #NOTE major problem with multi-part messages..8
         # TODO Message format is now dictionary!
-        self.connection.sendMessage(message)
+        if isinstance(message, str) or isinstance(message, unicode):
+            message = {"value":message}
+        
+        self.connection.send_message(message)
         
         """
         if isinstance(message,list):
@@ -341,8 +344,7 @@ class Player(object):
         if self.name in self.core.players:
             del self.core.players[self.name]
             
-        self.sendMessage(u"<fail>Disconnecting you, bye bye. (Either you quit or " +
-                  "you may have logged in elsewhere).")
+        self.send_message(u"<fail>Disconnected by server.")
         self.connection.transport.loseConnection()
         
     def login(self):
@@ -1318,7 +1320,7 @@ class Player(object):
             if isinstance(target,world.Character):
                 self.world.sendMessage('''<notify>%s: %s'''%(self.account.name, message),[target])
             elif isinstance(target,Player):
-                target.sendMessage('''<notify>%s: %s'''%(self.account.name, message))
+                target.send_message('''<notify>%s: %s'''%(self.account.name, message))
                 
             return '''<notify>@%s: "%s"'''%(target.name,message)        
         else:

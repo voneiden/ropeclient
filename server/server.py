@@ -200,27 +200,27 @@ class WebPlayer(Protocol):
         logging.info("Web connection made")
         self.core = self.factory.core
         self.player = player.Player(self, self.core)
-        self.sendFont("Monospace")
+        self.send_font("Monospace")
         
         # Send MOTD
         buf = []
         for line in self.core.greeting:
             buf.append({"value":line})
-        self.player.sendMessage(buf)
+        self.send_message(buf)
         
-        self.pingTimer = False
-        self.pingTime = False
-        self.doPing()
+        self.ping_timer = False
+        self.ping_time = False
+        self.do_ping()
     
-    def doPing(self,*args):
-        self.pingTimer = False
-        if self.pingTime != False: # This means last request was not replied
+    def do_ping(self,*args):
+        self.ping_timer = False
+        if self.ping_time != False: # This means last request was not replied
             logging.info("ping not replied, disconnecting")
             self.disconnect()
         else:
-            self.pingTime = time.time()
+            self.ping_timestamp = time.time()
             self.write(json.dumps({"key":"ping"}))
-            self.pingTimer = reactor.callLater(10,self.doPing)
+            self.ping_timer = reactor.callLater(10,self.do_ping)
             
     def disconnect(self):
         #if self.pingTimer:
@@ -251,8 +251,9 @@ class WebPlayer(Protocol):
             logging.error("Invalid content received from {} (content: {})".format(self.get_player(), content))
             return
             
-        if content["key"] == "ping":
-            self.pingTime = False
+        if content["key"] == "pong":
+            logging.info("GOt pong")
+            self.ping_time = False
             return
         
         # Forward the request to appropriate handler
@@ -273,7 +274,7 @@ class WebPlayer(Protocol):
         self.transport.write(data.encode("utf-8"))
         
         
-    def sendMessage(self,message):
+    def send_message(self,message):
         '''
         message may be either a dictionary or a list of dictionaries
         a dictionary must contain "value" key which is the body of the text
@@ -303,7 +304,7 @@ class WebPlayer(Protocol):
     def sendColor(self,c1,c2):
         self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))
         
-    def sendFont(self,font,size=12):
+    def send_font(self,font,size=12):
         self.write(json.dumps({"key":"font", "font": font, "size": size}))
         
     def sendOfftopic(self,message):

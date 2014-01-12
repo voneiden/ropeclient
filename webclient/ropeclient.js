@@ -56,12 +56,15 @@ function initialize()
     $("#connect_button").click(function() { connect($("#connect_destination").val()) });
     $("#connect_destination").keypress(function (e) { if (e.which == 13) { connect($("#connect_destination").val()); } });
     $("#connect_destination").val( $.jStorage.get("last_url", default_url));
+    $("#connect_destination").focus();
 }
 function connect(url) 
 {
     $.jStorage.set("last_url", url);
     $("#connect_button").hide();
     $("#connect_destination").hide();
+    
+    $("#input").focus();
     
     if ( $.browser.mozilla ) { ws = new MozWebSocket(url); } // Mozilla compatibility
     else { ws = new WebSocket(url); }
@@ -204,7 +207,8 @@ function receiveMessage(e) {
         }
     }
     else if (key == 'ping') {
-        ws_send(JSON.stringify({"key": "ping"}));
+        console.log("PONG");
+        ws_send(JSON.stringify({"key": "pong"}));
     }
     else if (key == 'ptu') {
         // player type update.. single player!!
