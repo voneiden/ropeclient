@@ -155,7 +155,7 @@ class Player(object):
         #NOTE major problem with multi-part messages..8
         # TODO Message format is now dictionary!
         if isinstance(message, str) or isinstance(message, unicode):
-            message = {"value":message}
+            message = {"key":"msg", "value":message}
         
         self.connection.send_message(message)
         

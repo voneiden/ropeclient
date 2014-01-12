@@ -28,13 +28,13 @@ class HandlerLogin(Handler):
         self.state = 0
         self.name = None
        
-    def process_msg(self, content):
-    
-        if len(content["txt"]) == 0:
+    def process_msg(self, message):
+        logging.info(message)
+        if len(message["value"]) == 0:
             return
             
-        if self.state == 1: # 1) Received username
-            self.name = content["txt"]
+        if self.state == 0: # 1) Received username
+            self.name = message["value"]
             if len(self.name) > self.player.core.settings["max_login_name_length"]:
                 return self.player.send_fail_msg("Login name is too long.")
                 

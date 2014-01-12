@@ -252,7 +252,6 @@ class WebPlayer(Protocol):
             return
             
         if content["key"] == "pong":
-            logging.info("GOt pong")
             self.ping_time = False
             return
         
@@ -295,10 +294,10 @@ class WebPlayer(Protocol):
             logging.error("sendMessage got invalid format: {}".format(str(message)))
             return
         
-        if isinstance(message, list) or isinstance(message, tuple):
+        if isinstance(message, list):
             self.write(json.dumps({"key":"msg_list", "value":message}))
         else:
-            self.write(json.dumps({"key":"msg", "value": message}))
+            self.write(json.dumps(message))
 
         
     def sendColor(self,c1,c2):
@@ -351,7 +350,7 @@ class WebPlayer(Protocol):
         f.write(dtb)
         f.close()
         
-        self.sendMessage("<fail>[ERROR] Something you did caused an exception" +
+        self.player.send_message("<fail>[ERROR] Something you did caused an exception" +
                          " on the server. This is probably a bug. The problem" +
                          " has been logged with id {logid}.".format(logid=logid)+
                          " You may help to solve the problem by filing an issue"+

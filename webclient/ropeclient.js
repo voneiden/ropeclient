@@ -38,7 +38,7 @@ autocomplete_commands = {
 edit_history = [];
 edit_index   = -1;
 edit_mem     = ''; 
-editing = 0;
+is_editing = false;
 
 // Special colors
 color_timestamp = 'gray';
@@ -46,8 +46,9 @@ color_timestamp = 'gray';
 // separator line
 update_separator = false;
 
-input_typing = false; 
-input_password = false;
+is_typing = false; 
+is_password = false;
+
 player_list = new Array();
 ws = null;
 
@@ -57,7 +58,126 @@ function initialize()
     $("#connect_destination").keypress(function (e) { if (e.which == 13) { connect($("#connect_destination").val()); } });
     $("#connect_destination").val( $.jStorage.get("last_url", default_url));
     $("#connect_destination").focus();
+    
+    $("#input").keyup(input_event);
 }
+function input_event(event)
+{
+    if (event.keyCode == 13) { input_enter(); }
+    else if (event.keyCode == 8)  { input_tab(); }
+    else if (is_typing == false && $("#entrybox").val().length > 0) { input_typing(true); }
+    else if (is_typing == true && $("#entrybox").val().length == 0) { input_typing(false); }
+}
+
+function input_enter()
+{
+    var message = {};
+    if (is_password == true) 
+    {
+        message.key = "pwd";
+            
+		var shaObj = new jsSHA($("#input").val()+'r0p3s4lt'); // TODO: deal with this poor static salt
+        message.value = shaObj.getHash("SHA-256","HEX");
+		
+		// Clear, detach, change mode to normal text and reattach the input block
+        $("#input").val(""); 
+        var marker = $('<span />').insertBefore('#input');
+        $('#input').detach().attr('type', 'text').insertAfter(marker); 
+        marker.remove(); 
+        $("#input").focus(); 
+    }
+    else if (is_editing == true)
+    {
+        // TODO
+    }
+    else if (autocomplete_buffer.length == 0)
+    {
+        // Normal message
+        message.key = "msg";
+        message.value = $("#input").val();
+        if (message.value.length == 0) { return; }
+        $("#input").val("");
+    }
+    else
+    {
+        // TODO
+    }
+    ws_send(JSON.stringify(message));
+}
+
+function input_tab() {}
+function input_typing() {}
+    /*
+		var message = {};
+        if (input_password == true) { // Currently typing a password
+            
+
+			input_password = false;
+        } // TODO: Continue here
+        else if (editing) {
+            var header = 'edi ' + edit_history[edit_history.length - 1 - edit_index][0]
+            var content = $("#entrybox").val();
+            //displayOfftopic(false,"Sending content: "+content)
+            editing = 0
+            $("#autocomplete").html("");
+            edit_index = -1
+            $("#entrybox").val("");
+        }
+        
+        else if (autocomplete_buffer.length == 0) {
+            var header = 'msg';
+            var content = $("#entrybox").val();
+            // Move the last write delimiter?
+            if (content[0] == '(') {
+                $("#toplw").remove();
+                $("#lefttop").append('<hr id="toplw">');
+                document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
+            }
+            else {
+                $("#bottomlw").remove();
+                $("#leftbottom").append('<hr id="bottomlw">');
+                document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
+            }
+        }
+        else {
+            var header = "cmd";
+            var content = autocomplete_buffer.join("\x1b")
+            var temp = $("#entrybox").val();
+            if (temp.length > 0) {
+                content += "\x1b" + temp
+            }
+            autocomplete_buffer = [];
+            autocomplete_stage = 0;
+            autocomplete_index = 0;
+            autocomplete_cycle = [];
+            displayAutocomplete();
+        }
+        //displayOfftopic("Content: "+content);
+        $("#entrybox").val("");
+        ws_send(header + " " + content);
+        isTyping = 0;
+        
+    }
+    
+    else {
+        //if (event.keyCode == 8) {
+            //AutoComplete(event.keyCode);
+        //}
+        
+        
+        if (isTyping == 0 && $("#entrybox").val().length > 0) {    
+            isTyping = 1;
+            update_separator = true;
+            ws_send("pit")
+        }
+        else if (isTyping == 1 && $("#entrybox").val().length == 0) {
+            isTyping = 0;
+            ws_send("pnt")
+        }
+    }    
+}*/
+
+
 function connect(url) 
 {
     $.jStorage.set("last_url", url);
@@ -207,7 +327,6 @@ function receiveMessage(e) {
         }
     }
     else if (key == 'ping') {
-        console.log("PONG");
         ws_send(JSON.stringify({"key": "pong"}));
     }
     else if (key == 'ptu') {
