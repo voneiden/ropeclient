@@ -6,7 +6,7 @@ Welcome to ropeclient
 | | | (_) | |_) |  __/ (__| | |  __/ | | | |_    \/'_)/ |
 |_|  \___/| .__/ \___|\___|_|_|\___|_| |_|\__|    \/( | :
           |_|                                ,---=='='=`===----.
-    <red>I<blue>n <green>c<purple>o<brown>l<yellow>o<cyan>r<white>!<default>     Version 0.dev              `---==|  ;  \==---'
+    <#ff0000>I<#ff7f00>n <#ffff00>c<#00ff00>o<#0000ff>l<#4b0082>o<#8f00ff>r<white>!<default>     Version 0.dev              `---==|  ;  \==---'
                                                    |  ;.  \
         Version notes                              |  `;   \
          - This is a development version           |   ;.   \
