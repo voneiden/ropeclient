@@ -2,7 +2,7 @@
 // See http://www.github.com/voneiden/ropeclient
 // for license
 
-// Autocomplete variables
+// Autocomplete variables TODO allow server to submit these
 autocomplete_stage = 0;
 autocomplete_base  = "";
 autocomplete_cycle = [];
@@ -31,6 +31,7 @@ autocomplete_commands = {
     'spawn':[3,"Character name?","Short description? (Max 40 chars)","Long description"]
 };
 
+// Define constants
 // Message edit variables
 edit_history = [];
 edit_index   = -1;
@@ -42,6 +43,200 @@ color_timestamp = 'gray';
 
 // separator line
 update_separator = false;
+
+input_typing = false; 
+input_password = false;
+player_list = new Array();
+ws = null;
+
+function initialize()
+{
+    $("#connect_button").click(function() { connect($("#connect_dest").val()) });
+
+}
+function connect(url) 
+{
+    if ( $.browser.mozilla ) { ws = new MozWebSocket(url); } // Mozilla compatibility
+    else { ws = new WebSocket(url); }
+    
+    displayOfftopic("Connecting to " + url + "... socket state "+ws.readyState+"<br>");
+    
+    ws.onopen = function() { displayOfftopic("Connection established.<br>");};
+    ws.onmessage = receiveMessage
+    
+    ws.onclose = function() { // TODO
+        displayMain('<font size="+2" color="red">Disconnected, hit F5 to reconnect</font>')
+        displayOfftopic('<font size="+2" color="red">Disconnected, hit F5 to reconnect</font>')
+    };
+    
+    ws.onerror = function (error) {
+        displayOfftopic(false,"Error: "+error.data+" (Hit F5 to reconnect)");
+    };
+}
+
+
+function receiveMessage(event) {
+    var message = $.trim(e.data);
+    var tok = message.split(" ");
+    var hdr = tok.shift();
+    
+    //message = message.replace(/\n/g,"<br />");
+
+    if (hdr == "msg") {
+        var everything = tok.join(" ");
+        var lines = everything.split("\x1b");
+        var output = [];
+        
+        while (lines.length) {
+            var line = lines.shift();
+            var linetok = line.split("\x1f");
+            var timestamp = linetok.shift();
+            //displayOfftopic(false,timestamp)
+            var editable = linetok.shift();
+            var message = linetok.shift();
+            
+            if (editable == "1") {
+                edit_history.push([timestamp,message])
+            }
+            while (edit_history.length > 10) {
+                edit_history.shift()
+            }
+            
+            message = diceParse(message);
+            message = nameParse(message);
+            var spanid = '';
+            if (timestamp && timestamp != "0") {
+                spanid = ' id="' + timestamp + '"';
+                timestamp = makeTimestamp(timestamp);
+            }
+            else {
+                timestamp = '';
+            }
+            output.push('<span class="msg"' + spanid + ">" + timestamp + message + "</span>");
+        }
+        displayMain(output.join(""));
+    }
+    else if (hdr == "oft") {
+        //A lot faster method of displaying a lot of text at once.
+        //Still needs improving, so lets try..
+        
+        var everything = tok.join(" ");
+        var lines = everything.split("\x1b");
+        var output = [];
+        while (lines.length) {
+            var line = lines.shift();
+            var linetok = line.split(" ");
+            var timestamp = linetok.shift();
+            var message = linetok.join(" ");
+            
+            message = diceParse(message);
+            var spanid = '';
+            if (timestamp && timestamp != "0") {
+                spanid = ' id="' + timestamp + '"';
+                timestamp = makeTimestamp(timestamp);
+            }
+            else {
+                timestamp = '';
+            }
+            output.push('<span class="msg"' + spanid + ">" + timestamp + message + "</span>");
+            //var timestamp = '';
+            //var spanid = '';
+            // if (id && id != "0") {
+            //    spanid = ' id="' + id + '"';
+            //    timestamp = makeTimestamp(id);
+            //    
+            //}
+        }
+        displayOfftopic(output.join(''));
+        //displayOfftopic(false,output.join(""));
+    }
+    else if (hdr == 'pwd') {
+        marker = $('<span />').insertBefore('#entrybox');
+        $('#entrybox').detach().attr('type', 'password').insertAfter(marker);
+        marker.remove();
+        $("#entrybox").focus();
+        //$("#entrybox").attr('type','password');
+        isPassword = 1;
+        //displayOfftopic('pwd toggle');
+    }
+    else if (hdr == 'clr') {
+        var window = tok.shift();
+
+        if (window == 'main') {
+            //$('#leftbottom').innerHTML = "Cleared.<br />";
+            document.getElementById('leftbottom').innerHTML = "";
+        }
+        else if (window == 'offtopic') {
+            document.getElementById('lefttop').innerHTML = "";
+        }
+        else {
+            displayOfftopic(false,"Unknown thingy");
+        }
+    }
+    else if (hdr == 'png') {
+        ws_send('png');
+    }
+    else if (hdr == 'ptu') {
+        // player type update.. single player!!
+        updatePlayer(tok.shift());
+    }
+    else if (hdr == 'plu') {
+        // Player list update!
+        updatePlayerList(tok.shift().split(';'));
+    
+    }
+    else if (hdr == 'col') {
+        c1 = tok.shift();
+        c2 = tok.shift();
+        if (c1 == 'background') { 
+            $("#lefttop").css("background-color",c2);
+            $("#leftbottom").css("background-color",c2);
+            $("#righttop").css("background-color",c2);
+            $("#rightbottom").css("background-color",c2);
+            $("#leftentry").css("background-color",c2);
+            $("#entrybox").css("background-color",c2);
+            
+        }
+        else if (c1 == 'input') { 
+            $("#entrybox").css("color",c2);
+        }
+        else if (c1 == 'timestamp') {
+            color_timestamp = c2;
+        }
+        else { displayOfftopic(false,"Unknown color received.. bug?"); }
+    }
+    else if (hdr == 'fnt') {
+        
+        font = tok.shift();
+        size = tok.shift();
+        $("#lefttop").css("font-family",font);
+        $("#leftbottom").css("font-family",font);
+        $("#lefttop").css("font-size",size);
+        $("#leftbottom").css("font-size",size);
+    }
+    else if (hdr == 'edi') {
+        timestamp = tok.shift();
+        message = tok.join(" ");
+        
+        // Update history
+        for (var i in edit_history) {
+            if (edit_history[i][0] == timestamp) {
+                edit_history[i] = [timestamp,message]
+            }
+        }
+        // Update text
+        message = nameParse(message);
+        //displayOfftopic(false,"Updating id "+timestamp);
+        //$("#"+timestamp).html(message);
+        var element = document.getElementById(timestamp);
+        if (element != null) { element.innerHTML = "[EDITED  ] " + message }
+    }
+    else {
+        displayOfftopic(false,'unknown header (len:'+hdr.length+': ' + hdr);
+    }
+};
+
+
 
 
 function EditHistoryName(msg){
@@ -306,190 +501,7 @@ function swapDice(id,from,to) {
     }
 
 }
-function ws_init(url) {
-    if ( $.browser.mozilla ) {
-        ws = new MozWebSocket(url);
-    } else {
-        ws = new WebSocket(url);
-    }
-    
-    displayOfftopic("Connecting to " + url + "... socket state "+ws.readyState+"<br>");
-    
-    ws.onopen = function() {
-        displayOfftopic("Connection established.<br>");
-    };
-    
-    ws.onmessage = function(e) {
-        var message = $.trim(e.data);
-        var tok = message.split(" ");
-        var hdr = tok.shift();
-        
-        //message = message.replace(/\n/g,"<br />");
 
-        if (hdr == "msg") {
-            var everything = tok.join(" ");
-            var lines = everything.split("\x1b");
-            var output = [];
-            
-            while (lines.length) {
-                var line = lines.shift();
-                var linetok = line.split("\x1f");
-                var timestamp = linetok.shift();
-                //displayOfftopic(false,timestamp)
-                var editable = linetok.shift();
-                var message = linetok.shift();
-                
-                if (editable == "1") {
-                    edit_history.push([timestamp,message])
-                }
-                while (edit_history.length > 10) {
-                    edit_history.shift()
-                }
-                
-                message = diceParse(message);
-                message = nameParse(message);
-                var spanid = '';
-                if (timestamp && timestamp != "0") {
-                    spanid = ' id="' + timestamp + '"';
-                    timestamp = makeTimestamp(timestamp);
-                }
-                else {
-                    timestamp = '';
-                }
-                output.push('<span class="msg"' + spanid + ">" + timestamp + message + "</span>");
-            }
-            displayMain(output.join(""));
-        }
-        else if (hdr == "oft") {
-            //A lot faster method of displaying a lot of text at once.
-            //Still needs improving, so lets try..
-            
-            var everything = tok.join(" ");
-            var lines = everything.split("\x1b");
-            var output = [];
-            while (lines.length) {
-                var line = lines.shift();
-                var linetok = line.split(" ");
-                var timestamp = linetok.shift();
-                var message = linetok.join(" ");
-                
-                message = diceParse(message);
-                var spanid = '';
-                if (timestamp && timestamp != "0") {
-                    spanid = ' id="' + timestamp + '"';
-                    timestamp = makeTimestamp(timestamp);
-                }
-                else {
-                    timestamp = '';
-                }
-                output.push('<span class="msg"' + spanid + ">" + timestamp + message + "</span>");
-                //var timestamp = '';
-                //var spanid = '';
-                // if (id && id != "0") {
-                //    spanid = ' id="' + id + '"';
-                //    timestamp = makeTimestamp(id);
-                //    
-                //}
-            }
-            displayOfftopic(output.join(''));
-            //displayOfftopic(false,output.join(""));
-        }
-        else if (hdr == 'pwd') {
-            marker = $('<span />').insertBefore('#entrybox');
-            $('#entrybox').detach().attr('type', 'password').insertAfter(marker);
-            marker.remove();
-            $("#entrybox").focus();
-            //$("#entrybox").attr('type','password');
-            isPassword = 1;
-            //displayOfftopic('pwd toggle');
-        }
-        else if (hdr == 'clr') {
-            var window = tok.shift();
-
-            if (window == 'main') {
-                //$('#leftbottom').innerHTML = "Cleared.<br />";
-                document.getElementById('leftbottom').innerHTML = "";
-            }
-            else if (window == 'offtopic') {
-                document.getElementById('lefttop').innerHTML = "";
-            }
-            else {
-                displayOfftopic(false,"Unknown thingy");
-            }
-        }
-        else if (hdr == 'png') {
-            ws_send('png');
-        }
-        else if (hdr == 'ptu') {
-            // player type update.. single player!!
-            updatePlayer(tok.shift());
-        }
-        else if (hdr == 'plu') {
-            // Player list update!
-            updatePlayerList(tok.shift().split(';'));
-        
-        }
-        else if (hdr == 'col') {
-            c1 = tok.shift();
-            c2 = tok.shift();
-            if (c1 == 'background') { 
-                $("#lefttop").css("background-color",c2);
-                $("#leftbottom").css("background-color",c2);
-                $("#righttop").css("background-color",c2);
-                $("#rightbottom").css("background-color",c2);
-                $("#leftentry").css("background-color",c2);
-                $("#entrybox").css("background-color",c2);
-                
-            }
-            else if (c1 == 'input') { 
-                $("#entrybox").css("color",c2);
-            }
-            else if (c1 == 'timestamp') {
-                color_timestamp = c2;
-            }
-            else { displayOfftopic(false,"Unknown color received.. bug?"); }
-        }
-        else if (hdr == 'fnt') {
-            
-            font = tok.shift();
-            size = tok.shift();
-            $("#lefttop").css("font-family",font);
-            $("#leftbottom").css("font-family",font);
-            $("#lefttop").css("font-size",size);
-            $("#leftbottom").css("font-size",size);
-        }
-        else if (hdr == 'edi') {
-            timestamp = tok.shift();
-            message = tok.join(" ");
-            
-            // Update history
-            for (var i in edit_history) {
-                if (edit_history[i][0] == timestamp) {
-                    edit_history[i] = [timestamp,message]
-                }
-            }
-            // Update text
-            message = nameParse(message);
-            //displayOfftopic(false,"Updating id "+timestamp);
-            //$("#"+timestamp).html(message);
-            var element = document.getElementById(timestamp);
-            if (element != null) { element.innerHTML = "[EDITED  ] " + message }
-        }
-        else {
-            displayOfftopic(false,'unknown header (len:'+hdr.length+': ' + hdr);
-        }
-    };
-    
-    ws.onclose = function() {
-        displayMain('<font size="+2" color="red">Disconnected, hit F5 to reconnect</font>')
-        displayOfftopic('<font size="+2" color="red">Disconnected, hit F5 to reconnect</font>')
-    };
-    
-    ws.onerror = function (error) {
-        //alert(error.toSource())
-        displayOfftopic(false,"Error: "+error.data+" (Hit F5 to reconnect)");
-    };
-}
 
 function updatePlayer(playerinfo) {
     var info = playerinfo.split(':');
@@ -551,7 +563,12 @@ $(window).focus(function(event){
     //displayOfftopic(0,"Got focus");
     setTimeout(function() { $("#entrybox").focus(); }, 0);
 });
-$(document).ready(function(){
+
+
+
+$(document).ready(function(){ initialize() });
+
+/*
     input_typing = false;
     input_password = false;
     playerList = new Array();
@@ -662,4 +679,4 @@ $(document).ready(function(){
     //    setTimeout(function() { $("#entrybox").focus(); }, 0);
     //});
     ws_init("ws://ninjabox.sytes.net:9091")
-});
+});*/
