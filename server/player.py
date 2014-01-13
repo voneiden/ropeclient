@@ -158,6 +158,18 @@ class Player(object):
             message = {"key":"msg", "value":message}
         
         self.connection.send_message(message)
+    
+    
+    def send_message_fail(self, message):
+        if isinstance(message, str) or isinstance(message, unicode):
+            message = "<fail>" + message
+        elif isinstance(message, dict) and "value" in message:
+            message["value"] = "<fail>" + message["value"]
+        self.send_message(message)
+         
+    
+    def send_password(self):
+        self.connection.send_password()
         
         """
         if isinstance(message,list):

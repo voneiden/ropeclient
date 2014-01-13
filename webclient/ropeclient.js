@@ -77,7 +77,7 @@ function input_enter()
         message.key = "pwd";
             
 		var shaObj = new jsSHA($("#input").val()+'r0p3s4lt'); // TODO: deal with this poor static salt
-        message.value = shaObj.getHash("SHA-256","HEX");
+        message.value = shaObj.getHash("SHA-256","HEX");      // Though; does this service require such strong authentication?
 		
 		// Clear, detach, change mode to normal text and reattach the input block
         $("#input").val(""); 
@@ -304,12 +304,12 @@ function receiveMessage(e) {
         //displayOfftopic(false,output.join(""));
     }
     else if (key == 'pwd') {
-        marker = $('<span />').insertBefore('#entrybox');
-        $('#entrybox').detach().attr('type', 'password').insertAfter(marker);
+        marker = $('<span />').insertBefore('#input');
+        $('#input').detach().attr('type', 'password').insertAfter(marker);
         marker.remove();
-        $("#entrybox").focus();
+        $("#input").focus();
         //$("#entrybox").attr('type','password');
-        isPassword = 1;
+        is_password = 1;
         //displayOfftopic('pwd toggle');
     }
     else if (key == 'clr') {

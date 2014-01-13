@@ -304,7 +304,9 @@ class WebPlayer(Protocol):
         else:
             self.write(json.dumps(message))
 
-        
+    def send_password(self):
+        self.write(json.dumps({"key":"pwd"}))
+            
     def sendColor(self,c1,c2):
         self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))
         

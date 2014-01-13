@@ -19,6 +19,9 @@ class Handler(object):
     def process_pnt(self, content):
         return False
         
+    def process_pwd(self, content):
+        return False
+        
     def process_nan(self, content):
         logging.error("Undefined cmd in message content")
         
@@ -33,12 +36,25 @@ class HandlerLogin(Handler):
         if len(message["value"]) == 0:
             return
             
-        if self.state == 0: # 1) Received username
+        # 1) Received username
+        if self.state == 0: 
             self.name = message["value"]
             if len(self.name) > self.player.core.settings["max_login_name_length"]:
-                return self.player.send_fail_msg("Login name is too long.")
+                self.player.send_message_fail("Login name is too long.")
+                return
                 
+            else:
+                # TODO: check if account exists
+                self.state = 1
+                self.player.send_message("Password?")
+                self.player.send_password()
+                return
                 
+     
+        
+    def process_pwd(self, pwd):
+        if self.state == 1:
+            self.player.send_message("now should verify your pwd")
         
         
     def handler_login(self, header, message):
