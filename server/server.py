@@ -251,9 +251,14 @@ class WebPlayer(Protocol):
             logging.error("Invalid content received from {} (content: {})".format(self.get_player(), content))
             return
             
+        if not content["key"].isalpha():
+            logging.error("Invalid content key received from {} (content: {})".format(self.get_player(), content))
+        
         if content["key"] == "pong":
             self.ping_time = False
             return
+        
+        
         
         # Forward the request to appropriate handler
         # Example: self.player.handler.process_msg
