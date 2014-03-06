@@ -59,6 +59,7 @@ class HandlerLogin(Handler):
         
     def handler_login(self, header, message):
         '''
+        THIS FUNCTION IS NOT USED ANYMORE
         State 1 - asking for name
         State 2 - asking for password
         State 10 - asking for new account verification
@@ -75,7 +76,7 @@ class HandlerLogin(Handler):
                 self.handlerstate = 2
                 self.account = account[0]
                 
-                self.connection.write('pwd\r\n')
+                self.connection.write('pwd\r\n') #TODO
                 return u"Your <fail>password<reset>?"   
             else:
                 if re.match("^[A-Za-z]+$", message[0]):

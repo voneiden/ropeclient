@@ -41,8 +41,10 @@ import world
 
 #log.startLogging(sys.stdout)
 
+
 class Core(object):
     """ This class is the core object of the server. It links everything else together. """
+
     def __init__(self):    
         logger = logging.getLogger("")
         logger.handlers = []
@@ -55,7 +57,7 @@ class Core(object):
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
         logging.info("Logger configured")
-		
+
         self.version = "0.f"
         self.greeting = open('motd.txt', 'r').readlines()
         self.worlds = [world.World("Official sandbox",None,['voneiden'])]
@@ -84,15 +86,15 @@ class Core(object):
             
         for player in self.players:
             #TODO: Consider this
-            if not hasattr(account,"colors"):
+            if not hasattr(player,"colors"):
                 logging.info("Fixing missing account color table")
-                account.colors = {}
-            if not hasattr(account,"font"):
+                player.colors = {}
+            if not hasattr(player,"font"):
                 logging.info("Fixing missing font data")
-                account.font = ("Monospace",8)
-            if not hasattr(account,"hilights"):
+                player.font = ("Monospace",8)
+            if not hasattr(player,"hilights"):
                 logging.info("Fixing missing hilights data")
-                account.hilights = OrderedDict()
+                player.hilights = OrderedDict()
                 
     def accounts_save(self):
         logging.info("Saving accounts")
@@ -110,8 +112,7 @@ class Core(object):
                     world = pickle.load(f)
                     f.close()
                     world.setup(self)
-                    
-        
+
     def worlds_save(self):
         logging.info("CORE: Save the worlds from destruction!")
         for world in core.worlds:
@@ -132,24 +133,23 @@ class Core(object):
                 except AttributeError:
                     return "$(c:default)"  # Default to white
                 except ValueError: #TODO solving a bug here
-                    print ("Match:",match.group())
+                    #print ("Match:",match.group())
                     return "$(c:default)"
                 
         return "$(c:{0})".format(color)
         
     def sanitize(self, text):
-        ''' 
+        """
         Use this function to sanitize any user input.
         It first converts colors and then strips <>& characters
         Note it does not currently strip "
-        '''
+        """
         
         text = re.sub("\<[\w#]+?\>", self.color_convert, text)
         text = cgi.escape(text, True)
         
         return text
-        
-        
+
     def find(self,source,pattern,instance):
         # source = player object
         # Pattern = pattern to be found

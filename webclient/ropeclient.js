@@ -65,8 +65,8 @@ function input_event(event)
 {
     if (event.keyCode == 13) { input_enter(); }
     else if (event.keyCode == 8)  { input_tab(); }
-    else if (is_typing == false && $("#entrybox").val().length > 0) { input_typing(true); }
-    else if (is_typing == true && $("#entrybox").val().length == 0) { input_typing(false); }
+    else if (is_typing == false && $("#entrybox").val() != undefined) { input_typing(true); }
+    else if (is_typing == true && $("#entrybox").val() == undefined) { input_typing(false); }
 }
 
 function input_enter()
@@ -206,7 +206,7 @@ function connect(url)
 
 
 function receiveMessage(e) {
-    var messsage;
+    var message;
     try { message = JSON.parse(e.data); }
     catch (SyntaxError) {
         console.log("Parse error");
