@@ -1,3 +1,9 @@
+0.0 LATEST NEWS
+
+This project is definitely not dead. Current active development focuses
+on redis database integration and rather big code refactoring. The
+active development branches are dev and redis as of writing this.
+
 1.0 About
 Ropeclient is a text based virtual tabletop for roleplaying online.
 
