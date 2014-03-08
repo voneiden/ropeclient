@@ -52,7 +52,7 @@ class HandlerLogin(Handler):
                 
      
         
-    def process_pwd(self, pwd):
+    def process_pwd(self, pwd):1
         if self.state == 1:
             self.player.send_message("now should verify your pwd")
         

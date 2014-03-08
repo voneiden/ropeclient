@@ -1,7 +1,7 @@
 #!/usr/bin/python2
 # -*- coding: utf-8 -*-
 
-'''
+"""
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -17,19 +17,132 @@
 
     Copyright 2010-2013 Matti Eiden <snaipperi()gmail.com>
 
-'''
-'''
-Design some kind of nice system when loading a saved world that checks for missing
-attributes
-'''
+"""
+import logging
 
+
+from core import Core
+from database import Database
+from redis import StrictRedis
+
+class WorldDatabase(Database):
+    def __init__(self, core=None, client=None):
+        """ WorldDatabase provides general world information
+
+        @param core: Core object
+        @type core: Core
+        @type client: StrictRedis
+        """
+        assert isinstance(core, Core)
+        assert isinstance(client, StrictRedis)
+
+        Database.__init__(self, core=core, client=client)
+
+        if len(self.list()) == 0:
+            logging.info("No default worlds found, creating one")
+            self.new(name="Official Sandbox")
+
+    def list(self):
+        idents = self.client.smembers("rp:worlds.list")
+        return idents  # TODO: Generate dict
+
+    def new(self, name="New world", password="", masters=[], **kwargs):
+        """ Used to create a new world
+
+        @param name: World name
+        @param password: World password (empty string for none)
+        @param masters: List of game masters
+        @param **kwargs: Optional
+        @type name: str
+        @type password: str
+        @type masters: (list, tuple)
+        @return:
+        """
+        assert isinstance(name, str)
+        assert isinstance(password, str)
+        assert isinstance(masters, list) or isinstance(masters, tuple)
+
+        logging.info("Generating a new world..")
+
+        # Generate a new ident for the world
+        ident = str(self.client.incr("rp:worlds.ident"))
+
+        # Create world object
+        world = World(core=self.core, client=self.client, ident=ident)
+        assert isinstance(world, Database)  # PyCharm assert hint
+
+        # Add details
+        world.set("name", name)
+        world.set("password", password)
+        world.sadd(ident, "masters", masters)
+
+        logging.info("New world generated succesfully!")
+
+    def path(self, *args):
+        """ Provides path for world objects
+
+        @param args: Must contain ident and optionally an attribute key
+        @return:
+        """
+        ident = args[0]
+        key = args[1] if len(args) > 1 else ""
+
+        assert isinstance(ident, str)
+        assert isinstance(key, str)
+        if isinstance(key, str):
+            return "rp:worlds:{}{}".format(ident, ".{}".format(key) if len(key) else "")
+
+        elif isinstance(key, list) or isinstance(key, tuple):
+            key = list(key)
+            raise NotImplementedError
+
+
+
+
+class World(Database):
+    def __init__(self, core=None, client=None, ident=None): # FIXME: THIS DOES NOT WORK!
+        """ WorldDatabase acts as a link between the redis database and world information
+
+        @param core: Core object
+        @param ident: Identity of the object
+        @type core: Core
+        @type ident: str
+        """
+        assert isinstance(core, Core)
+        assert isinstance(client, StrictRedis)
+        assert isinstance(ident, str)
+
+        Database.__init__(self, core=core, client=client)
+        self.ident = ident
+        logging.info("World ID:{} established".format(ident))
+
+    def path(self, *args):
+        """ Provides path for world objects
+
+        @param args: May contain optionally a key or list of keys
+        @return:
+        """
+
+        if not len(args):
+            return "rp:worlds:{}".format(self.ident)
+
+        elif len(args) == 1 and isinstance(args[0], str):
+            return "rp:worlds:{}.{}".format(self.ident, args[0])
+
+        else:
+            keys = list(args)
+            for i, k in enumerate(keys):
+                keys[i] = "rp:worlds:{}.{}".format(self.ident, k)
+            return keys
+
+        # TODO: dicts?
 # NOTE character deleting has potential memory leak issue: memorize function might
 #contain a reference to the character? too lazy to check right now
 #FIXME
 
 #TODO Make it so that souls can see the last 100 lines that have been happening in a location.
 
-
+"""
 import pickle, time, re, random, logging
 from collections import OrderedDict
 
@@ -320,7 +433,7 @@ class World(object):
     def remExit(self,exit):
         self.remObject(exit)
         
-
+"""
         
         
         
