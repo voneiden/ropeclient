@@ -27,18 +27,11 @@ from twisted.internet import defer
 from txws import WebSocketFactory
 from collections import OrderedDict
 
-import cgi     # Used for HTML escaping
-import json    
+import json
 import logging
-import os
-import pickle
-#import player
-import re
-import redis
-import redis.exceptions
-import sys
 import time
-import webcolors
+
+from handler import HandlerLogin
 
 
 from core import Core
@@ -49,17 +42,20 @@ class WebPlayer(Protocol):
         #Protocol.__init__(self, *args, **kwargs)
         self.core = None
         self.player = None
+        self.login_handler = None
+
         self.ping_timer = False
         self.ping_time = False
         self.ping_timestamp = False
-
 
     def connectionMade(self):
         logging.info("Web connection made")
 
         self.core = self.factory.core
         self.send_font("Monospace")
-        
+
+        self.login_handler = HandlerLogin(self)
+
         # Send MOTD
         buf = []
         for line in self.core.greeting:
@@ -113,18 +109,18 @@ class WebPlayer(Protocol):
         if content["key"] == "pong":
             self.ping_time = False
             return
-        
-        
-        
+
         # Forward the request to appropriate handler
         # Example: self.player.handler.process_msg
-        f = getattr(self.player.handler, "process_{}".format(content["key"]))
+        if self.player:
+            f = getattr(self.player.handler, "process_{}".format(content["key"]))
+        else:
+            f = getattr(self.login_handler, "process_{}".format(content["key"]))
         
         d = defer.Deferred()
         d.addCallback(f)
         d.addErrback(self.failure)
         d.callback(content)
-        
         
     def write(self,data):
         # TODO: json
@@ -132,24 +128,25 @@ class WebPlayer(Protocol):
         #data = data.replace("\n",'<br>')
 
         self.transport.write(data.encode("utf-8"))
-        
-        
-    def send_message(self,message):
-        '''
+
+    def send_message(self, message):
+        """
         message may be either a dictionary or a list of dictionaries
         a dictionary must contain "value" key which is the body of the text
         it may also contain: 
             - timestamp  - if defined, the client will display a timestamp
             - edit       - if true, the user can edit the line
-        '''
+        """
+        if isinstance(message, str) or isinstance(message, unicode):
+            message = {"key":"msg", "value":message}
 
         try:
             if isinstance(message, list):
                 for submessage in message:    
-                    assert isinstance(submessage, dict)
+                    assert isinstance(submessage, dict) and "value" in submessage
                     submessage["value"] = self.core.sanitize(submessage["value"])
             else:
-                assert isinstance(message, dict)   
+                assert isinstance(message, dict) and "value" in message
                 message["value"] = self.core.sanitize(message["value"])
         except:
             logging.error("sendMessage got invalid format: {}".format(str(message)))
@@ -160,6 +157,16 @@ class WebPlayer(Protocol):
             self.write(json.dumps({"key":"msg_list", "value":message}))
         else:
             self.write(json.dumps(message))
+
+    def send_message_fail(self, message):
+        if isinstance(message, str) or isinstance(message, unicode):
+            message = {"key":"msg", "value":message}
+        else:
+            assert isinstance(message, dict)
+            assert "value" in message
+
+        message["value"] = "<fail>" + message["value"]
+        self.send_message(message)
 
     def send_password(self):
         self.write(json.dumps({"key":"pwd"}))

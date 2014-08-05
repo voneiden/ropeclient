@@ -291,24 +291,11 @@ class PlayerOLD(object):
                                                         
         
     def send_message(self, message): #TODO remove this function
-        ''' This function will also do some parsing stuff! '''
-        #if self.character: #TODO fix
-        #    message = self.character.parse(message)
-        
-        #NOTE major problem with multi-part messages..8
-        # TODO Message format is now dictionary!
-        if isinstance(message, str) or isinstance(message, unicode):
-            message = {"key":"msg", "value":message}
-        
         self.connection.send_message(message)
     
     
     def send_message_fail(self, message):
-        if isinstance(message, str) or isinstance(message, unicode):
-            message = "<fail>" + message
-        elif isinstance(message, dict) and "value" in message:
-            message["value"] = "<fail>" + message["value"]
-        self.send_message(message)
+        self.connection.send_message_fail(message)
          
     
     def send_password(self):
