@@ -4,20 +4,23 @@ import logging
 
 
 class CharacterManager(Database):
-    def __init__(self, core=None, client=None):
+    def __init__(self, core, client, world):
         """
         CharacterManager provides interface for database actions involving
         listing, creating and deleting player objects.
 
         @param core: Core object
         @type core: Core
+        @param client: Redis client object
         @type client: StrictRedis
+        @param world: world ident associated with this instance
         """
         assert isinstance(core, Core)
         assert isinstance(client, StrictRedis)
 
         Database.__init__(self, core=core, client=client)
 
+        self.world = world
         self.interfaces = {}  # The dictionary of player idents mapped to player instances
         idents = self.list()
 
@@ -102,7 +105,7 @@ class CharacterManager(Database):
         """
 
         if len(args) > 0 and isinstance(args[0], str):
-            return "rp:characters.{}".format(args[0])
+            return "rp:worlds:{}.characters:{}".format(self.world, args[0])
         else:
             return "rp:characters"
 

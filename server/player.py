@@ -207,6 +207,9 @@ class Player(Database):
     def send_password(self):
         self.connection.send_password()
 
+    def disconnect(self):
+        pass
+
 
 class PlayerOLD(object):
     '''

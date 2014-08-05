@@ -29,6 +29,27 @@ class Handler(object):
         logging.error("Undefined cmd in message content")
 
 
+class HandlerGame(Handler):
+    def __init__(self, player):
+        """
+        This handler handles the main menu where user can choose to join and create new worlds
+
+        @param player:
+        @type player: player.Player
+        @return:
+        """
+        Handler.__init__(self, player)
+        self.state = 0
+
+        # TODO initialize stuff
+        self.player.character = None
+
+        # TODO refill offtopic chat
+
+    def process_msg(self, message):
+        pass
+
+
 class HandlerLogin(Handler):
     """
         state 0 msg - receiving username
@@ -47,7 +68,6 @@ class HandlerLogin(Handler):
         self.password = None
         self.ident = None
 
-       
     def process_msg(self, message):
         logging.info(message)
         if len(message["value"]) == 0:
@@ -179,7 +199,11 @@ class HandlerWorld(Handler):
                 return
 
             else:
+                self.player.world = world
                 self.player.send_message("Joining world '{}'".format(world.get("name")))
+
+                self.player.handler = HandlerGame(self.player)
+
 
 
 
