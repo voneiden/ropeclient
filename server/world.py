@@ -19,15 +19,16 @@
 
 """
 import logging
-
-
 from core import Core
 from database import Database
 from redis import StrictRedis
 
-class WorldDatabase(Database):
+
+class WorldManager(Database):
     def __init__(self, core=None, client=None):
-        """ WorldDatabase provides general world information
+        """
+        WorldManager provides interface for database actions involving
+        listing, creating and deleting world objects.
 
         @param core: Core object
         @type core: Core
@@ -38,7 +39,18 @@ class WorldDatabase(Database):
 
         Database.__init__(self, core=core, client=client)
 
-        if len(self.list()) == 0:
+        self.interfaces = {}  # The dictionary of world idents mapped to world instances
+        idents = self.list()
+        logging.info("IDENTS: {}".format(str(idents)))
+        logging.info("Creating world interface instances..")
+        for ident in idents:
+            assert isinstance(ident, str)
+            if ident not in self.interfaces:
+                logging.info("Loading new world (ident: {})".format(ident))
+                self.interfaces[ident] = World(core, client, ident)
+
+        # If not worlds exist, create a default world
+        if len(idents) == 0:
             logging.info("No default worlds found, creating one")
             self.new(name="Official Sandbox")
 
@@ -64,44 +76,56 @@ class WorldDatabase(Database):
 
         logging.info("Generating a new world..")
 
-        # Generate a new ident for the world
-        ident = str(self.client.incr("rp:worlds.ident"))
+        # Generate a new ident for the player and verify it is unused
+        i_break = 0
+        while True:
+            ident = str(self.incr("ident"))
+            if ident not in self.interfaces:
+                break
+
+            if i_break > 10:
+                logging.error("Unable to generate a unique ident. Aborting.")
+                return False
+
+
+        # Add the ident to world members
+        self.sadd("list", ident)
 
         # Create world object
         world = World(core=self.core, client=self.client, ident=ident)
         assert isinstance(world, Database)  # PyCharm assert hint
+
+        # Update interfaces (we already verified the ident is unique above)
+        self.interfaces[ident] = world
 
         # Add details
         world.set("name", name)
         world.set("password", password)
         world.sadd(ident, "masters", masters)
 
-        logging.info("New world generated succesfully!")
+        logging.info("New world generated successfully!")
 
     def path(self, *args):
-        """ Provides path for world objects
+        """
+        Path to world root (rp:worlds) and optional key (arg0)
 
-        @param args: Must contain ident and optionally an attribute key
+        @param args: Optional key
         @return:
         """
-        ident = args[0]
-        key = args[1] if len(args) > 1 else ""
 
-        assert isinstance(ident, str)
-        assert isinstance(key, str)
-        if isinstance(key, str):
-            return "rp:worlds:{}{}".format(ident, ".{}".format(key) if len(key) else "")
-
-        elif isinstance(key, list) or isinstance(key, tuple):
-            key = list(key)
-            raise NotImplementedError
+        if len(args) > 0 and isinstance(args[0], str):
+            return "rp:worlds.{}".format(args[0])
+        else:
+            return "rp:worlds"
 
 
 
 
 class World(Database):
     def __init__(self, core=None, client=None, ident=None): # FIXME: THIS DOES NOT WORK!
-        """ WorldDatabase acts as a link between the redis database and world information
+        """
+        World object provides interface to access a world object
+        in the database.
 
         @param core: Core object
         @param ident: Identity of the object
@@ -114,7 +138,6 @@ class World(Database):
 
         Database.__init__(self, core=core, client=client)
         self.ident = ident
-        logging.info("World ID:{} established".format(ident))
 
     def path(self, *args):
         """ Provides path for world objects
@@ -123,7 +146,7 @@ class World(Database):
         @return:
         """
 
-        if not len(args):
+        if len(args) == 0:
             return "rp:worlds:{}".format(self.ident)
 
         elif len(args) == 1 and isinstance(args[0], str):

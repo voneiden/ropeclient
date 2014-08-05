@@ -26,8 +26,14 @@ class Core(object):
     """ This class is the core object of the server. It links everything else together. """
 
     def __init__(self):
+        # Define settings
+        self.settings = {"max_login_name_length": 30}
+
+
         from database import Database
-        from world import WorldDatabase
+        from world import WorldManager
+        from player import PlayerManager
+
         from redis.exceptions import ConnectionError
 
         logger = logging.getLogger("")
@@ -55,22 +61,16 @@ class Core(object):
             logging.error("Unable to establish database connection, closing server.")
             sys.exit(1)
 
-        # Initialize world class
+        # Initialize world manager
         logging.info("Setting up worlds")
-        self.worlds = WorldDatabase(core=self, client=self.db.client)
-        logging.info("Loaded {0} worlds.".format(len(self.worlds.list())))
+        self.worlds = WorldManager(core=self, client=self.db.client)
+        logging.info("Loaded {0} world{1}.".format(len(self.worlds.list()), "s" if (len(self.worlds.list()) != 1) else ""))
 
+        # Initialize player manager
+        logging.info("Setting up players")
+        self.players = PlayerManager(core=self, client=self.db.client)
+        logging.info("Loaded {0} player{1}.".format(len(self.players.list()), "s" if (len(self.players.list()) != 1) else ""))
 
-        # Load accounts
-        #self.accounts = account.Database(self)
-
-
-        # Clear player dict
-        self.players = {}
-
-
-
-        self.settings = {"max_login_name_length": 30}
         logging.info("Server ready")
 
 

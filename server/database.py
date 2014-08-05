@@ -90,8 +90,17 @@ class Database(object):
 
         assert isinstance(key, str)
         assert isinstance(values, list) or isinstance(values, tuple)
-        return self.client.sadd(self.path(key), values)
+        return self.client.sadd(self.path(key), *values)
 
+    def incr(self, key):
+        """
+        Increment a key
+
+        @param key: Key to be incremented
+        @return: New value
+        """
+        assert isinstance(key ,str)
+        return self.client.incr(self.path(key))
 
     def path(self, *args):
         """ OVERRIDE THIS FUNCTION
