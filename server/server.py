@@ -45,26 +45,32 @@ from core import Core
 
 
 class WebPlayer(Protocol):
+    def __init__(self, *args, **kwargs):
+        #Protocol.__init__(self, *args, **kwargs)
+        self.core = None
+        self.player = None
+        self.ping_timer = False
+        self.ping_time = False
+        self.ping_timestamp = False
+
+
     def connectionMade(self):
-        #TODO: require version from weblclient too
         logging.info("Web connection made")
+
         self.core = self.factory.core
-        self.player = player.Player(self, self.core)
         self.send_font("Monospace")
         
         # Send MOTD
         buf = []
         for line in self.core.greeting:
-            buf.append({"value":line})
+            buf.append({"value": line})
         self.send_message(buf)
-        
-        self.ping_timer = False
-        self.ping_time = False
+
         self.do_ping()
     
     def do_ping(self,*args):
         self.ping_timer = False
-        if self.ping_time != False: # This means last request was not replied
+        if self.ping_time: # This means last request was not replied
             logging.info("ping not replied, disconnecting")
             self.disconnect()
         else:
@@ -147,6 +153,7 @@ class WebPlayer(Protocol):
                 message["value"] = self.core.sanitize(message["value"])
         except:
             logging.error("sendMessage got invalid format: {}".format(str(message)))
+            raise
             return
         
         if isinstance(message, list):

@@ -19,8 +19,9 @@
 """
 import logging
 import sys
-
-
+import re
+import cgi
+import webcolors
 
 class Core(object):
     """ This class is the core object of the server. It links everything else together. """
@@ -33,6 +34,7 @@ class Core(object):
         from database import Database
         from world import WorldManager
         from player import PlayerManager
+        from character import CharacterManager
 
         from redis.exceptions import ConnectionError
 
@@ -70,6 +72,11 @@ class Core(object):
         logging.info("Setting up players")
         self.players = PlayerManager(core=self, client=self.db.client)
         logging.info("Loaded {0} player{1}.".format(len(self.players.list()), "s" if (len(self.players.list()) != 1) else ""))
+
+        # Initialize character manager
+        logging.info("Setting up characters")
+        self.characters = CharacterManager(core=self, client=self.db.client)
+        logging.info("Loaded {0} character{1}.".format(len(self.characters.list()), "s" if (len(self.characters.list()) != 1) else ""))
 
         logging.info("Server ready")
 

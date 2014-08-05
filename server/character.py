@@ -1,5 +1,7 @@
 from core import Core
 from database import Database, StrictRedis
+import logging
+
 
 class CharacterManager(Database):
     def __init__(self, core=None, client=None):
@@ -68,7 +70,7 @@ class CharacterManager(Database):
         self.sadd("list", ident)
 
         # Create character object
-        character = Player(core=self.core, client=self.client, ident=ident)
+        character = Character(core=self.core, client=self.client, ident=ident)
         assert isinstance(character, Database)  # PyCharm assert hint
 
         # Update interfaces (we already verified the ident is unique above)

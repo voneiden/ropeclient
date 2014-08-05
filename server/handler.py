@@ -24,7 +24,8 @@ class Handler(object):
         
     def process_nan(self, content):
         logging.error("Undefined cmd in message content")
-        
+
+
 class HandlerLogin(Handler):
     def __init__(self, player):
         Handler.__init__(self, player)
