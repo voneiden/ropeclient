@@ -32,8 +32,6 @@ import logging
 import time
 
 from handler import HandlerLogin
-
-
 from core import Core
 
 

@@ -3,7 +3,13 @@
 // for license
 
 // Customize default url
-default_url = "ws://ninjabox.sytes.net:9091"
+switch(window.location.protocol) {
+    case 'file:':
+        default_url = "ws://localhost:9091" // If client is accessed as file:/// default to localhost
+        break;
+    default:
+        default_url = "ws://ninjabox.sytes.net:9091" // Else default to web
+}
 
 autocomplete_stage = 0;
 autocomplete_base  = "";
