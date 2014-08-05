@@ -55,7 +55,7 @@ class Core(object):
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
         logging.info("Logger configured")
-		
+
         self.version = "0.f"
         self.greeting = open('motd.txt', 'r').readlines()
         self.worlds = [world.World("Official sandbox",None,['voneiden'])]

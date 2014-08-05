@@ -24,8 +24,13 @@ class Handler(object):
         
     def process_nan(self, content):
         logging.error("Undefined cmd in message content")
-        
+
+
 class HandlerLogin(Handler):
+    """
+        state 0 msg - receiving username
+
+    """
     def __init__(self, player):
         Handler.__init__(self, player)
         self.state = 0
@@ -36,14 +41,17 @@ class HandlerLogin(Handler):
         if len(message["value"]) == 0:
             return
             
-        # 1) Received username
+        # State 0 - Received username
         if self.state == 0: 
             self.name = message["value"]
+
+            # Test max length
             if len(self.name) > self.player.core.settings["max_login_name_length"]:
-                self.player.send_message_fail("Login name is too long.")
+                self.player.send_message_fail("Login name is too long. Your name?")
                 return
                 
-            else:
+            # Test if account exists
+
                 # TODO: check if account exists
                 self.state = 1
                 self.player.send_message("Password?")
