@@ -90,7 +90,9 @@ function input_enter()
         var marker = $('<span />').insertBefore('#input');
         $('#input').detach().attr('type', 'text').insertAfter(marker); 
         marker.remove(); 
-        $("#input").focus(); 
+        $("#input").focus();
+
+        is_password = false;
     }
     else if (is_editing == true)
     {

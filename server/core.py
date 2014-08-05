@@ -24,12 +24,13 @@ import cgi
 import webcolors
 
 class Core(object):
-    """ This class is the core object of the server. It links everything else together. """
+    """
+
+    """
 
     def __init__(self):
         # Define settings
         self.settings = {"max_login_name_length": 30}
-
 
         from database import Database
         from world import WorldManager
@@ -71,6 +72,7 @@ class Core(object):
         # Initialize player manager
         logging.info("Setting up players")
         self.players = PlayerManager(core=self, client=self.db.client)
+
         logging.info("Loaded {0} player{1}.".format(len(self.players.list()), "s" if (len(self.players.list()) != 1) else ""))
 
         # Initialize character manager

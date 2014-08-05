@@ -214,8 +214,11 @@ class WebPlayer(Protocol):
         logging.info("?"*30)
         logging.info(tb)
         logging.info("!"*30)
-        logid = str(int(time.time())) + "-" + str(self.player.name)
-        f=open('failures/{logid}.txt'.format(logid=logid),'w')
+        if hasattr(self.player, "name"):
+            log_id = str(int(time.time())) + "-" + str(self.player.name)
+        else:
+            log_id = str(int(time.time())) + "-" + "unnamed"
+        f=open('failures/{log_id}.txt'.format(log_id=log_id),'w')
         f.write(dtb)
         f.close()
         
@@ -248,9 +251,5 @@ if __name__ == '__main__':
     webnetwork = WebNetwork(core)
     reactor.listenTCP(9091, WebSocketFactory(webnetwork))
     
-    
-    
     reactor.run()
-    
-    core.worlds_save()
-    core.accounts_save()
+

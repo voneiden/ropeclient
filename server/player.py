@@ -66,7 +66,17 @@ class PlayerManager(Database):
                 logging.info("Loading new player (ident: {})".format(ident))
                 self.interfaces[ident] = Player(core, client, ident)
 
-
+    def fetch(self, ident):
+        """
+        Fetches an interface to the player ident
+        @param ident:
+        @return:
+        """
+        assert isinstance(ident, str) or isinstance(ident, unicode)
+        if ident in self.interfaces:
+            return self.interfaces[ident]
+        else:
+            return False
 
     def list(self):
         """
@@ -88,10 +98,12 @@ class PlayerManager(Database):
         @type password: str
         @return:
         """
-        assert isinstance(name, str)
-        assert isinstance(password, str)
+        assert isinstance(name, str) or isinstance(name, unicode)
+        assert isinstance(password, str) or isinstance(name, unicode)
 
         logging.info("Creating a new player..")
+        # Verify that the name is unused
+        assert not self.hget("names", name.lower())
 
         # Generate a new ident for the player and verify it is unused
         i_break = 0
@@ -106,6 +118,9 @@ class PlayerManager(Database):
 
         # Add the ident to player members
         self.sadd("list", ident)
+
+        # Add the player name to the lookup table rp:players.names = ident
+        self.hset("names", name.lower(), ident)
 
         # Create player object
         player = Player(core=self.core, client=self.client, ident=ident)
@@ -128,8 +143,13 @@ class PlayerManager(Database):
         @return:
         """
 
-        if len(args) > 0 and isinstance(args[0], str):
+        if len(args) == 1:
+            assert isinstance(args[0], str)
             return "rp:players.{}".format(args[0])
+        elif len(args) == 2:
+            assert isinstance(args[0], str)
+            assert isinstance(args[1], str)
+            return "rp:players.{}:{}".format(args[0], args[1])
         else:
             return "rp:players"
 
@@ -152,6 +172,10 @@ class Player(Database):
         Database.__init__(self, core=core, client=client)
         self.ident = ident
 
+        self.connection = None
+        self.handler = None
+
+
     def path(self, *args):
         """ Provides path for world objects
 
@@ -170,6 +194,18 @@ class Player(Database):
             for i, k in enumerate(keys):
                 keys[i] = "rp:players:{}.{}".format(self.ident, k)
             return keys
+
+
+    def send_message(self, message): #TODO remove this function
+        self.connection.send_message(message)
+
+
+    def send_message_fail(self, message):
+        self.connection.send_message_fail(message)
+
+
+    def send_password(self):
+        self.connection.send_password()
 
 
 class PlayerOLD(object):

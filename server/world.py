@@ -87,7 +87,6 @@ class WorldManager(Database):
                 logging.error("Unable to generate a unique ident. Aborting.")
                 return False
 
-
         # Add the ident to world members
         self.sadd("list", ident)
 

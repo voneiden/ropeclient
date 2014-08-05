@@ -55,8 +55,8 @@ class Database(object):
         @type value: str
         @return:
         """
-        assert isinstance(key, str)
-        assert isinstance(value, str)
+        assert isinstance(key, str) or isinstance(key, unicode)
+        assert isinstance(value, str) or isinstance(value, unicode)
         return self.client.set(self.path(key), value, *args)  # TODO: If this stuff causes NotImplementedError then implement it
 
     def get(self, key):
@@ -99,8 +99,32 @@ class Database(object):
         @param key: Key to be incremented
         @return: New value
         """
-        assert isinstance(key ,str)
+        assert isinstance(key, str)
         return self.client.incr(self.path(key))
+
+    def hget(self, key, hkey):
+        """
+        Hash Get
+        @param key: key name
+        @param hkey: hash key name
+        @return: value
+        """
+        assert isinstance(key, str) or isinstance(key, unicode)
+        assert isinstance(hkey, str) or isinstance(hkey, unicode)
+        return self.client.hget(self.path(key), hkey)
+
+    def hset(self, key, hkey, hvalue):
+        """
+        Hash set
+        @param key: key name
+        @param hkey: hash key name
+        @param value: hash key value
+        @return:
+        """
+        assert isinstance(key, str) or isinstance(key, unicode)
+        assert isinstance(hkey, str) or isinstance(hkey, unicode)
+        assert isinstance(hvalue, str) or isinstance(hvalue, unicode)
+        return self.client.hset(self.path(key), hkey, hvalue)
 
     def path(self, *args):
         """ OVERRIDE THIS FUNCTION

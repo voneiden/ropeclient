@@ -1,8 +1,11 @@
 import logging
 
+#import server
+
 class Handler(object):
     def __init__(self, player):
         self.player = player
+        self.core = player.core
         
     def process_msg(self, content):
         return False
@@ -32,9 +35,18 @@ class HandlerLogin(Handler):
 
     """
     def __init__(self, player):
+        """
+
+        @param player:
+        @type player: server.WebPlayer
+        @return:
+        """
         Handler.__init__(self, player)
         self.state = 0
         self.name = None
+        self.password = None
+        self.ident = None
+
        
     def process_msg(self, message):
         logging.info(message)
@@ -49,20 +61,83 @@ class HandlerLogin(Handler):
             if len(self.name) > self.player.core.settings["max_login_name_length"]:
                 self.player.send_message_fail("Login name is too long. Your name?")
                 return
-                
-            # Test if account exists
 
-                # TODO: check if account exists
+            # Test account has only characters
+            if not self.name.isalpha():
+                self.player.send_message_fail("Login name may not contain numbers or special characters. Your name?")
+                return
+
+            # Test if account exists
+            ident = self.core.players.hget("names", self.name.lower())
+            if ident:
+                self.ident = ident
+                self.player.send_message("Account found!")
                 self.state = 1
                 self.player.send_message("Password?")
                 self.player.send_password()
                 return
-                
-     
-        
+            else:
+                self.player.send_message("Account not found! Create a new one? (y/n)")
+                self.state = 10
+                return
+
+        elif self.state == 10:
+            if message["value"][0].lower() == "y":
+                self.state = 11
+                self.player.send_message("Password?")
+                self.player.send_password()
+            else:
+                self.state = 0
+                self.player.send_message("Your name?")
+
+        else:
+            self.player.send_message("Something went wrong, restarting. Your name?")
+            self.state = 0
+
     def process_pwd(self, pwd):
+        if len(pwd["value"]) == 0:
+            return
+
         if self.state == 1:
-            self.player.send_message("now should verify your pwd")
+            player = self.core.players.fetch(self.ident)
+
+            if pwd["value"] == player.get("password"):
+                self.player.send_message("Password correct!")
+
+                # Link connection and player interface together
+                player.connection = self.player
+
+                # This sets the WebPlayers player attribute to point to the player interface (awkward..)
+                self.player.player = player
+
+                # Create handler for player interface
+                player.handler = HandlerWorld(player)
+
+            else:
+                self.player.send_message("Password incorrect!")
+
+
+
+        elif self.state == 11:
+            self.password = pwd["value"]
+            logging.info("Got pwd: {}".format(self.password))
+            self.player.send_message("Repeat password")
+            self.player.send_password()
+            self.state = 12
+
+        elif self.state == 12:
+            if self.password == pwd["value"]:
+                self.core.players.new(self.name, self.password)
+                self.player.send_message("Account created. You may now login. Your name?")
+                self.state = 0
+            else:
+                self.player.send_message("Passwords mismatch. Try again. Your password?")
+                self.player.send_password()
+                self.state = 11
+
+        else:
+            self.player.send_message("Something went wrong, restarting. Your name?")
+            self.state = 0
         
         
     def handler_login(self, header, message):
@@ -140,4 +215,5 @@ class HandlerLogin(Handler):
                 return u"Password mismatch, try again! Your password?"
 class HandlerWorld(Handler):
     def process_msg(self, content):
-        pass
+        self.player.send_message("You are now in the world handler")
+
