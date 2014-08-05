@@ -26,8 +26,19 @@ class CharacterManager(Database):
             assert isinstance(ident, str)
             if ident not in self.interfaces:
                 logging.info("Loading new player (ident: {})".format(ident))
-                self.interfaces[ident] = Player(core, client, ident)
+                self.interfaces[ident] = Character(core, client, ident)
 
+    def fetch(self, ident):
+        """
+        Fetches an interface to the player ident
+        @param ident:
+        @return:
+        """
+        assert isinstance(ident, str) or isinstance(ident, unicode)
+        if ident in self.interfaces:
+            return self.interfaces[ident]
+        else:
+            return False
 
 
     def list(self):

@@ -98,7 +98,7 @@ class HandlerLogin(Handler):
         if len(pwd["value"]) == 0:
             return
 
-        if self.state == 1:
+        if self.state == 1:  # Login attempt
             player = self.core.players.fetch(self.ident)
 
             if pwd["value"] == player.get("password"):
@@ -114,18 +114,17 @@ class HandlerLogin(Handler):
                 player.handler = HandlerWorld(player)
 
             else:
-                self.player.send_message("Password incorrect!")
+                self.player.send_message("Password incorrect! Your name?")
+                self.state = 0
 
-
-
-        elif self.state == 11:
+        elif self.state == 11:  # Registering a new password
             self.password = pwd["value"]
             logging.info("Got pwd: {}".format(self.password))
             self.player.send_message("Repeat password")
             self.player.send_password()
             self.state = 12
 
-        elif self.state == 12:
+        elif self.state == 12:  # Password retype check
             if self.password == pwd["value"]:
                 self.core.players.new(self.name, self.password)
                 self.player.send_message("Account created. You may now login. Your name?")
@@ -138,82 +137,116 @@ class HandlerLogin(Handler):
         else:
             self.player.send_message("Something went wrong, restarting. Your name?")
             self.state = 0
-        
-        
-    def handler_login(self, header, message):
-        '''
-        THIS FUNCTION IS NOT USED ANYMORE
-        State 1 - asking for name
-        State 2 - asking for password
-        State 10 - asking for new account verification
-        State 11 - asking for new account password
-        State 12 - asking one more time for password
-        '''
-        if header == 'cmd': return
-        if len(message) == 0: return 
-        message = message.split()
-        if self.handlerstate == 1:
-            self.temp['name'] = message[0]
-            account = [account for account in self.core.accounts if self.temp['name'].lower() == account.name.lower()]
-            if account:
-                self.handlerstate = 2
-                self.account = account[0]
-                
-                self.connection.write('pwd\r\n') #TODO
-                return u"Your <fail>password<reset>?"   
-            else:
-                if re.match("^[A-Za-z]+$", message[0]):
-                    self.handlerstate = 10
-                    return u"Would you like to create a new account under the name '{name}' yes/no?".format(name=message[0])
-                else:
-                    return u"This account name contains invalid characters - Try again"
-             
-        
-        elif self.handlerstate == 2:
-            if message[0] == self.account.password:
-                self.name = self.account.name
-                return self.login()
-            else:
-                self.connection.disconnect() #TODO
-                
-        elif self.handlerstate == 10:
-            if len(message[0]) < 1: return
-            if message[0][0].lower() == 'y':
-                self.handlerstate = 11
-                self.connection.write('pwd\r\n')
-                return u"What would your <red>password<reset> be?"
-            else:
-                self.handlerstate = 1
-                return u"What is your name?"
-                
-        elif self.handlerstate == 11:
-            self.temp['password'] = message[0]
-            self.handlerstate = 12
-            self.connection.write('pwd\r\n')
-            return u"Please retype"
-            
-        elif self.handlerstate == 12:
-            if self.temp['password'] == message[0]:
-                #self.handlerstate = 13
-                #f = open('text/stylehelp.txt','r')
-                #buf = [f.read()]
-                #buf.append(u"Choose your style (can be changed later!): irc/mud")
-                #f.close()
-                
-                #return u"\n".join(buf)                
-                logging.info( u"New account ({})".format(self.temp['name']))
-            
-                self.account = server.Account(self.temp['name'],self.temp['password'])
-                self.core.accounts.append(self.account)
-                self.core.saveAccounts()
-                self.name = self.account.name
-                return self.login()
-                
-            else:
-                self.handlerstate = 11
-                self.connection.write('pwd\r\n')
-                return u"Password mismatch, try again! Your password?"
+
+
 class HandlerWorld(Handler):
-    def process_msg(self, content):
-        self.player.send_message("You are now in the world handler")
+    def __init__(self, player):
+        """
+        This handler handles the main menu where user can choose to join and create new worlds
+
+        @param player:
+        @type player: player.Player
+        @return:
+        """
+        Handler.__init__(self, player)
+        self.state = 0
+
+        self.show_menu()
+
+    def process_msg(self, message):
+        if "value" not in message or len(message["value"]) == 0:
+            return
+
+        msg = message["value"]
+
+        if self.state == 0:
+            if msg[0].lower() == "c":
+                self.player.send_message("Creating new worlds is not yet supported")
+                return
+
+            try:
+                ident = str(int(msg))
+
+            except ValueError:
+                self.show_menu()
+                self.player.send_message_fail("Invalid command")
+                return
+
+            world = self.core.worlds.fetch(ident)
+            if not world:
+                self.show_menu()
+                self.player.send_message_fail("World number not found")
+                return
+
+            else:
+                self.player.send_message("Joining world '{}'".format(world.get("name")))
+
+
+
+
+    def show_menu(self):
+        buf = [""]
+
+        worlds = self.core.worlds
+        world_idents = worlds.list()
+        for ident in world_idents:
+            world = worlds.fetch(ident)
+            world_name = world.get("name")
+
+            # TODO number of players online!
+            buf.append("{ident}) {name}".format(ident=ident, name=world_name))
+
+        buf.append("")
+        buf.append("Choose a world to join by typing the number, or 'create' to create a new world")
+
+        self.player.send_message(buf)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -81,11 +81,14 @@ class WebPlayer(Protocol):
         else:
             self.transport.loseConnection()
     
-    def get_player(self):
-        return self.player.name if self.player else "Unknown player"
+    def get_player_name(self):
+        if self.player and hasattr(self.player, "name"):
+            return self.player.name
+        else:
+            return "Unknown player"
         
     def connectionLost(self, reason):
-        logging.info("Connection lost: %s"%(self.get_player()))
+        logging.info("Connection lost: %s"%(self.get_player_name()))
         self.disconnect()
         
     def dataReceived(self, data):
@@ -95,14 +98,14 @@ class WebPlayer(Protocol):
         try:
             content = json.loads(data)
         except ValueError:
-            logging.error("Invalid data received from {} (data: {})".format(self.get_player(), data))
+            logging.error("Invalid data received from {} (data: {})".format(self.get_player_name(), data))
         
         if "key" not in content:
-            logging.error("Invalid content received from {} (content: {})".format(self.get_player(), content))
+            logging.error("Invalid content received from {} (content: {})".format(self.get_player_name(), content))
             return
             
         if not content["key"].isalpha():
-            logging.error("Invalid content key received from {} (content: {})".format(self.get_player(), content))
+            logging.error("Invalid content key received from {} (content: {})".format(self.get_player_name(), content))
         
         if content["key"] == "pong":
             self.ping_time = False
@@ -135,14 +138,20 @@ class WebPlayer(Protocol):
             - timestamp  - if defined, the client will display a timestamp
             - edit       - if true, the user can edit the line
         """
+        # Convert string/unicode based messages into correct dict format
         if isinstance(message, str) or isinstance(message, unicode):
             message = {"key":"msg", "value":message}
 
         try:
-            if isinstance(message, list):
-                for submessage in message:    
-                    assert isinstance(submessage, dict) and "value" in submessage
-                    submessage["value"] = self.core.sanitize(submessage["value"])
+            if isinstance(message, list):  # Multi-line messages
+                for si, submessage in enumerate(message):
+                    if isinstance(submessage, dict) and "value" in submessage:  # Sanitize
+                        submessage["value"] = self.core.sanitize(submessage["value"])
+                    elif isinstance(submessage, str) or isinstance(submessage, unicode):  # Convert str to dict & sanit.
+                        message[si] = {"key": "msg", "value": self.core.sanitize(submessage)}
+                    else:
+                        logging.error("Error, unable to process submessages in list")
+                        raise AssertionError
             else:
                 assert isinstance(message, dict) and "value" in message
                 message["value"] = self.core.sanitize(message["value"])
@@ -207,7 +216,7 @@ class WebPlayer(Protocol):
         
     def failure(self,failure):
         ''' Failure handles any exceptions '''
-        dtb = failure.getTraceback(detail='verbose')
+        #dtb = failure.getTraceback(detail='verbose')
         tb = failure.getTraceback(detail='brief')
         logging.info("!"*30)
         logging.info(failure.getErrorMessage())
@@ -219,12 +228,13 @@ class WebPlayer(Protocol):
         else:
             log_id = str(int(time.time())) + "-" + "unnamed"
         f=open('failures/{log_id}.txt'.format(log_id=log_id),'w')
-        f.write(dtb)
+        #f.write(dtb)
+        failure.printDetailedTraceback(file=f)
         f.close()
         
         self.player.send_message("<fail>[ERROR] Something you did caused an exception" +
                          " on the server. This is probably a bug. The problem" +
-                         " has been logged with id {logid}.".format(logid=logid)+
+                         " has been logged with id {log_id}.".format(log_id=log_id)+
                          " You may help to solve the problem by filing an issue"+
                          " at www.github.com/voneiden/ropeclient - Please mention"+
                          " this log id and what you were writing/doing when the"+

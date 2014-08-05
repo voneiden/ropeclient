@@ -54,6 +54,22 @@ class WorldManager(Database):
             logging.info("No default worlds found, creating one")
             self.new(name="Official Sandbox")
 
+    def fetch(self, ident):
+        """
+        Fetches an interface to the player ident
+        @param ident:
+        @return:
+        """
+        if isinstance(ident, int):
+            ident = str(ident)
+
+        assert isinstance(ident, str) or isinstance(ident, unicode)
+
+        if ident in self.interfaces:
+            return self.interfaces[ident]
+        else:
+            return False
+
     def list(self):
         idents = self.client.smembers("rp:worlds.list")
         return idents  # TODO: Generate dict
