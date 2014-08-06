@@ -82,66 +82,11 @@ class Core(object):
 
         logging.info("Server ready")
 
-
-
-    def __getstate__(self):
-        return None
-
-
-
-
-    def accounts_load(self):
-        logging.info("Loading player accounts.")
-        try:
-            f = open('players.db', 'rb')
-            self.players = pickle.load(f)
-            f.close()
-            if type(self.players) != list:
-                logging.info("Invalid type loaded, clearing.")
-                self.players = []
-        except IOError:
-            logging.info("IOError, clearing.")
-            self.players = []
-
-        for player in self.players:
-            #TODO: Consider this
-            if not hasattr(player,"colors"):
-                logging.info("Fixing missing account color table")
-                player.colors = {}
-            if not hasattr(player,"font"):
-                logging.info("Fixing missing font data")
-                player.font = ("Monospace",8)
-            if not hasattr(player,"hilights"):
-                logging.info("Fixing missing hilights data")
-                player.hilights = OrderedDict()
-
-    def accounts_save(self):
-        logging.info("Saving accounts")
-        f = open('players.db','wb')
-        pickle.dump(self.players,f)
-        f.close()
-
-    def worlds_load(self):
-        logging.info("Loading worlds")
-        for path,subfolders,files in os.walk('./worlds'):
-            for fname in files:
-                if fname[-6:] == '.world':
-                    logging.info("Loading world {}".format(fname))
-                    f = open("{0}/{1}".format(path,fname),'rb')
-                    world = pickle.load(f)
-                    f.close()
-                    world.setup(self)
-
-    def worlds_save(self):
-        logging.info("CORE: Save the worlds from destruction!")
-        for world in core.worlds:
-            world.saveWorld()
-
     def color_convert(self, match):
-        '''
+        """
         Converts a colour value into hex
         and if it's not a valid value, default to white
-        '''
+        """
         color = match.group()[1:-1].lower()
         if color != "reset" or color != "default":
             try:

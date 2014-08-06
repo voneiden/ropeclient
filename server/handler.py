@@ -47,7 +47,18 @@ class HandlerGame(Handler):
         # TODO refill offtopic chat
 
     def process_msg(self, message):
-        pass
+        """
+        Processes incoming messages while joined in a world.
+
+        @param message:
+        """
+        if "value" not in message or len(message["value"]) == 0:
+            logging.warning("process_msg no value in message")
+            return
+
+        if message["value"][0] == "(" or not self.player.character:
+            self.player.world.do_offtopic(message["value"], owner=self.player)
+
 
 
 class HandlerLogin(Handler):

@@ -18,14 +18,12 @@
     Copyright 2010-2013 Matti Eiden <snaipperi()gmail.com>
 '''
 
-from twisted.internet.protocol import Factory, Protocol
-from twisted.internet import reactor
-from twisted.protocols.basic import LineReceiver
-from twisted.internet import defer
-#from twisted.python import log
 
-from txws import WebSocketFactory
-from collections import OrderedDict
+import asyncio
+from autobahn.asyncio.websocket import WebSocketServerProtocol
+from autobahn.asyncio.websocket import WebSocketServerFactory
+
+#from collections import OrderedDict
 
 import json
 import logging
@@ -35,7 +33,9 @@ from handler import HandlerLogin
 from core import Core
 
 
-class WebPlayer(Protocol):
+class WebPlayer(WebSocketServerProtocol):
+
+    """
     def __init__(self, *args, **kwargs):
         #Protocol.__init__(self, *args, **kwargs)
         self.core = None
@@ -45,8 +45,9 @@ class WebPlayer(Protocol):
         self.ping_timer = False
         self.ping_time = False
         self.ping_timestamp = False
+    """
 
-    def connectionMade(self):
+    def onOpen(self):
         logging.info("Web connection made")
 
         self.core = self.factory.core
@@ -87,11 +88,11 @@ class WebPlayer(Protocol):
         else:
             return "Unknown player"
         
-    def connectionLost(self, reason):
+    def onClose(self, clean, code, reason):
         logging.info("Connection lost: %s"%(self.get_player_name()))
         self.disconnect()
         
-    def dataReceived(self, data):
+    def onMessage(self, data, isBinary):
         """ 
         Decode received data and forward it to the respective handler function
         """
@@ -239,27 +240,23 @@ class WebPlayer(Protocol):
                          " at www.github.com/voneiden/ropeclient - Please mention"+
                          " this log id and what you were writing/doing when the"+
                          " error happened. Thank you!")
-class WebNetwork(Factory):
-    def __init__(self,core):
-        self.protocol = WebPlayer
-        self.core = core
-        logging.info("Networking initialized")
-
-
-class Account:
-    def __init__(self,name,password):
-        self.name = name
-        self.password = password
-        
-        self.colors = {}
-        self.hilights = OrderedDict()
-        self.font = ("Monospace",8)
 
 
 if __name__ == '__main__':
     core = Core()
-    webnetwork = WebNetwork(core)
-    reactor.listenTCP(9091, WebSocketFactory(webnetwork))
-    
-    reactor.run()
+    #webnetwork = WebNetwork(core)
 
+    factory = WebSocketServerFactory("ws://localhost:9091", debug = False)
+    factory.protocol = WebPlayer
+
+    loop = asyncio.get_event_loop()
+    coro = loop.create_server(factory, 'localhost', 9091)
+    server = loop.run_until_complete(coro)
+
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.close()
+        loop.close()

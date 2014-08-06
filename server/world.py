@@ -44,7 +44,7 @@ class WorldManager(Database):
         logging.info("IDENTS: {}".format(str(idents)))
         logging.info("Creating world interface instances..")
         for ident in idents:
-            assert isinstance(ident, str)
+            assert isinstance(ident, bytes)
             if ident not in self.interfaces:
                 logging.info("Loading new world (ident: {})".format(ident))
                 self.interfaces[ident] = World(core, client, ident)
@@ -172,6 +172,17 @@ class World(Database):
             for i, k in enumerate(keys):
                 keys[i] = "rp:worlds:{}.{}".format(self.ident, k)
             return keys
+
+    def do_offtopic(self, message, owner="Server"):
+        """
+        Save a new offtopic message and deliver it to players who are online
+
+        @param message: message to deliver
+        @type message: unicode
+        @param owner: owner of the message, either string or player object
+        @return:
+        """
+
 
         # TODO: dicts?
 # NOTE character deleting has potential memory leak issue: memorize function might
