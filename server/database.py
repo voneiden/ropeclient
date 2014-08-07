@@ -122,7 +122,12 @@ class Database(object):
         """
         assert isinstance(key, str)
         assert isinstance(hkey, str)
-        return self.client.hget(self.path(key), hkey)
+        result = self.client.hget(self.path(key), hkey)
+
+        if isinstance(result, bytes):
+            result = result.decode("utf8")
+
+        return result
 
     def hset(self, key, hkey, hvalue):
         """

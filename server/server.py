@@ -34,8 +34,6 @@ from core import Core
 
 
 class WebPlayer(WebSocketServerProtocol):
-
-
     def __init__(self, *args, **kwargs):
         WebSocketServerProtocol.__init__(self, *args, **kwargs)
         self.core = None
@@ -98,6 +96,15 @@ class WebPlayer(WebSocketServerProtocol):
         """ 
         Decode received data and forward it to the respective handler function
         """
+        if isBinary:
+            logging.warning("Received binary data from client, ignoring")
+            return
+        try:
+            data = data.decode("utf8")
+        except UnicodeDecodeError:
+            logging.error("Unable to decode received data")
+            return
+
         try:
             content = json.loads(data)
         except ValueError:
@@ -120,11 +127,13 @@ class WebPlayer(WebSocketServerProtocol):
             f = getattr(self.player.handler, "process_{}".format(content["key"]))
         else:
             f = getattr(self.login_handler, "process_{}".format(content["key"]))
-        
-        d = defer.Deferred()
-        d.addCallback(f)
-        d.addErrback(self.failure)
-        d.callback(content)
+
+        try:
+            f(content)
+        except:
+            logging.error("Encountered an error")
+            raise
+
         
     def write(self,data):
         # TODO: json
@@ -248,11 +257,13 @@ if __name__ == '__main__':
     core = Core()
     #webnetwork = WebNetwork(core)
 
-    factory = WebSocketServerFactory("ws://localhost:9091", debug = False)
+    factory = WebSocketServerFactory("ws://localhost:9091", debug=False)
     factory.protocol = WebPlayer
     factory.core = core
 
     loop = asyncio.get_event_loop()
+    loop.set_debug(False)
+    logging.warning("LOOP {}".format(loop.get_debug()))
     coro = loop.create_server(factory, 'localhost', 9091)
     server = loop.run_until_complete(coro)
 

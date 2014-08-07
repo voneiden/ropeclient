@@ -43,9 +43,9 @@ class Core(object):
         logger.handlers = []
 
         # Initialize logging
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.DEBUG)
+        console_handler.setLevel(logging.INFO)
         console_formatter = logging.Formatter('%(asctime)s %(module)-10s:%(lineno)-3s %(levelname)-7s %(message)s',"%y%m%d-%H:%M:%S")
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
