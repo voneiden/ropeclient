@@ -28,6 +28,8 @@ from autobahn.asyncio.websocket import WebSocketServerFactory
 import json
 import logging
 import time
+import sys
+import traceback
 
 from handler import HandlerLogin
 from core import Core
@@ -131,8 +133,8 @@ class WebPlayer(WebSocketServerProtocol):
         try:
             f(content)
         except:
-            logging.error("Encountered an error")
-            raise
+            self.failure()
+
 
         
     def write(self,data):
@@ -226,31 +228,91 @@ class WebPlayer(WebSocketServerProtocol):
     def sendEdit(self,id,message):
         self.write(u"edi {timestamp} {message}".format(timestamp=repr(id),message=message))
         
-    def failure(self,failure):
-        ''' Failure handles any exceptions '''
-        #dtb = failure.getTraceback(detail='verbose')
-        tb = failure.getTraceback(detail='brief')
-        logging.info("!"*30)
-        logging.info(failure.getErrorMessage())
-        logging.info("?"*30)
-        logging.info(tb)
-        logging.info("!"*30)
+    def failure(self):
+        """
+        failure prints detailed information about exceptions
+
+        @return: None
+        """
+        # In the local var display, any item containing the following will be ignored
+        # ignore = ["__", "class '", "module '"]
+
+        # buf will be filled with the detailed stack trace
+        buf = []
+
+        # Grab traceback
+        tb = sys.exc_info()[2]
+
+        # Get the latest traceback
+        while 1:
+            if not tb.tb_next:
+                break
+            tb = tb.tb_next
+
+        # Load up the stack
+        stack = []
+        tb_frame = tb.tb_frame
+        while tb_frame:
+            stack.append(tb_frame)
+            tb_frame = tb_frame.f_back
+
+        # Reverse the stack (from high level to low level)
+        stack.reverse()
+
+        logging.error("Exception has occured, printing stack trace")
+        for i, frame in enumerate(stack):
+
+            buf.append("Frame %s in %s at line %s" % (frame.f_code.co_name,
+                                                 frame.f_code.co_filename,
+                                                 frame.f_lineno))
+
+            if i+1 == len(stack):
+                for key, value in frame.f_locals.items():
+                    try:
+                        k = str(key)
+                        v = str(value)
+                        #skip = False
+                        #for ig in ignore:
+                        #    if ig in k or ig in v:
+                        #        #skip = True
+                        #        break
+                        #if skip:
+                        #    continue
+                        #else:
+                        buf.append("\t%20s = %s" %(key, value))
+                    except:
+                        buf.append("\t%20s = <ERROR WHILE PRINTING VALUE>"%key)
+
+        stack_trace = "\n".join(buf)
+
+        # Output to terminal
+        print(stack_trace)
+        traceback.print_exc()
+
+        # Output to file
         if hasattr(self.player, "name"):
             log_id = str(int(time.time())) + "-" + str(self.player.name)
         else:
             log_id = str(int(time.time())) + "-" + "unnamed"
-        f=open('failures/{log_id}.txt'.format(log_id=log_id),'w')
-        #f.write(dtb)
-        failure.printDetailedTraceback(file=f)
+
+        f = open('failures/{log_id}.txt'.format(log_id=log_id), 'w')
+        traceback.print_exc(file=f)
+        f.write(stack_trace)
+        traceback.print_exc(file=f)
         f.close()
-        
-        self.player.send_message("<fail>[ERROR] Something you did caused an exception" +
-                         " on the server. This is probably a bug. The problem" +
-                         " has been logged with id {log_id}.".format(log_id=log_id)+
-                         " You may help to solve the problem by filing an issue"+
-                         " at www.github.com/voneiden/ropeclient - Please mention"+
-                         " this log id and what you were writing/doing when the"+
-                         " error happened. Thank you!")
+
+        try:
+            self.send_message_fail("<fail>[ERROR] Something you did caused an exception" +
+                     " on the server. This is probably a bug. The problem" +
+                     " has been logged with id {log_id}.".format(log_id=log_id)+
+                     " You may help to solve the problem by filing an issue"+
+                     " at www.github.com/voneiden/ropeclient - Please mention"+
+                     " this log id and what you were writing/doing when the"+
+                     " error happened. Thank you!")
+
+        except:
+            logging.error("Was unable to deliver the error message to the player")
+            pass
 
 
 if __name__ == '__main__':
@@ -262,8 +324,7 @@ if __name__ == '__main__':
     factory.core = core
 
     loop = asyncio.get_event_loop()
-    loop.set_debug(False)
-    logging.warning("LOOP {}".format(loop.get_debug()))
+    loop.set_debug(False)  # Note, current version of asyncio doesn't seem to respect this variable. Fixed base_events.py
     coro = loop.create_server(factory, 'localhost', 9091)
     server = loop.run_until_complete(coro)
 
