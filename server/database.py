@@ -20,7 +20,7 @@
 
 import logging
 import redis
-from core import Core
+#from core import Core
 from redis import StrictRedis
 
 class Database(object):
@@ -46,7 +46,7 @@ class Database(object):
 
         self.core = core
 
-    def set(self, key, value, *args):
+    def set(self, key, value):  #, *args):
         """ Set a string value in database
 
         @param key: Key of the object attribute
@@ -55,9 +55,10 @@ class Database(object):
         @type value: str
         @return:
         """
-        assert isinstance(key, str) or isinstance(key, unicode)
-        assert isinstance(value, str) or isinstance(value, unicode)
-        return self.client.set(self.path(key), value, *args)  # TODO: If this stuff causes NotImplementedError then implement it
+        assert isinstance(key, str)
+        assert isinstance(value, str)
+
+        return self.client.set(self.path(key), value)  #, *args)  # TODO: If this stuff causes NotImplementedError then implement it
 
     def get(self, key):
         """ Retrieve string value from database
@@ -66,7 +67,14 @@ class Database(object):
         @return:
         """
         assert isinstance(key, str)
-        return self.client.get(self.path(key))
+
+        result = self.client.get(self.path(key))
+        if isinstance(result, bytes):
+            result = result.decode("utf8")
+
+        assert isinstance(result, str)
+        return result
+
 
     def mget(self, *keys):
         """ Retrieve multiple string values
@@ -75,7 +83,9 @@ class Database(object):
         @type keys: (tuple, list)
         @return:
         """
+        raise NotImplementedError #TODO str-byte assertion
         assert isinstance(keys, tuple) or isinstance(keys, list)
+        assert all([isinstance(key, str) for key in keys])
         return self.client.mget(self.path(keys))
 
     def sadd(self, key, *values):
@@ -90,6 +100,7 @@ class Database(object):
 
         assert isinstance(key, str)
         assert isinstance(values, list) or isinstance(values, tuple)
+
         return self.client.sadd(self.path(key), *values)
 
     def incr(self, key):
@@ -109,8 +120,8 @@ class Database(object):
         @param hkey: hash key name
         @return: value
         """
-        assert isinstance(key, str) or isinstance(key, unicode)
-        assert isinstance(hkey, str) or isinstance(hkey, unicode)
+        assert isinstance(key, str)
+        assert isinstance(hkey, str)
         return self.client.hget(self.path(key), hkey)
 
     def hset(self, key, hkey, hvalue):
@@ -121,10 +132,13 @@ class Database(object):
         @param value: hash key value
         @return:
         """
-        assert isinstance(key, str) or isinstance(key, unicode)
-        assert isinstance(hkey, str) or isinstance(hkey, unicode)
-        assert isinstance(hvalue, str) or isinstance(hvalue, unicode)
+        assert isinstance(key, str)
+        assert isinstance(hkey, str)
+        assert isinstance(hvalue, str)
         return self.client.hset(self.path(key), hkey, hvalue)
+
+    def list(self):
+        return [ident.decode("utf8") for ident in self.client.smembers("{}.list".format(self.path()))]
 
     def path(self, *args):
         """ OVERRIDE THIS FUNCTION

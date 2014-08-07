@@ -72,19 +72,11 @@ class PlayerManager(Database):
         @param ident:
         @return:
         """
-        assert isinstance(ident, str) or isinstance(ident, unicode)
+        assert isinstance(ident, str)
         if ident in self.interfaces:
             return self.interfaces[ident]
         else:
             return False
-
-    def list(self):
-        """
-
-        @return: list of player idents
-        """
-        idents = self.client.smembers(self.path("list"))
-        return idents  # TODO: Generate dict
 
     def new(self, name, password, **kwargs):
         """

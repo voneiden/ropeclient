@@ -44,7 +44,7 @@ class WorldManager(Database):
         logging.info("IDENTS: {}".format(str(idents)))
         logging.info("Creating world interface instances..")
         for ident in idents:
-            assert isinstance(ident, bytes)
+            assert isinstance(ident, str)
             if ident not in self.interfaces:
                 logging.info("Loading new world (ident: {})".format(ident))
                 self.interfaces[ident] = World(core, client, ident)
@@ -62,17 +62,14 @@ class WorldManager(Database):
         """
         if isinstance(ident, int):
             ident = str(ident)
-
-        assert isinstance(ident, str) or isinstance(ident, unicode)
+        assert isinstance(ident, str)
 
         if ident in self.interfaces:
             return self.interfaces[ident]
         else:
             return False
 
-    def list(self):
-        idents = self.client.smembers("rp:worlds.list")
-        return idents  # TODO: Generate dict
+
 
     def new(self, name="New world", password="", masters=[], **kwargs):
         """ Used to create a new world
@@ -86,6 +83,7 @@ class WorldManager(Database):
         @type masters: (list, tuple)
         @return:
         """
+        # TODO handle ident being a byte
         assert isinstance(name, str)
         assert isinstance(password, str)
         assert isinstance(masters, list) or isinstance(masters, tuple)
@@ -134,8 +132,6 @@ class WorldManager(Database):
             return "rp:worlds"
 
 
-
-
 class World(Database):
     def __init__(self, core=None, client=None, ident=None): # FIXME: THIS DOES NOT WORK!
         """
@@ -147,6 +143,7 @@ class World(Database):
         @type core: Core
         @type ident: str
         """
+        logging.warning("ident {}".format(type(ident)))
         assert isinstance(core, Core)
         assert isinstance(client, StrictRedis)
         assert isinstance(ident, str)

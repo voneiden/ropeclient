@@ -35,9 +35,9 @@ from core import Core
 
 class WebPlayer(WebSocketServerProtocol):
 
-    """
+
     def __init__(self, *args, **kwargs):
-        #Protocol.__init__(self, *args, **kwargs)
+        WebSocketServerProtocol.__init__(self, *args, **kwargs)
         self.core = None
         self.player = None
         self.login_handler = None
@@ -45,7 +45,7 @@ class WebPlayer(WebSocketServerProtocol):
         self.ping_timer = False
         self.ping_time = False
         self.ping_timestamp = False
-    """
+
 
     def onOpen(self):
         logging.info("Web connection made")
@@ -61,7 +61,7 @@ class WebPlayer(WebSocketServerProtocol):
             buf.append({"value": line})
         self.send_message(buf)
 
-        self.do_ping()
+        #self.do_ping()
     
     def do_ping(self,*args):
         self.ping_timer = False
@@ -78,6 +78,8 @@ class WebPlayer(WebSocketServerProtocol):
         #    self.pingTimer.cancel()
         #    self.pingTimer = False
         # TODO: ^ why is this commented out? 2013-11-30
+        return
+
         if self.player: self.player.disconnect()
         else:
             self.transport.loseConnection()
@@ -129,7 +131,7 @@ class WebPlayer(WebSocketServerProtocol):
         
         #data = data.replace("\n",'<br>')
 
-        self.transport.write(data.encode("utf-8"))
+        self.sendMessage(data.encode("utf-8"))
 
     def send_message(self, message):
         """
@@ -140,7 +142,7 @@ class WebPlayer(WebSocketServerProtocol):
             - edit       - if true, the user can edit the line
         """
         # Convert string/unicode based messages into correct dict format
-        if isinstance(message, str) or isinstance(message, unicode):
+        if isinstance(message, str):
             message = {"key":"msg", "value":message}
 
         try:
@@ -167,7 +169,7 @@ class WebPlayer(WebSocketServerProtocol):
             self.write(json.dumps(message))
 
     def send_message_fail(self, message):
-        if isinstance(message, str) or isinstance(message, unicode):
+        if isinstance(message, str):
             message = {"key":"msg", "value":message}
         else:
             assert isinstance(message, dict)
@@ -248,6 +250,7 @@ if __name__ == '__main__':
 
     factory = WebSocketServerFactory("ws://localhost:9091", debug = False)
     factory.protocol = WebPlayer
+    factory.core = core
 
     loop = asyncio.get_event_loop()
     coro = loop.create_server(factory, 'localhost', 9091)
