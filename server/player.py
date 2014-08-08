@@ -195,6 +195,22 @@ class Player(Database):
     def send_message_fail(self, message):
         self.connection.send_message_fail(message)
 
+    def send_offtopic(self, message):
+        if isinstance(message, str):
+            message = {"key": "oft", "value": message}
+
+        elif isinstance(message, list):
+            for i, item in enumerate(message):
+                if isinstance(item, str):
+                    message[i] = {"key": "oft", "value": item}
+
+                assert isinstance(item, dict)
+
+        assert isinstance(message, dict) or isinstance(message, list)
+        logging.info("Sending OFT")
+        self.connection.send_message(message)
+
+
 
     def send_password(self):
         self.connection.send_password()

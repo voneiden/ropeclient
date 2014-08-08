@@ -19,9 +19,12 @@
 
 """
 import logging
+import time
 from core import Core
 from database import Database
+from player import Player
 from redis import StrictRedis
+
 
 
 class WorldManager(Database):
@@ -151,6 +154,8 @@ class World(Database):
         Database.__init__(self, core=core, client=client)
         self.ident = ident
 
+        self.players = []
+
     def path(self, *args):
         """ Provides path for world objects
 
@@ -170,6 +175,22 @@ class World(Database):
                 keys[i] = "rp:worlds:{}.{}".format(self.ident, k)
             return keys
 
+
+    def form_offtopic_message(self, ident):
+        assert isinstance(ident, str)
+
+        path = "offtopic:{}".format(ident)
+        value = self.hget(path, "value")
+        owner = self.hget(path, "owner")
+        timestamp = self.hget(path, "time")
+
+        message = {"key": "oft",
+                   "owner": owner,
+                   "value": "[$(time)] {}: {}".format(owner, value),
+                   "timestamp": timestamp}
+
+        return message
+
     def do_offtopic(self, message, owner="Server"):
         """
         Save a new offtopic message and deliver it to players who are online
@@ -179,6 +200,33 @@ class World(Database):
         @param owner: owner of the message, either string or player object
         @return:
         """
+        logging.info("Handling offtopic message")
+
+        if isinstance(owner, Player):
+            owner = owner.get("name")
+
+        assert isinstance(owner, str)
+
+        ident = str(self.incr("offtopic"))
+        path = "offtopic:{}".format(ident)
+        self.hset(path, "value", message)
+        self.hset(path, "owner", owner)
+        self.hset(path, "time", time.time())
+
+        message = self.form_offtopic_message(ident)
+
+        for player in self.players:
+            player.send_offtopic(message)
+
+
+
+    def add_player(self, player):
+        if player not in self.players:
+            self.players.append(player)
+
+        # TODO: announce join
+
+
 
 
         # TODO: dicts?

@@ -139,7 +139,7 @@ class Database(object):
         """
         assert isinstance(key, str)
         assert isinstance(hkey, str)
-        assert isinstance(hvalue, str)
+        assert isinstance(hvalue, str) or isinstance(hvalue, int) or isinstance(hvalue, float)
         return self.client.hset(self.path(key), hkey, hvalue)
 
     def list(self):

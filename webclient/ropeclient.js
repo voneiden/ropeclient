@@ -280,7 +280,13 @@ function receiveMessage(e) {
     else if (key == "oft") {
         //A lot faster method of displaying a lot of text at once.
         //Still needs improving, so lets try..
-        
+        var msgid = ''
+        var timestamp = message.timestamp || ""
+        displayOfftopic('<span class="msg">' + format_text(message.value) + "</span>");
+
+        return;
+
+
         var everything = tok.join(" ");
         var lines = everything.split("\x1b");
         var output = [];
