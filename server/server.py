@@ -122,7 +122,7 @@ class WebPlayer(WebSocketServerProtocol):
         if content["key"] == "pong":
             self.ping_time = False
             return
-
+        logging.info("Received message: " + str(content))
         # Forward the request to appropriate handler
         # Example: self.player.handler.process_msg
         if self.player:
@@ -175,7 +175,7 @@ class WebPlayer(WebSocketServerProtocol):
                         raise AssertionError
             else:
                 assert isinstance(message, dict)
-                if "value" in message:
+                if message["key"] == "msg" and "value" in message:
                     message["value"] = self.core.sanitize(message["value"])
         except:
             logging.error("sendMessage got invalid format: {}".format(str(message)))

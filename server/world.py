@@ -250,6 +250,7 @@ class World(Database):
             self.players.append(player)
 
         # TODO: announce join
+        self.send_player_list()
 
     def send_oft_history(self, player, lines=100):
         latest_ident = int(self.get("offtopic"))
@@ -267,9 +268,27 @@ class World(Database):
             buf.append(submessage)
 
         player.send_message(buf)
-        # TODO: dicts?
 
+    def send_player_list(self):
+        buf = []
+        for player in self.players:
+            if player.character:
+                character = player.character.name
+            else:
+                character = False
+            buf.append({"name": player.get("name"), "typing": player.typing, "character": character})
+        for player in self.players:
+            player.send_message({"key": "plu", "value": buf})
 
+    def send_player_typing(self, player):
+        if player.character:
+            character = player.character.name
+        else:
+            character = False
+
+        message = {"key": "ptu", "name": player.get("name"), "typing": player.typing, "character": character}
+        for p in self.players:
+            p.send_message(message)
 
 # NOTE character deleting has potential memory leak issue: memorize function might
 #contain a reference to the character? too lazy to check right now

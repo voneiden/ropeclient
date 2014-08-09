@@ -70,9 +70,10 @@ function initialize()
 function input_event(event)
 {
     if (event.keyCode == 13) { input_enter(); }
-    else if (event.keyCode == 8)  { input_tab(); }
-    else if (is_typing == false && $("#entrybox").val() != undefined) { input_typing(true); }
-    else if (is_typing == true && $("#entrybox").val() == undefined) { input_typing(false); }
+    else if (event.keyCode == 9)  { input_tab(); }
+    else if (is_typing == false && $("#input").val().length > 0) { input_typing(true); }
+    else if (is_typing == true && $("#input").val().length == 0) { input_typing(false); }
+    else { console.log("PROOT");}
 }
 
 function input_enter()
@@ -110,11 +111,26 @@ function input_enter()
     {
         // TODO
     }
+    if (is_typing) {
+        input_typing(false);
+    }
     ws_send(JSON.stringify(message));
 }
 
 function input_tab() {}
-function input_typing() {}
+function input_typing(typing) {
+    var message = {}
+    is_typing = typing;
+    if (typing){
+        message.key = "pit"
+        console.log("pit")
+    }
+    else {
+        message.key = "pnt"
+        console.log("pnt")
+    }
+    ws_send(JSON.stringify(message))
+}
     /*
 		var message = {};
         if (input_password == true) { // Currently typing a password
@@ -280,11 +296,11 @@ function receiveMessage(e) {
     }
     else if (key == 'ptu') {
         // player type update.. single player!!
-        updatePlayer(tok.shift());
+        updatePlayer(message);
     }
     else if (key == 'plu') {
         // Player list update!
-        updatePlayerList(tok.shift().split(';'));
+        updatePlayerList(message);
     
     }
     else if (key == 'col') {
@@ -657,32 +673,50 @@ function swapDice(id,from,to) {
 }
 
 
-function updatePlayer(playerinfo) {
-    var info = playerinfo.split(':');
-    var name = info.shift()
-    var typing = info.shift()
+function updatePlayer(message) {
+
+    var name = message.name;
+    var typing = message.typing;
     if (typing == "1") { typing = "*" }
     else { typing = "" }
-    var char = nameParse(info.shift());
+    var character = message.character;
+    if (character) {
+        character = " ("+ character + ")";
+    }
+    else {
+        character = "";
+    }
+
     var pattern = new RegExp("<pre>"+name+'.*?</pre>');
     //var results = document.getElementById('righttop').innerHTML.match(pattern);
     var results = $("#righttop").html().match(pattern);
 
     while (results.length) {
-        result = results.shift()
-        $("#righttop").html( $("#righttop").html().replace(result,"<pre>"+name+typing+" ("+char+")</pre>"))
+        var result = results.shift()
+        $("#righttop").html( $("#righttop").html().replace(result,"<pre>"+name+typing+character+"</pre>"))
     }
 }
-function updatePlayerList(playerList) {
+function updatePlayerList(message) {
     document.getElementById('righttop').innerHTML = "";
-    while (playerList.length) {
-        var info = playerList.shift().split(':')
-        var name = info.shift()
-        var typing = info.shift()
-        var char = nameParse(info.shift());
-        if (typing == "1") { typing = "*" }
-        else { typing = "" }
-        document.getElementById('righttop').innerHTML += "<pre>"+name+typing+" ("+char+")</pre>";
+    while (message.value.length) {
+        var player = message.value.shift()
+        var name = player.name;
+        var typing = player.typing;
+        var character = player.character; // TODO: nameparse
+
+        if (typing == "1") {
+            typing = "*"
+        }
+        else {
+            typing = ""
+        }
+        if (character) {
+            character = " ("+ character + ")";
+        }
+        else {
+            character = "";
+        }
+        document.getElementById('righttop').innerHTML += "<pre>"+name+typing+character+"</pre>";
         
         
     }

@@ -167,6 +167,9 @@ class Player(Database):
         self.connection = None
         self.handler = None
 
+        self.character = None
+        self.typing = False
+
 
     def path(self, *args):
         """ Provides path for world objects

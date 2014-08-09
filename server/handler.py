@@ -60,11 +60,12 @@ class HandlerGame(Handler):
 
         @param message:
         """
-
+        # Verify that the message has a valid payload
         if "value" not in message or len(message["value"]) == 0:
             logging.warning("process_msg no value in message")
             return
 
+        # Character menu
         if self.state == 0:
             if message["value"].lower()[0] == "c":
                 self.state = 10
@@ -78,6 +79,7 @@ class HandlerGame(Handler):
             except ValueError:
                 pass
 
+        # Character spawning TODO: this should be done with a command
         if self.state == 10:
             name = message["value"]
             if len(name) > self.player.core.settings["max_character_name_length"]:
@@ -86,7 +88,6 @@ class HandlerGame(Handler):
             self.player.world.characters.new(name, self.player.ident)
             self.state = 0
             self.show_character_menu()
-
             return
 
         elif message["value"][0] == "(" or not self.player.character:
@@ -110,6 +111,13 @@ class HandlerGame(Handler):
 
         self.player.send_message(buf)
 
+    def process_pit(self, content):
+        self.player.typing = True
+        self.player.world.send_player_typing(self.player)
+
+    def process_pnt(self, content):
+        self.player.typing = False
+        self.player.world.send_player_typing(self.player)
 
 class HandlerLogin(Handler):
     """
