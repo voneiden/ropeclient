@@ -280,9 +280,19 @@ function receiveMessage(e) {
     else if (key == "oft") {
         //A lot faster method of displaying a lot of text at once.
         //Still needs improving, so lets try..
+        var text = message.value;
         var msgid = ''
-        var timestamp = message.timestamp || ""
-        displayOfftopic('<span class="msg">' + format_text(message.value) + "</span>");
+        var timestamp;
+        if (message.timestamp) {
+            timestamp = new Date(message.timestamp * 1000);
+        }
+        else {
+            timestamp = new Date();
+        }
+        
+        text = format_text_timestamp(text, timestamp);
+        text = format_text(text)
+        displayOfftopic('<span class="msg">' + text + "</span>");
 
         return;
 
@@ -417,7 +427,18 @@ function format_text(text) {
     }
     
     return text;
+}
 
+function format_text_timestamp(text, timestamp) {
+    var pattern = /\$\(time\)/
+    var match = pattern.exec(text)
+    if (match) {
+        text = text.replace(match[0], timestamp.getHours().toString() + ":" + timestamp.getMinutes().toString());
+    }
+    else {
+        console.log("No match in " + text)
+    }
+    return text;
 }
 
 
