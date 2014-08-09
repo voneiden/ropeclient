@@ -58,7 +58,7 @@ class WebPlayer(WebSocketServerProtocol):
         # Send MOTD
         buf = []
         for line in self.core.greeting:
-            buf.append({"value": line})
+            buf.append({"key": "msg", "value": line})
         self.send_message(buf)
 
         #self.do_ping()
@@ -134,14 +134,15 @@ class WebPlayer(WebSocketServerProtocol):
             f(content)
         except:
             self.failure()
-
-
         
-    def write(self,data):
-        # TODO: json
-        
-        #data = data.replace("\n",'<br>')
+    def write(self, data):
+        """
+        Encodes the data (utf8) and passes it to the network framework for delivery
 
+        @param data: data to be sent to client
+        @type data: str
+        @return: None
+        """
         self.sendMessage(data.encode("utf-8"))
 
     def send_message(self, message):
@@ -154,28 +155,37 @@ class WebPlayer(WebSocketServerProtocol):
         """
         # Convert string/unicode based messages into correct dict format
         if isinstance(message, str):
-            message = {"key":"msg", "value":message}
+            message = {"key": "msg", "value": message}
 
         try:
             if isinstance(message, list):  # Multi-line messages
                 for si, submessage in enumerate(message):
                     if isinstance(submessage, dict) and "value" in submessage:  # Sanitize
                         submessage["value"] = self.core.sanitize(submessage["value"])
+                        if "key" not in submessage:
+                            submessage["key"] = "msg"
+
                     elif isinstance(submessage, str) or isinstance(submessage, unicode):  # Convert str to dict & sanit.
                         message[si] = {"key": "msg", "value": self.core.sanitize(submessage)}
                     else:
                         logging.error("Error, unable to process submessages in list")
                         raise AssertionError
             else:
-                assert isinstance(message, dict) and "value" in message
-                message["value"] = self.core.sanitize(message["value"])
+                assert isinstance(message, dict)
+                if "value" in message:
+                    message["value"] = self.core.sanitize(message["value"])
         except:
             logging.error("sendMessage got invalid format: {}".format(str(message)))
             raise
             return
         
-        if isinstance(message, list):
-            self.write(json.dumps({"key":"msg_list", "value":message}))
+        if isinstance(message, list) and len(message) > 0:
+            if "key" in message[0] and message[0]["key"] == "msg":
+                self.write(json.dumps({"key": "msg_list", "value": message}))
+            elif "key" in message[0] and message[0]["key"] == "oft":
+                self.write(json.dumps({"key": "oft_list", "value": message}))
+            else:
+                logging.error("Unable to determine key type of list send: " + message[0]["key"])
         else:
             self.write(json.dumps(message))
 

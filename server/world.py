@@ -177,10 +177,15 @@ class World(Database):
 
 
     def form_offtopic_message(self, ident):
+        if isinstance(ident, int):
+            ident = str(ident)
+
         assert isinstance(ident, str)
 
         path = "offtopic:{}".format(ident)
         value = self.hget(path, "value")
+        if not value:
+            return None
         owner = self.hget(path, "owner")
         timestamp = self.hget(path, "time")
 
@@ -226,9 +231,22 @@ class World(Database):
 
         # TODO: announce join
 
+    def send_oft_history(self, player, lines=100):
+        latest_ident = int(self.get("offtopic"))
+        ident = latest_ident - lines
+        if ident < 0:
+            ident = 0
 
+        buf = []
+        while ident < latest_ident:
+            submessage = self.form_offtopic_message(ident)
+            ident += 1
 
+            if not submessage:
+                continue
+            buf.append(submessage)
 
+        player.send_message(buf)
         # TODO: dicts?
 # NOTE character deleting has potential memory leak issue: memorize function might
 #contain a reference to the character? too lazy to check right now

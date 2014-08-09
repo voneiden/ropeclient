@@ -212,7 +212,9 @@ function connect(url)
     };
 }
 
-
+/*
+ * receiveMessage handles received messages which must be valid json strings
+ */
 function receiveMessage(e) {
     var message;
     try { message = JSON.parse(e.data); }
@@ -223,131 +225,54 @@ function receiveMessage(e) {
     }
     var key = message.key;
     
-    //message = message.replace(/\n/g,"<br />");
-
+    // msg is a single line in-topic message
     if (key == "msg") {
-        var msgid = ''
-        var timestamp = message.timestamp || ""
-        displayMain('<span class="msg"' + msgid + ">" + timestamp + format_text(message.value) + "</span>");
-        /*
-        var everything = tok.join(" ");
-        var lines = everything.split("\x1b");
-        var output = [];
-        
-        while (lines.length) {
-            var line = lines.shift();
-            var linetok = line.split("\x1f");
-            var timestamp = linetok.shift();
-            //displayOfftopic(false,timestamp)
-            var editable = linetok.shift();
-            var message = linetok.shift();
-            
-            if (editable == "1") {
-                edit_history.push([timestamp,message])
-            }
-            while (edit_history.length > 10) {
-                edit_history.shift()
-            }
-            
-            message = diceParse(message);
-            message = nameParse(message);
-            var spanid = '';
-            if (timestamp && timestamp != "0") {
-                spanid = ' id="' + timestamp + '"';
-                timestamp = makeTimestamp(timestamp);
-            }
-            else {
-                timestamp = '';
-            }
-            
-            output.push('<span class="msg"' + spanid + ">" + timestamp + message + "</span>");
-        }
-        displayMain(output.join(""));
-        */
+        displayMain(format_message_msg(message));
     }
+
+    // msg_list consists of a list of multiple msg elements
     else if (key == "msg_list")
     {
         var buffer = [];
         for (var i = 0; i < message.value.length; i++) 
         {
-            var msgid = ''
-            var timestamp = message.value[i].timestamp || ""
-            buffer.push('<span class="msg"' + msgid + ">" + timestamp + format_text(message.value[i].value) + "</span>");
+            buffer.push(format_message_msg(message.value[i]));
         }
         displayMain(buffer.join(""));
     }
-    
+
+    // oft is a single line off-topic message
     else if (key == "oft") {
-        //A lot faster method of displaying a lot of text at once.
-        //Still needs improving, so lets try..
-        var text = message.value;
-        var msgid = ''
-        var timestamp;
-        if (message.timestamp) {
-            timestamp = new Date(message.timestamp * 1000);
-        }
-        else {
-            timestamp = new Date();
-        }
-        
-        text = format_text_timestamp(text, timestamp);
-        text = format_text(text)
-        displayOfftopic('<span class="msg">' + text + "</span>");
-
-        return;
-
-
-        var everything = tok.join(" ");
-        var lines = everything.split("\x1b");
-        var output = [];
-        while (lines.length) {
-            var line = lines.shift();
-            var linetok = line.split(" ");
-            var timestamp = linetok.shift();
-            var message = linetok.join(" ");
-            
-            message = diceParse(message);
-            var spanid = '';
-            if (timestamp && timestamp != "0") {
-                spanid = ' id="' + timestamp + '"';
-                timestamp = makeTimestamp(timestamp);
-            }
-            else {
-                timestamp = '';
-            }
-            output.push('<span class="msg"' + spanid + ">" + timestamp + message + "</span>");
-            //var timestamp = '';
-            //var spanid = '';
-            // if (id && id != "0") {
-            //    spanid = ' id="' + id + '"';
-            //    timestamp = makeTimestamp(id);
-            //    
-            //}
-        }
-        displayOfftopic(output.join(''));
-        //displayOfftopic(false,output.join(""));
+        displayOfftopic(format_message_oft(message));
     }
+
+    // oft_list consists of a list of multiple oft elements
+    else if (key == "oft_list") {
+        var buffer =[];
+        for (var i = 0; i < message.value.length; i++)
+        {
+            buffer.push(format_message_oft(message.value[i]));
+        }
+        displayOfftopic(buffer.join(""))
+    }
+
+    // pwd requests the client to go into password typing mode (hide input and hash output)
+    // TODO: server based salt
     else if (key == 'pwd') {
         marker = $('<span />').insertBefore('#input');
         $('#input').detach().attr('type', 'password').insertAfter(marker);
         marker.remove();
         $("#input").focus();
-        //$("#entrybox").attr('type','password');
         is_password = 1;
-        //displayOfftopic('pwd toggle');
     }
-    else if (key == 'clr') {
-        var window = tok.shift();
+    else if (key == "clr") {
+        var window = message.window || "both"
 
-        if (window == 'main') {
-            //$('#leftbottom').innerHTML = "Cleared.<br />";
+        if (window == "msg" || window == "both") {
             document.getElementById('leftbottom').innerHTML = "";
         }
-        else if (window == 'offtopic') {
+        if (window == "oft" || window == "both") {
             document.getElementById('lefttop').innerHTML = "";
-        }
-        else {
-            displayOfftopic(false,"Unknown thingy");
         }
     }
     else if (key == 'ping') {
@@ -413,7 +338,7 @@ function receiveMessage(e) {
     }
 };
 
-function format_text(text) {
+function format_text_color(text) {
     //Regex pattern $(c: HEX or TEXT ) 
     var pattern = /\$\(c\:(\#[\da-f]{6}|[a-z]+)\)/
     while (true)
@@ -430,17 +355,43 @@ function format_text(text) {
 }
 
 function format_text_timestamp(text, timestamp) {
-    var pattern = /\$\(time\)/
-    var match = pattern.exec(text)
-    if (match) {
-        text = text.replace(match[0], timestamp.getHours().toString() + ":" + timestamp.getMinutes().toString());
+    if (!timestamp) {
+        text = "        " + text
     }
     else {
-        console.log("No match in " + text)
+        var pattern = /\$\(time\)/
+        var match = pattern.exec(text)
+        if (match) {
+            text = text.replace(match[0], timestamp.getHours().toString() + ":" + timestamp.getMinutes().toString());
+        }
+        else {
+            text = "        " + text
+        }
     }
     return text;
 }
 
+function format_message_oft(message) {
+    // TODO: Message ID
+    var text = message.value;
+    var timestamp;
+    if (message.timestamp) {
+        timestamp = new Date(message.timestamp * 1000);
+
+    }
+    else {
+        timestamp = false;
+    }
+    text = format_text_timestamp(text, timestamp);
+    text = format_text_color(text)
+    return '<span class="msg">' + text + "</span>";
+}
+
+function format_message_msg(message) {
+    var text = message.value;
+    text = format_text_color(text)
+    return '<span class="msg">' + text + "</span>";
+}
 
 function EditHistoryName(msg){
     var pattern = /\$\(disp\=(.*?)\)/;

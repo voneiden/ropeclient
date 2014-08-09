@@ -216,6 +216,10 @@ class HandlerWorld(Handler):
                 self.player.handler = HandlerGame(self.player)
 
                 self.player.world.add_player(self.player)
+                self.player.send_message({"key": "clr"})
+
+                self.player.world.send_oft_history(self.player)
+
 
 
 
