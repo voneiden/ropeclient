@@ -25,7 +25,7 @@ from database import Database
 from player import Player
 from redis import StrictRedis
 
-
+from character import CharacterManager
 
 class WorldManager(Database):
     def __init__(self, core=None, client=None):
@@ -156,6 +156,12 @@ class World(Database):
 
         self.players = []
 
+
+        # Character manager
+        logging.info("Setting up CharacterManager for world {}".format(self.ident))
+        self.characters = CharacterManager(self.core, self.client, self)
+        logging.info("Loaded {0} character{1}.".format(len(self.characters.list()), "s" if (len(self.characters.list()) != 1) else ""))
+
     def path(self, *args):
         """ Provides path for world objects
 
@@ -175,8 +181,24 @@ class World(Database):
                 keys[i] = "rp:worlds:{}.{}".format(self.ident, k)
             return keys
 
+    def fetch_character(self, ident):
+        if isinstance(ident ,int):
+            ident = str(ident)
+
+        assert isinstance(ident ,str)
+        if ident not in self.character_instances:
+            self.load_character(ident)
+
+        assert ident in self.character_instances
+
+        return self.character_instances[ident]
 
     def form_offtopic_message(self, ident):
+        """
+        Given ident forms a proper dict oft message
+        @param ident:
+        @return:
+        """
         if isinstance(ident, int):
             ident = str(ident)
 
@@ -223,8 +245,6 @@ class World(Database):
         for player in self.players:
             player.send_offtopic(message)
 
-
-
     def add_player(self, player):
         if player not in self.players:
             self.players.append(player)
@@ -248,6 +268,9 @@ class World(Database):
 
         player.send_message(buf)
         # TODO: dicts?
+
+
+
 # NOTE character deleting has potential memory leak issue: memorize function might
 #contain a reference to the character? too lazy to check right now
 #FIXME

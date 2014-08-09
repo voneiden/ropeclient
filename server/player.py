@@ -218,6 +218,9 @@ class Player(Database):
     def disconnect(self):
         pass
 
+    def clear(self, window="both"):
+        self.send_message({"key": "clr", "window": window})
+
 
 class PlayerOLD(object):
     '''

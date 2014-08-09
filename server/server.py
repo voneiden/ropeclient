@@ -143,6 +143,7 @@ class WebPlayer(WebSocketServerProtocol):
         @type data: str
         @return: None
         """
+        logging.info("WRITE: " + data)
         self.sendMessage(data.encode("utf-8"))
 
     def send_message(self, message):
@@ -159,6 +160,8 @@ class WebPlayer(WebSocketServerProtocol):
 
         try:
             if isinstance(message, list):  # Multi-line messages
+                assert len(message) > 0
+
                 for si, submessage in enumerate(message):
                     if isinstance(submessage, dict) and "value" in submessage:  # Sanitize
                         submessage["value"] = self.core.sanitize(submessage["value"])

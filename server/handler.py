@@ -30,6 +30,11 @@ class Handler(object):
 
 
 class HandlerGame(Handler):
+    """
+        state 0 - character selection
+        state 1 - in character
+        state 10 - character creation
+    """
     def __init__(self, player):
         """
         This handler handles the main menu where user can choose to join and create new worlds
@@ -45,6 +50,9 @@ class HandlerGame(Handler):
         self.player.character = None
 
         # TODO refill offtopic chat
+        self.player.clear()
+        self.player.world.send_oft_history(self.player)
+        self.show_character_menu()
 
     def process_msg(self, message):
         """
@@ -52,13 +60,55 @@ class HandlerGame(Handler):
 
         @param message:
         """
+
         if "value" not in message or len(message["value"]) == 0:
             logging.warning("process_msg no value in message")
             return
 
-        if message["value"][0] == "(" or not self.player.character:
+        if self.state == 0:
+            if message["value"].lower()[0] == "c":
+                self.state = 10
+                self.player.send_message("Choose a name for your new character. Please capitalize the name properly.")
+                return
+            try:
+                ident = int(message["value"])
+                logging.debug("Character requested!")
+                return
+
+            except ValueError:
+                pass
+
+        if self.state == 10:
+            name = message["value"]
+            if len(name) > self.player.core.settings["max_character_name_length"]:
+                self.player.send_message("Character name is too long (max {} letters)".format(self.player.core.settings["max_character_name_length"]))
+                return
+            self.player.world.characters.new(name, self.player.ident)
+            self.state = 0
+            self.show_character_menu()
+
+            return
+
+        elif message["value"][0] == "(" or not self.player.character:
             self.player.world.do_offtopic(message["value"], owner=self.player)
 
+    def show_character_menu(self):
+        self.player.clear("msg")
+        buf = []
+        if self.state == 0:
+            # Get list of characters owned by player
+            character_idents = self.player.world.characters.get_player_characters(self.player)
+
+            assert isinstance(character_idents, list)
+            if len(character_idents) == 0:
+                buf.append("You have no characters. To create a new character, type 'create'.")
+            else:
+                buf.append("Choose from the following characters or type 'create' for a new character.")
+                for i, ident in enumerate(character_idents):
+                    character = self.player.world.characters.fetch(ident)
+                    buf.append("{}) {}".format(i, character.get("name")))
+
+        self.player.send_message(buf)
 
 
 class HandlerLogin(Handler):
@@ -216,9 +266,7 @@ class HandlerWorld(Handler):
                 self.player.handler = HandlerGame(self.player)
 
                 self.player.world.add_player(self.player)
-                self.player.send_message({"key": "clr"})
 
-                self.player.world.send_oft_history(self.player)
 
 
 

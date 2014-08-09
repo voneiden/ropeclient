@@ -334,7 +334,7 @@ function receiveMessage(e) {
         if (element != null) { element.innerHTML = "[EDITED  ] " + message }
     }
     else {
-        displayOfftopic(false,'unknown header (len:'+key.length+': ' + key);
+        displayOfftopic('unknown header msg: ' + message.toString());
     }
 };
 

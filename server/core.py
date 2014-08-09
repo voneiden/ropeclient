@@ -30,7 +30,7 @@ class Core(object):
 
     def __init__(self):
         # Define settings
-        self.settings = {"max_login_name_length": 30}
+        self.settings = {"max_login_name_length": 30, "max_character_name_length": 30}
 
         from database import Database
         from world import WorldManager
@@ -75,10 +75,8 @@ class Core(object):
 
         logging.info("Loaded {0} player{1}.".format(len(self.players.list()), "s" if (len(self.players.list()) != 1) else ""))
 
-        # Initialize character manager
-        #logging.info("Setting up characters")
-        #self.characters = CharacterManager(core=self, client=self.db.client)
-        #logging.info("Loaded {0} character{1}.".format(len(self.characters.list()), "s" if (len(self.characters.list()) != 1) else ""))
+        #Initialize character manager
+
 
         logging.info("Server ready")
 

@@ -142,6 +142,10 @@ class Database(object):
         assert isinstance(hvalue, str) or isinstance(hvalue, int) or isinstance(hvalue, float)
         return self.client.hset(self.path(key), hkey, hvalue)
 
+    def smembers(self, key):
+        assert isinstance(key ,str)
+        return [member.decode("utf8") for member in self.client.smembers(self.path(key))]
+
     def list(self):
         return [ident.decode("utf8") for ident in self.client.smembers("{}.list".format(self.path()))]
 
