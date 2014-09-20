@@ -26,6 +26,8 @@ from player import Player
 from redis import StrictRedis
 
 from character import CharacterManager
+from location import LocationManager
+
 
 class WorldManager(Database):
     def __init__(self, core=None, client=None):
@@ -157,10 +159,21 @@ class World(Database):
         self.players = []
 
 
+
+
+        # Location manager
+        logging.info("Setting up LocationManager for world {}".format(self.ident))
+        self.locations = LocationManager(self.core, self.client, self)
+        if len(self.locations.list()) == 0:
+            logging.warning("The world has no locations, creating a default location")
+            location = self.locations.new("Void", "You are floating in the void.")
+        logging.info("Loaded {0} location{1}.".format(len(self.locations.list()), "s" if (len(self.locations.list()) != 1) else ""))
+
         # Character manager
         logging.info("Setting up CharacterManager for world {}".format(self.ident))
         self.characters = CharacterManager(self.core, self.client, self)
         logging.info("Loaded {0} character{1}.".format(len(self.characters.list()), "s" if (len(self.characters.list()) != 1) else ""))
+
 
     def path(self, *args):
         """ Provides path for world objects
