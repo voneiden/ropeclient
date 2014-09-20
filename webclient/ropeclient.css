@@ -14,7 +14,7 @@ body,html
 }
 
 #root-right {
-    background-color: red;
+    background-color: black;
     height: 100%;
     flex-grow: 0;
     flex-shrink: 0;
@@ -22,7 +22,7 @@ body,html
 }
 
 #root-left {
-    background-color: blue;
+    background-color: black;
     height:100%;
     flex-grow: 6;
 
@@ -31,22 +31,22 @@ body,html
 }
 
 #root-left-topchat {
-    background-color: navy;
+    background-color: black;
     flex-grow: 0;
     flex-shrink: 0;
     flex-basis: 30%;
     overflow-y:scroll;
+    border-bottom: 1px solid white;
 }
 
 #root-left-bottomchat {
-    background-color: darkblue;
+    background-color: black;
     flex-grow: 1;
-
     overflow-y:scroll;
 }
 
 #root-left-input {
-    background-color: deepskyblue;
+    background-color: black;
     flex-grow: 0;
 
     display: flex;
@@ -55,6 +55,7 @@ body,html
 
 #input{
     flex-shrink: 100000;
+    resize: none;
 }
 pre
 {
