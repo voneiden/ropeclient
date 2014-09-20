@@ -159,17 +159,18 @@ function handle_autocomplete(backspace) {
     // First call to autocomplete, choose matching command and fill choices
     if (autocomplete_buffer.length == 0 && !backspace) {
         console.log("Stage 1 autocomplete");
-        var regex = new RegExp("\b"+input+".*\b", 'i')
+        var regex = new RegExp("\\b"+input, 'i')
         autocomplete_choices = new Array();
 
         for (var i=0; i < autocomplete_command_keys.length; i++) {
-            if (autocomplete_command_keys[i].search(regex)) {
+            if (autocomplete_command_keys[i].search(regex) > -1) {
                 autocomplete_choices.push(autocomplete_command_keys[i])
             }
         }
         console.log(autocomplete_choices);
         if (autocomplete_choices.length > 0) {
             autocomplete_buffer.push(autocomplete_choices[0])
+            $("#input").val("");
             autocomplete_display();
         }
         else {
@@ -197,7 +198,9 @@ function handle_autocomplete(backspace) {
         }
         // Add parameter
         else {
-
+            autocomplete_buffer.push(input);
+            $("#input").val("");
+            autocomplete_display();
         }
     }
 }
@@ -586,6 +589,7 @@ function autocomplete_display() {
          
     }
     $("#autocomplete").html(text);
+    $("#autocomplete").focus();
 }
 
 // This function handles all autocomplete related events
