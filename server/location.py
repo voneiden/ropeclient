@@ -26,7 +26,6 @@ class LocationManager(Database):
 
         logging.info("Creating location interface instances for world {}..".format(world.ident))
         for ident in idents:
-            print(type(ident), ident)
             assert isinstance(ident, str)
             if ident not in self.interfaces:
                 logging.info("Loading new location (ident: {}, world: {})".format(ident, world.ident))
@@ -117,6 +116,29 @@ class LocationManager(Database):
         path = "owners:{}".format(player.ident)
         return self.smembers(path)
     '''
+    def add_character(self, location_ident, character_ident):
+        location = self.fetch(location_ident)
+        character = self.world.characters.fetch(character_ident)
+        if not location or not character:
+            logging.warning("Unable to add, character or location not found")
+            return
+
+        location.sadd("characters", character_ident)
+
+        location.announce_to_characters("{} has arrived.".format(character.get("name")))
+
+
+    def remove_character(self, location_ident, character_ident):
+        location = self.fetch(location_ident)
+        character = self.world.characters.fetch(character_ident)
+        if not location or not character:
+            logging.warning("Unable to remove, character or location not found")
+            return
+
+        location.srem("characters", character_ident)
+        character = self.world.characters.fetch(character_ident)
+
+        location.announce_to_characters("{} has left.".format(character.get("name")))
 
 class Location(Database):
     def __init__(self, core, client, ident, world):
@@ -156,3 +178,13 @@ class Location(Database):
             for i, k in enumerate(keys):
                 keys[i] = "rp:worlds:{}.locations:{}.{}".format(self.world.ident, self.ident, k)
             return keys
+
+
+    def announce_to_characters(self, text):
+        character_idents = self.smembers("characters")
+        for ident in character_idents:
+            character = self.world.characters.fetch(ident)
+            if not character:
+                logging.warning("Character not found: ident {}".format(ident))
+                continue
+            character.message(text)

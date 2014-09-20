@@ -67,31 +67,40 @@ class HandlerGame(Handler):
 
         # Character menu
         if self.state == 0:
-            if message["value"].lower()[0] == "c":
-                self.state = 10
-                self.player.send_message("Choose a name for your new character. Please capitalize the name properly.")
-                return
             try:
-                ident = int(message["value"])
+                character_idents = self.player.world.characters.get_player_characters(self.player)
+                enumerated_ident = int(message["value"])
+                if enumerated_ident < 1:
+                    self.player.send_message("Don't be silly.")
+                    return
                 logging.info("Character requested!")
+                try:
+                    ident = character_idents[enumerated_ident-1]
+                except IndexError:
+                    self.player.send_message("Don't be silly.")
+                    return
+
+                character = self.player.world.characters.fetch(ident)
+                character.attach(self.player)
+                self.state = 1
+
+                logging.info(character)
+                self.player.clear("msg")
                 return
 
             except ValueError:
                 pass
 
         # Character spawning TODO: this should be done with a command
-        if self.state == 10:
-            name = message["value"]
-            if len(name) > self.player.core.settings["max_character_name_length"]:
-                self.player.send_message("Character name is too long (max {} letters)".format(self.player.core.settings["max_character_name_length"]))
-                return
-            self.player.world.characters.new(name, self.player.ident)
-            self.state = 0
-            self.show_character_menu()
-            return
-
-        elif message["value"][0] == "(" or not self.player.character:
+        if message["value"][0] == "(" or not self.player.character:
             self.player.world.do_offtopic(message["value"], owner=self.player)
+
+        else:
+            location_ident = self.player.character.get("location")
+            location = self.player.world.locations.fetch(location_ident)
+
+            # TODO use world function for this kind of stuff?
+            location.announce_to_characters('''{} says, "{}"'''.format(self.player.character.get("name"), message["value"]))
 
     def show_character_menu(self):
         self.player.clear("msg")
@@ -102,12 +111,12 @@ class HandlerGame(Handler):
 
             assert isinstance(character_idents, list)
             if len(character_idents) == 0:
-                buf.append("You have no characters. To create a new character, type 'create'.")
+                buf.append("You have no characters. To create a new character, type 'spawn' and press TAB key.")
             else:
-                buf.append("Choose from the following characters or type 'create' for a new character.")
+                buf.append("Choose from the following characters or use the command 'spawn' to create new characters.")
                 for i, ident in enumerate(character_idents):
                     character = self.player.world.characters.fetch(ident)
-                    buf.append("{}) {}".format(i, character.get("name")))
+                    buf.append("{}) {}".format(i+1, character.get("name")))
 
         self.player.send_message(buf)
 
@@ -118,6 +127,29 @@ class HandlerGame(Handler):
     def process_pnt(self, content):
         self.player.typing = False
         self.player.world.send_player_typing(self.player)
+
+    def process_spawn(self, content):
+        content = content["value"]
+        assert isinstance(content, list)
+        if len(content) == 0:
+            return
+
+        character_name = content[0]
+        if len(content) > 1:
+            character_sdesc = content[1]
+        if len(content) > 2:
+            character_ldesc = content[2]
+
+        #TODO: create a new character
+
+        if self.player.character:
+            location_ident = self.player.character.get("location")
+        else:
+            location_ident = self.player.world.locations.list()[0]
+
+        self.player.world.characters.new(character_name, self.player.ident, location_ident)
+        self.show_character_menu()
+
 
 class HandlerLogin(Handler):
     """

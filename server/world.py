@@ -220,7 +220,7 @@ class World(Database):
         path = "offtopic:{}".format(ident)
         value = self.hget(path, "value")
         if not value:
-            return None
+            return {"key": "oft", "value": "Message Not Found (ident:{})".format(ident)}
         owner = self.hget(path, "owner")
         timestamp = self.hget(path, "time")
 
@@ -266,13 +266,17 @@ class World(Database):
         self.send_player_list()
 
     def send_oft_history(self, player, lines=100):
-        latest_ident = int(self.get("offtopic"))
+        latest_ident = self.get("offtopic")
+        if latest_ident is None:
+            return
+        else:
+            latest_ident = int(latest_ident)
         ident = latest_ident - lines
-        if ident < 0:
-            ident = 0
+        if ident <= 0:
+            ident = 1
 
         buf = []
-        while ident < latest_ident:
+        while ident <= latest_ident:
             submessage = self.form_offtopic_message(ident)
             ident += 1
 
@@ -295,7 +299,7 @@ class World(Database):
 
     def send_player_typing(self, player):
         if player.character:
-            character = player.character.name
+            character = player.character.get("name")
         else:
             character = False
 

@@ -103,13 +103,8 @@ function input_enter(event)
             
 		var shaObj = new jsSHA($("#input-password").val()+'r0p3s4lt'); // TODO: deal with this poor static salt
         message.value = shaObj.getHash("SHA-256","HEX");      // Though; does this service require such strong authentication?
-		
-		// Clear, detach, change mode to normal text and reattach the input block
+
         $("#input-password").val("");
-        //var marker = $('<span />').insertBefore('#input');
-        //$('#input').detach().attr('type', 'text').insertAfter(marker);
-        //marker.remove();
-        //$("#input").focus();
         $("#input-password").hide();
         $("#input").show();
         $("#input").focus();
@@ -131,9 +126,22 @@ function input_enter(event)
         $("#input").val("");
         event.preventDefault();
     }
+    else if (autocomplete_buffer.length > 0) {
+        message.key = autocomplete_buffer[0];
+        message.value = autocomplete_buffer.slice(1);
+        var input = $("#input").val();
+        if (input.length > 0) {
+            message.value.push(input);
+        }
+        $("#input").val("");
+        autocomplete_buffer = new Array();
+        $("#autocomplete").html("");
+        event.preventDefault();
+    }
     else
     {
-        // TODO
+        // Todo
+        console.error("UNABLE TO SEND MESSAGE")
     }
     if (is_typing) {
         input_typing(false);
@@ -695,15 +703,15 @@ function updatePlayer(message) {
 
     var pattern = new RegExp("<pre>"+name+'.*?</pre>');
     //var results = document.getElementById('righttop').innerHTML.match(pattern);
-    var results = $("#righttop").html().match(pattern);
+    var results = $("#root-right").html().match(pattern);
 
     while (results.length) {
         var result = results.shift()
-        $("#righttop").html( $("#righttop").html().replace(result,"<pre>"+name+typing+character+"</pre>"))
+        $("#root-right").html( $("#root-right").html().replace(result,"<pre>"+name+typing+character+"</pre>"))
     }
 }
 function updatePlayerList(message) {
-    document.getElementById('righttop').innerHTML = "";
+    document.getElementById('root-right').innerHTML = "";
     while (message.value.length) {
         var player = message.value.shift()
         var name = player.name;
@@ -722,7 +730,7 @@ function updatePlayerList(message) {
         else {
             character = "";
         }
-        document.getElementById('righttop').innerHTML += "<pre>"+name+typing+character+"</pre>";
+        document.getElementById('root-right').innerHTML += "<pre>"+name+typing+character+"</pre>";
         
         
     }

@@ -26,11 +26,14 @@ class CharacterManager(Database):
 
         logging.info("Creating character interface instances for world {}..".format(world.ident))
         for ident in idents:
-            print(type(ident), ident)
             assert isinstance(ident, str)
             if ident not in self.interfaces:
                 logging.info("Loading new character (ident: {}, world: {})".format(ident, world.ident))
                 self.interfaces[ident] = Character(core, client, ident, world)
+
+                if not self.interfaces[ident].get("location"):  #TODO: REMOVE
+                    logging.warning("Character is missing a location")
+                    self.interfaces[ident].set("location", self.world.locations.list()[0])
 
     def fetch(self, ident):
         """
@@ -56,7 +59,7 @@ class CharacterManager(Database):
         idents = self.client.smembers(self.path("list"))
         return idents  # TODO: Generate dict
     '''
-    def new(self, name, owner_ident, **kwargs):
+    def new(self, name, owner_ident, location_ident, **kwargs):
         """
 
         Used to create a new character
@@ -96,9 +99,14 @@ class CharacterManager(Database):
         # Add details
         character.set("name", name)
         character.set("owner", owner_ident)
+        character.set("location", location_ident)
 
         # Add character to owner list
         self.sadd("owners:{}".format(owner_ident), character.ident)
+
+        # Add character to location
+        self.world.locations.add_character(location_ident, ident)
+
 
         logging.info("New character created successfully!")
 
@@ -144,6 +152,7 @@ class Character(Database):
         Database.__init__(self, core=core, client=client)
         self.ident = ident
         self.world = world
+        self.player = None
 
     def path(self, *args):
         """ Provides path for character objects
@@ -163,3 +172,45 @@ class Character(Database):
             for i, k in enumerate(keys):
                 keys[i] = "rp:worlds:{}.characters:{}.{}".format(self.world.ident, self.ident, k)
             return keys
+
+
+    def message(self, message):
+        """
+        @param message: either a string or an ident referring to a stored message
+        @return:
+        """
+
+        # Store message or message ident
+        #self.lpush("messages", message)
+
+        if self.player:
+            try:
+                ident = int(message)
+                message = self.world.hget("messages", ident)
+            except ValueError:
+                pass
+
+            self.player.send_message(message)
+
+    def attach(self, player):
+        self.player = player
+        self.player.character = self
+
+        # Fetch the last 100 messages
+        character_message_history = self.lrange("messages", -100, 100)
+        messages = []
+
+        for message in character_message_history:
+            try:
+                ident = int(message)
+                message = self.world.hget("messages", ident)
+            except ValueError:
+                pass
+            messages.append(message)
+        if len(messages):
+            self.player.send_message(messages)
+
+
+    def detatch(self):
+        self.player.character = None
+        self.player = None

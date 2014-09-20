@@ -72,7 +72,6 @@ class Database(object):
         if isinstance(result, bytes):
             result = result.decode("utf8")
 
-        assert isinstance(result, str)
         return result
 
 
@@ -102,6 +101,21 @@ class Database(object):
         assert isinstance(values, list) or isinstance(values, tuple)
 
         return self.client.sadd(self.path(key), *values)
+
+    def srem(self, key, *values):
+        """ Add member(s) to a set in database
+
+        @param key: Key of the object attribute
+        @param values: Values to add to the attribute
+        @type key: str
+        @type values: (list, tuple)
+        @return:
+        """
+
+        assert isinstance(key, str)
+        assert isinstance(values, list) or isinstance(values, tuple)
+
+        return self.client.srem(self.path(key), *values)
 
     def incr(self, key):
         """
@@ -148,6 +162,18 @@ class Database(object):
 
     def list(self):
         return [ident.decode("utf8") for ident in self.client.smembers("{}.list".format(self.path()))]
+
+    def lpush(self, key, *values):
+        assert isinstance(key, str)
+        assert isinstance(values, list)
+        return self.client.lpush(self.path(key), *values)
+
+    def lrange(self, key, start, stop):
+        assert isinstance(key, str)
+        assert isinstance(start, int)
+        assert isinstance(stop, int)
+        return self.client.lrange(self.path(key), start, stop)
+
 
     def path(self, *args):
         """ OVERRIDE THIS FUNCTION

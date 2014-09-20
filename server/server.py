@@ -85,10 +85,13 @@ class WebPlayer(WebSocketServerProtocol):
             self.transport.loseConnection()
     
     def get_player_name(self):
-        if self.player and hasattr(self.player, "name"):
-            return self.player.name
+        if self.player: #hasattr(self.player, "name"):
+            try:
+                return self.player.get("name")
+            except:
+                return "unknown-player"
         else:
-            return "Unknown player"
+            return "unknown-player"
         
     def onClose(self, clean, code, reason):
         logging.info("Connection lost: %s"%(self.get_player_name()))
@@ -125,10 +128,18 @@ class WebPlayer(WebSocketServerProtocol):
         logging.info("Received message: " + str(content))
         # Forward the request to appropriate handler
         # Example: self.player.handler.process_msg
-        if self.player:
-            f = getattr(self.player.handler, "process_{}".format(content["key"]))
-        else:
-            f = getattr(self.login_handler, "process_{}".format(content["key"]))
+        if not content["key"].isalpha():
+            logging.warning("Invalid process cmd ({}) received from player {}".format(content["key"], self.get_player_name()))
+            return
+
+        try:
+            if self.player:
+                f = getattr(self.player.handler, "process_{}".format(content["key"]))
+            else:
+                f = getattr(self.login_handler, "process_{}".format(content["key"]))
+        except AttributeError:
+            self.failure()
+            return
 
         try:
             f(content)
@@ -168,7 +179,7 @@ class WebPlayer(WebSocketServerProtocol):
                         if "key" not in submessage:
                             submessage["key"] = "msg"
 
-                    elif isinstance(submessage, str) or isinstance(submessage, unicode):  # Convert str to dict & sanit.
+                    elif isinstance(submessage, str):  # Convert str to dict & sanit.
                         message[si] = {"key": "msg", "value": self.core.sanitize(submessage)}
                     else:
                         logging.error("Error, unable to process submessages in list")
@@ -303,10 +314,7 @@ class WebPlayer(WebSocketServerProtocol):
         traceback.print_exc()
 
         # Output to file
-        if hasattr(self.player, "name"):
-            log_id = str(int(time.time())) + "-" + str(self.player.name)
-        else:
-            log_id = str(int(time.time())) + "-" + "unnamed"
+        log_id = str(int(time.time())) + "-" + self.get_player_name()
 
         f = open('failures/{log_id}.txt'.format(log_id=log_id), 'w')
         traceback.print_exc(file=f)
