@@ -74,7 +74,7 @@ class LocationManager(Database):
                 return False
 
         # Add the ident to location members
-        self.sadd("list", ident)
+        self.rpush("list", ident)
 
         # Create location object
         location = Location(self.core, self.client, ident, self.world)
@@ -182,9 +182,4 @@ class Location(Database):
 
     def announce_to_characters(self, text):
         character_idents = self.smembers("characters")
-        for ident in character_idents:
-            character = self.world.characters.fetch(ident)
-            if not character:
-                logging.warning("Character not found: ident {}".format(ident))
-                continue
-            character.message(text)
+        self.world.do_message(text, character_idents)

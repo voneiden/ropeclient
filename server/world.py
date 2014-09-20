@@ -107,7 +107,7 @@ class WorldManager(Database):
                 return False
 
         # Add the ident to world members
-        self.sadd("list", ident)
+        self.rpush("list", ident)
 
         # Create world object
         world = World(core=self.core, client=self.client, ident=ident)
@@ -119,7 +119,7 @@ class WorldManager(Database):
         # Add details
         world.set("name", name)
         world.set("password", password)
-        world.sadd(ident, "masters", masters)
+        world.sadd(ident, "masters", masters)  #TODO: WTF
 
         logging.info("New world generated successfully!")
 
@@ -258,11 +258,46 @@ class World(Database):
         for player in self.players:
             player.send_offtopic(message)
 
+    def do_message(self, message, recipient_idents, owner="Server"):
+        """ Store a message to world database, and attach it to every recipient character
+            Finally, if a player is available, attempt to deliver it
+
+            @param message: message to deliver
+            @type message: str
+            @param recipient_idents: list of character idents to deliver
+            @type recipient_idents: list
+            @param owner: Either a string or a player instance
+        """
+        logging.info("Creating a new IC-message")
+
+        if isinstance(owner, Player):
+            owner = owner.get("name")
+
+        message_ident = str(self.incr("messages"))
+        path = "messages:{}".format(message_ident)
+
+        self.hset(path, "value", message)
+        self.hset(path, "owner", owner)
+        self.hset(path, "time", time.time())
+
+        for character_ident in recipient_idents:
+            character = self.characters.fetch(character_ident)
+            if not character:
+                logging.warning("unable to determine character ident: {}".format(character_ident))
+                continue
+            character.message(message_ident)
+
     def add_player(self, player):
         if player not in self.players:
             self.players.append(player)
 
         # TODO: announce join
+        self.send_player_list()
+
+    def remove_player(self, player):
+        if player in self.players:
+            self.players.remove(player)
+
         self.send_player_list()
 
     def send_oft_history(self, player, lines=100):
@@ -290,7 +325,7 @@ class World(Database):
         buf = []
         for player in self.players:
             if player.character:
-                character = player.character.name
+                character = player.character.get("name")
             else:
                 character = False
             buf.append({"name": player.get("name"), "typing": player.typing, "character": character})

@@ -57,7 +57,7 @@ class Core(object):
         # Establish redis connection
         logging.info("Creating base database object..")
         try:
-            self.db = Database(password="5ec78da7e8030656a080435a0106b4a18d965511658b81496a19bb386140e7b1")
+            self.db = Database(password="5ec78da7e8030656a080435a0106b4a18d965511658b81496a19bb386140e7b1", decode_responses=True)
             logging.info("Database test: %s"%str(self.db.client.ping()))
 
         except ConnectionError:

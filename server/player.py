@@ -109,7 +109,7 @@ class PlayerManager(Database):
                 return False
 
         # Add the ident to player members
-        self.sadd("list", ident)
+        self.rpush("list", ident)
 
         # Add the player name to the lookup table rp:players.names = ident
         self.hset("names", name.lower(), ident)
@@ -219,7 +219,12 @@ class Player(Database):
         self.connection.send_password()
 
     def disconnect(self):
-        pass
+        if self.character:
+            self.character.detach()
+            logging.info("Detached player from character due to disconnecting")
+
+        self.world.remove_player(self)
+
 
     def clear(self, window="both"):
         self.send_message({"key": "clr", "window": window})

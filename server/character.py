@@ -87,7 +87,7 @@ class CharacterManager(Database):
                 return False
 
         # Add the ident to character members
-        self.sadd("list", ident)
+        self.rpush("list", ident)
 
         # Create character object
         character = Character(self.core, self.client, ident, self.world)
@@ -102,7 +102,7 @@ class CharacterManager(Database):
         character.set("location", location_ident)
 
         # Add character to owner list
-        self.sadd("owners:{}".format(owner_ident), character.ident)
+        self.rpush("owners:{}".format(owner_ident), character.ident)
 
         # Add character to location
         self.world.locations.add_character(location_ident, ident)
@@ -130,7 +130,7 @@ class CharacterManager(Database):
         """
         # rp:worlds:x.characters.owners:ident -> set of character idents
         path = "owners:{}".format(player.ident)
-        return self.smembers(path)
+        return self.lrange(path, 0, -1)
 
 
 class Character(Database):
@@ -174,43 +174,71 @@ class Character(Database):
             return keys
 
 
-    def message(self, message):
-        """
+    def message(self, message_ident):
+        """ Store a message into character memory
         @param message: either a string or an ident referring to a stored message
         @return:
         """
 
         # Store message or message ident
         #self.lpush("messages", message)
+        try:
+            message_ident = int(message_ident)
+        except ValueError:
+            logging.error("message_ident should be an ident. got ({}) instead".format(message_ident))
 
-        if self.player:
-            try:
-                ident = int(message)
-                message = self.world.hget("messages", ident)
-            except ValueError:
-                pass
+        self.rpush("messages", message_ident)
 
-            self.player.send_message(message)
+        self.deliver_unread_messages()
+
+    def deliver_unread_messages(self):
+        """ Search for unread messages and deliver them to the player
+
+        @return:
+        """
+        # TODO display a snip of history as context and color it faded
+        # Require a player
+        if not self.player:
+            return
+
+        lastread = self.get("messages.lastread")
+        if not lastread:
+            lastread = 0
+
+        lastread = int(lastread) + 1
+        lastunread = self.llen("messages")-1
+        logging.info("From {} to {}".format(lastread, lastunread))
+
+        # Fetch the idents
+        unread_message_idents = self.lrange("messages",lastread, lastunread)
+
+        logging.info("unread_messages_idents len: {}".format(len(unread_message_idents)))
+        logging.info("said idents: {}".format(str(unread_message_idents)))
+        # Reset lastread counter
+        self.set("messages.lastread", str(self.llen("messages") - 1))
+
+        messages = []
+
+        for message_ident in unread_message_idents:
+            message = self.world.hget("messages:{}".format(message_ident), "value")
+            if not message:
+                logging.warning("Was unable to fetch message (ident:{}".format(message_ident))
+                continue
+            else:
+                messages.append(message)
+        if len(messages) > 0:
+            self.player.send_message(messages)
+        else:
+            logging.info("No unread messages")
+
 
     def attach(self, player):
         self.player = player
         self.player.character = self
 
-        # Fetch the last 100 messages
-        character_message_history = self.lrange("messages", -100, 100)
-        messages = []
-
-        for message in character_message_history:
-            try:
-                ident = int(message)
-                message = self.world.hget("messages", ident)
-            except ValueError:
-                pass
-            messages.append(message)
-        if len(messages):
-            self.player.send_message(messages)
+        self.deliver_unread_messages()
 
 
-    def detatch(self):
+    def detach(self):
         self.player.character = None
         self.player = None

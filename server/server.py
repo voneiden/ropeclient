@@ -78,6 +78,9 @@ class WebPlayer(WebSocketServerProtocol):
         #    self.pingTimer.cancel()
         #    self.pingTimer = False
         # TODO: ^ why is this commented out? 2013-11-30
+        if self.player:
+            self.player.disconnect()
+
         return
 
         if self.player: self.player.disconnect()

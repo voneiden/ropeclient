@@ -158,21 +158,35 @@ class Database(object):
 
     def smembers(self, key):
         assert isinstance(key ,str)
-        return [member.decode("utf8") for member in self.client.smembers(self.path(key))]
+        #return [member.decode("utf8") for member in self.client.smembers(self.path(key))]
+        return self.client.smembers(self.path(key))
 
     def list(self):
-        return [ident.decode("utf8") for ident in self.client.smembers("{}.list".format(self.path()))]
+        #return [ident.decode("utf8") for ident in self.client.smembers("{}.list".format(self.path()))]
+        #return self.client.smembers("{}.list".format(self.path()))
+        return self.client.lrange("{}.list".format(self.path()), 0, -1)
 
     def lpush(self, key, *values):
         assert isinstance(key, str)
-        assert isinstance(values, list)
+        assert isinstance(values, tuple)
         return self.client.lpush(self.path(key), *values)
+
+    def rpush(self, key, *values):
+        assert isinstance(key, str)
+        assert isinstance(values, tuple)
+        return self.client.rpush(self.path(key), *values)
 
     def lrange(self, key, start, stop):
         assert isinstance(key, str)
         assert isinstance(start, int)
         assert isinstance(stop, int)
+        #return [item.decode("utf8") for item in self.client.lrange(self.path(key), start, stop)]
         return self.client.lrange(self.path(key), start, stop)
+
+    def llen(self, key):
+        assert isinstance(key ,str)
+        return self.client.llen(self.path(key))
+
 
 
     def path(self, *args):

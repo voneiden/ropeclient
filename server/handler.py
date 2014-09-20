@@ -80,12 +80,15 @@ class HandlerGame(Handler):
                     self.player.send_message("Don't be silly.")
                     return
 
+
+                # Clear message window and attach character
+                self.player.clear("msg")
                 character = self.player.world.characters.fetch(ident)
                 character.attach(self.player)
                 self.state = 1
 
                 logging.info(character)
-                self.player.clear("msg")
+
                 return
 
             except ValueError:
@@ -108,7 +111,7 @@ class HandlerGame(Handler):
         if self.state == 0:
             # Get list of characters owned by player
             character_idents = self.player.world.characters.get_player_characters(self.player)
-
+            logging.info(type(character_idents))
             assert isinstance(character_idents, list)
             if len(character_idents) == 0:
                 buf.append("You have no characters. To create a new character, type 'spawn' and press TAB key.")
