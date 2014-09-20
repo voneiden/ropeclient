@@ -5,6 +5,46 @@ body,html
     padding: 0;
     color: #FFF;
 }
+
+#root {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: row;
+}
+
+#root-right {
+    background-color: red;
+    height: 100%;
+    flex-grow: 1;
+}
+
+#root-left {
+    background-color: blue;
+    height:100%;
+    flex-grow: 6;
+
+    display: flex;
+    flex-direction: column;
+}
+
+#root-left-topchat {
+    background-color: navy;
+    flex-grow: 1;
+}
+
+#root-left-bottomchat {
+    background-color: darkblue;
+    flex-grow: 1;
+}
+
+#root-left-input {
+    background-color: deepskyblue;
+    flex-grow: 0;
+
+    display: flex;
+    flex-direction: row;
+}
 pre
 {
     font-style: inherit;
