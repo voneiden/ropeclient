@@ -73,7 +73,7 @@ class HandlerGame(Handler):
                 return
             try:
                 ident = int(message["value"])
-                logging.debug("Character requested!")
+                logging.info("Character requested!")
                 return
 
             except ValueError:

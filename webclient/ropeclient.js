@@ -36,7 +36,7 @@ autocomplete_commands = {
     'setfont':[2,"Font name?","Font size?"],
     'sethilight':[0,"Enter to list/Regex pattern/Index number to delete","Color to change matching patterns"],
     'settalk':[1,"To color?"],
-    'spawn':[3,"Character name?","Short description? (Max 40 chars)","Long description"]
+    'spawn':[3,"Spawn a character - Character name?","One-line description (optional, short)","Long description"]
 };
 
 // Define constants
@@ -65,17 +65,33 @@ function initialize()
     $("#connect_destination").val( $.jStorage.get("last_url", default_url));
     $("#connect_destination").focus();
     
-    $("#input").keyup(input_event);
-}
-function input_event(event)
-{
-    if (event.keyCode == 13) { input_enter(); }
-    else if (event.keyCode == 9)  { input_tab(); }
-    else if (is_typing == false && $("#input").val().length > 0) { input_typing(true); }
-    else if (is_typing == true && $("#input").val().length == 0) { input_typing(false); }
-    else { console.log("PROOT");}
+    $("#input").keyup(input_event_keyup);
+    $("#input").keydown(input_event_keydown);
 }
 
+/*
+ * Handle keyup events (everything except tabs)
+ */
+function input_event_keyup(event)
+{
+    if (event.keyCode == 13) { input_enter(); }
+    else if (is_typing == false && $("#input").val().length > 0) { input_typing(true); }
+    else if (is_typing == true && $("#input").val().length == 0) { input_typing(false); }
+    else if (event.keyCode == 8) { handle_autocomplete(true); }
+    else { console.log("PROOT", event.keyCode);}
+}
+
+/*
+ * Handle keydown events (tabs)
+ */
+function input_event_keydown(event)
+{
+    if (event.keyCode == 9)  { input_tab(event); }
+}
+
+/*
+ * Handle enter input event
+ */
 function input_enter()
 {
     var message = {};
@@ -117,7 +133,74 @@ function input_enter()
     ws_send(JSON.stringify(message));
 }
 
-function input_tab() {}
+/*
+ * Handle TAB events
+ * Block focus change & forward to autocomplete function
+ */
+function input_tab(event) {
+    console.log("TAB");
+    handle_autocomplete();
+    event.preventDefault();
+}
+
+/*
+ * Autocomplete function
+ * Default mode is to react to the tab key
+ * if backspace is true, react to backspace instead
+ */
+autocomplete_buffer = new Array();
+autocomplete_choices = new Array();
+
+function handle_autocomplete(backspace) {
+    if (backspace == null) { backspace = false; }
+    var input = $("#input").val();
+    var autocomplete_command_keys = Object.keys(autocomplete_commands)
+
+    // First call to autocomplete, choose matching command and fill choices
+    if (autocomplete_buffer.length == 0 && !backspace) {
+        console.log("Stage 1 autocomplete");
+        var regex = new RegExp("\b"+input+".*\b", 'i')
+        autocomplete_choices = new Array();
+
+        for (var i=0; i < autocomplete_command_keys.length; i++) {
+            if (autocomplete_command_keys[i].search(regex)) {
+                autocomplete_choices.push(autocomplete_command_keys[i])
+            }
+        }
+        console.log(autocomplete_choices);
+        if (autocomplete_choices.length > 0) {
+            autocomplete_buffer.push(autocomplete_choices[0])
+            autocomplete_display();
+        }
+        else {
+            console.log("Nothing found");
+        }
+    }
+
+    else {
+        // Remove parameter
+        if (backspace && input.length == 0) {
+            autocomplete_buffer.pop();
+            autocomplete_display();
+        }
+        // Cycle through command choices
+        else if (autocomplete_buffer.length == 1 && input.length == 0) {
+            console.log("Cycle");
+            var index = autocomplete_choices.indexOf(autocomplete_buffer[0]);
+            index += 1;
+
+            if (index+1 > autocomplete_choices.length) { index = 0; }
+            autocomplete_buffer[0] = autocomplete_choices[index];
+            console.log(autocomplete_choices);
+            console.log(index)
+            autocomplete_display();
+        }
+        // Add parameter
+        else {
+
+        }
+    }
+}
 function input_typing(typing) {
     var message = {}
     is_typing = typing;
@@ -485,7 +568,7 @@ function EditHistory(event) {
 }
 
 // This function updates the green blocks left of entrybox
-function displayAutocomplete() {
+function autocomplete_display() {
     var text = "";
     for (var i in autocomplete_buffer) {
         text += '<span style="color:lime;border-style:solid;border-width:1px;border-color:lime;">'+autocomplete_buffer[i]+'</span>';

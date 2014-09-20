@@ -195,7 +195,7 @@ class World(Database):
             return keys
 
     def fetch_character(self, ident):
-        if isinstance(ident ,int):
+        if isinstance(ident, int):
             ident = str(ident)
 
         assert isinstance(ident ,str)
