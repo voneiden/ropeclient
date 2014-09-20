@@ -16,7 +16,9 @@ body,html
 #root-right {
     background-color: red;
     height: 100%;
-    flex-grow: 1;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 10em;
 }
 
 #root-left {
@@ -30,12 +32,17 @@ body,html
 
 #root-left-topchat {
     background-color: navy;
-    flex-grow: 1;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 30%;
+    overflow-y:scroll;
 }
 
 #root-left-bottomchat {
     background-color: darkblue;
     flex-grow: 1;
+
+    overflow-y:scroll;
 }
 
 #root-left-input {
@@ -43,7 +50,11 @@ body,html
     flex-grow: 0;
 
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+}
+
+#input{
+    flex-shrink: 100000;
 }
 pre
 {
@@ -142,7 +153,7 @@ span.dice
     right:12%;
 }
 
-#input
+#input, #input-password
 {
     background-color:black;
     color:white;

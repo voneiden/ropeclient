@@ -67,6 +67,7 @@ function initialize()
     
     $("#input").keyup(input_event_keyup);
     $("#input").keydown(input_event_keydown);
+    $("#input-password").keydown(input_event_keydown);
 }
 
 /*
@@ -74,8 +75,8 @@ function initialize()
  */
 function input_event_keyup(event)
 {
-    if (event.keyCode == 13) { input_enter(); }
-    else if (is_typing == false && $("#input").val().length > 0) { input_typing(true); }
+
+    if (is_typing == false && $("#input").val().length > 0) { input_typing(true); }
     else if (is_typing == true && $("#input").val().length == 0) { input_typing(false); }
     else if (event.keyCode == 8) { handle_autocomplete(true); }
     else { console.log("PROOT", event.keyCode);}
@@ -86,30 +87,36 @@ function input_event_keyup(event)
  */
 function input_event_keydown(event)
 {
-    if (event.keyCode == 9)  { input_tab(event); }
+    if (event.keyCode == 13 && !event.shiftKey) { input_enter(event); }
+    else if (event.keyCode == 9)  { input_tab(event); }
 }
 
 /*
  * Handle enter input event
  */
-function input_enter()
+function input_enter(event)
 {
     var message = {};
     if (is_password == true) 
     {
         message.key = "pwd";
             
-		var shaObj = new jsSHA($("#input").val()+'r0p3s4lt'); // TODO: deal with this poor static salt
+		var shaObj = new jsSHA($("#input-password").val()+'r0p3s4lt'); // TODO: deal with this poor static salt
         message.value = shaObj.getHash("SHA-256","HEX");      // Though; does this service require such strong authentication?
 		
 		// Clear, detach, change mode to normal text and reattach the input block
-        $("#input").val(""); 
-        var marker = $('<span />').insertBefore('#input');
-        $('#input').detach().attr('type', 'text').insertAfter(marker); 
-        marker.remove(); 
+        $("#input-password").val("");
+        //var marker = $('<span />').insertBefore('#input');
+        //$('#input').detach().attr('type', 'text').insertAfter(marker);
+        //marker.remove();
+        //$("#input").focus();
+        $("#input-password").hide();
+        $("#input").show();
         $("#input").focus();
 
         is_password = false;
+
+        event.preventDefault();
     }
     else if (is_editing == true)
     {
@@ -122,6 +129,7 @@ function input_enter()
         message.value = $("#input").val();
         if (message.value.length == 0) { return; }
         $("#input").val("");
+        event.preventDefault();
     }
     else
     {
@@ -184,6 +192,8 @@ function handle_autocomplete(backspace) {
             autocomplete_buffer.pop();
             autocomplete_display();
         }
+
+        else if (backspace) { return; }
         // Cycle through command choices
         else if (autocomplete_buffer.length == 1 && input.length == 0) {
             console.log("Cycle");
@@ -204,6 +214,29 @@ function handle_autocomplete(backspace) {
         }
     }
 }
+
+// This function updates the green blocks left of entrybox
+function autocomplete_display() {
+    var text = "";
+    for (var i in autocomplete_buffer) {
+        text += '<span style="color:lime;border-style:solid;border-width:1px;border-color:lime;">'+autocomplete_buffer[i]+'</span>';
+    }
+    if (autocomplete_buffer.length > 0) { // This is a neat feature!
+        var cmd = autocomplete_buffer[0];
+        var questions = autocomplete_commands[cmd]
+        // -1 because of the required args number
+        if (questions.length  - 1< autocomplete_buffer.length) {
+            text += "Press Enter"
+        }
+        else {
+            text += questions[autocomplete_buffer.length];
+        }
+
+    }
+    $("#autocomplete").html(text);
+    $("#autocomplete").focus();
+}
+
 function input_typing(typing) {
     var message = {}
     is_typing = typing;
@@ -361,20 +394,23 @@ function receiveMessage(e) {
     // pwd requests the client to go into password typing mode (hide input and hash output)
     // TODO: server based salt
     else if (key == 'pwd') {
-        marker = $('<span />').insertBefore('#input');
-        $('#input').detach().attr('type', 'password').insertAfter(marker);
-        marker.remove();
-        $("#input").focus();
+        //marker = $('<span />').insertBefore('#input');
+        //$('#input').detach().attr('type', 'password').insertAfter(marker);
+        //marker.remove();
+        //$("#input").focus();
+        $("#input").hide();
+        $("#input-password").show();
+        $("#input-password").focus();
         is_password = 1;
     }
     else if (key == "clr") {
         var window = message.window || "both"
 
         if (window == "msg" || window == "both") {
-            document.getElementById('leftbottom').innerHTML = "";
+            document.getElementById('root-left-bottomchat').innerHTML = "";
         }
         if (window == "oft" || window == "both") {
-            document.getElementById('lefttop').innerHTML = "";
+            document.getElementById('root-left-topchat').innerHTML = "";
         }
     }
     else if (key == 'ping') {
@@ -413,10 +449,10 @@ function receiveMessage(e) {
         
         font = message.font;
         size = message.size;
-        $("#lefttop").css("font-family",font);
-        $("#leftbottom").css("font-family",font);
-        $("#lefttop").css("font-size",size);
-        $("#leftbottom").css("font-size",size);
+        $("#root-left-topchat").css("font-family",font);
+        $("#root-left-bottomchat").css("font-family",font);
+        $("#root-left-topchat").css("font-size",size);
+        $("#root-left-bottomchat").css("font-size",size);
     }
     else if (key == 'edi') {
         timestamp = tok.shift();
@@ -464,7 +500,7 @@ function format_text_timestamp(text, timestamp) {
         var pattern = /\$\(time\)/
         var match = pattern.exec(text)
         if (match) {
-            text = text.replace(match[0], timestamp.getHours().toString() + ":" + timestamp.getMinutes().toString());
+            text = text.replace(match[0], ("0" + timestamp.getHours().toString()).slice(-2) + ":" + ("0" + timestamp.getMinutes().toString()).slice(-2));
         }
         else {
             text = "        " + text
@@ -570,125 +606,8 @@ function EditHistory(event) {
     //displayOfftopic(false,editing+" "+edit_index+"  - ")
 }
 
-// This function updates the green blocks left of entrybox
-function autocomplete_display() {
-    var text = "";
-    for (var i in autocomplete_buffer) {
-        text += '<span style="color:lime;border-style:solid;border-width:1px;border-color:lime;">'+autocomplete_buffer[i]+'</span>';
-    }
-    if (autocomplete_buffer.length > 0) { // This is a neat feature!
-        var cmd = autocomplete_buffer[0];
-        var questions = autocomplete_commands[cmd]
-        // -1 because of the required args number
-        if (questions.length  - 1< autocomplete_buffer.length) {
-            text += "Press Enter"
-        }
-        else {
-            text += questions[autocomplete_buffer.length];
-        }
-         
-    }
-    $("#autocomplete").html(text);
-    $("#autocomplete").focus();
-}
 
-// This function handles all autocomplete related events
-function AutoComplete(event) {
-    // There are 3 stages
-    // 1 - command autocomplete
-    // 2 - argument 1 complete
-    // 3 - argument 2 complete..
-    // 4 - argument 3 complete..
-    if (editing) { return }
-    keyCode = event.keyCode
-    if (autocomplete_stage == 0 && keyCode == 9) {
-        //displayOfftopic("Enter stage 1");
-        autocomplete_stage = 1;
-    }
-    
-    if (autocomplete_stage == 1 && keyCode == 9) {
-        if (autocomplete_cycle.length == 0) {
-            autocomplete_base = $("#entrybox").val()
-            //displayOfftopic("Search for command "+autocomplete_base);
-            // Fill the cycle with results
-            var pattern = new RegExp('^' + autocomplete_base + '.*',"i");
-            for (var cmd in autocomplete_commands) {
-                if (pattern.test(cmd)) {
-                    autocomplete_cycle.push(cmd)
-                }
-            }
-            
-            if (autocomplete_cycle.length == 0) {
-                // No results found, fall back to stage 0
-                autocomplete_stage = 0;
-            }
-            
-            else { 
-                //displayOfftopic("Auto completing command");
-                $("#entrybox").val("");
-                autocomplete_buffer.push(autocomplete_cycle[autocomplete_index]);
-                displayAutocomplete();
-                //$("#entrybox").val(autocomplete_cycle[autocomplete_index] + " "); 
-            }
-        }
-        else {
-            autocomplete_index += 1;
-            autocomplete_index %= autocomplete_cycle.length;
-            //displayOfftopic("Auto completing command");
-            //$("#entrybox").val(autocomplete_cycle[autocomplete_index] + " "); 
-            autocomplete_buffer.pop();
-            autocomplete_buffer.push(autocomplete_cycle[autocomplete_index]);
-            displayAutocomplete();
-        }
-    }
-    // Abort choosing autocomplete command
-    else if (autocomplete_stage == 1 && keyCode == 8) {
-        $("#entrybox").val(autocomplete_base );
-        $("#autocomplete").text("");
-        autocomplete_stage = 0;
-        autocomplete_cycle = [];
-        autocomplete_buffer = [];
-        autocomplete_index = 0;
-        autocomplete_base = "";
-        if (event.preventDefault) { event.preventDefault(); }
-    }
-    
-    // Accept autocomplete command by typing something else
-    else if (autocomplete_stage == 1 && keyCode >= 48) {
-        //displayOfftopic("Autocomplete accepted")
-        $("#entrybox").val("");
-        autocomplete_stage = 2;
-        
-    }
-    
-    else if (autocomplete_stage == 2 && keyCode == 8 && $("#entrybox").val().length == 0) {
-        // If we have more than one command in the buffer, return the last command. 
-        // Otherwise return the base text for autcomplete
-        
-        if (autocomplete_buffer.length > 1) {
-            $("#entrybox").val(autocomplete_buffer.pop());
-            displayAutocomplete();
-            
-        }
-        else { // Return to normal mode
-            autocomplete_stage = 0; 
-            $("#autocomplete").text("");
-            autocomplete_cycle = [];
-            autocomplete_index = 0;
-            autocomplete_buffer = [];
-            $("#entrybox").val(autocomplete_base );
-        }
-        
-        if (event.preventDefault) { event.preventDefault(); }
-    }
-    else if (autocomplete_stage == 2 && keyCode == 9) {
-        autocomplete_buffer.push($("#entrybox").val());
-        $("#entrybox").val("");
-        displayAutocomplete();
-        
-        
-    }
-}
+
 // Generates a visual timestamp from unix time
 function  makeTimestamp(id) {
     var d = new Date(parseFloat(id)*1000);
@@ -705,13 +624,13 @@ function  makeTimestamp(id) {
     
 }
 function displayOfftopic(text) {
-    $("#lefttop").append(text);
-    document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
+    $("#root-left-topchat").append(text);
+    document.getElementById("root-left-topchat").scrollTop = document.getElementById("root-left-topchat").scrollHeight;
 
 }
 function displayMain(text) {
-    $("#leftbottom").append(text);
-    document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
+    $("#root-left-bottomchat").append(text);
+    document.getElementById("root-left-bottomchat").scrollTop = document.getElementById("root-left-bottomchat").scrollHeight;
 }
 
 function nameParse(msg) {
@@ -817,8 +736,8 @@ function ws_close() {
     ws.close();
 }
 $(window).resize(function() {
-    document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
-    document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
+    document.getElementById("root-left-bottomchat").scrollTop = document.getElementById("root-left-bottomchat").scrollHeight;
+    document.getElementById("root-left-topchat").scrollTop = document.getElementById("root-left-topchat").scrollHeight;
 });
 
 $(window).blur(function(event){
@@ -826,10 +745,10 @@ $(window).blur(function(event){
     if (update_separator) {
         $("#bottomlw").remove();
         $("#toplw").remove();
-        $("#leftbottom").append('<hr id="bottomlw">');
-        $("#lefttop").append('<hr id="toplw">');
-        document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
-        document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
+        $("#root-left-bottomchat").append('<hr id="bottomlw">');
+        $("#root-left-topchat").append('<hr id="toplw">');
+        document.getElementById("root-left-bottomchat").scrollTop = document.getElementById("root-left-bottomchat").scrollHeight;
+        document.getElementById("root-left-topchat").scrollTop = document.getElementById("root-left-topchat").scrollHeight;
         update_separator = false;
     }
 });
@@ -843,115 +762,3 @@ $(window).focus(function(event){
 
 $(document).ready(function(){ initialize() });
 
-/*
-    input_typing = false;
-    input_password = false;
-    playerList = new Array();
-    
-    $("#entrybox").focus();
-    $("#entrybox").keydown(function(event){
-        if (event.keyCode == 9) {
-            AutoComplete(event);
-            
-            if (event.preventDefault) { event.preventDefault(); }
-            return false;
-            
-        }
-        else if (event.keyCode == 38 || event.keyCode == 40) // Up / Down
-            {
-                EditHistory(event);
-            }
-            
-            
-        else {
-            AutoComplete(event);
-        }
-    });
-	
-	// Key event to the input box
-    $("#input").keyup(function(event){
-        if(event.keyCode == 13){ // ENTER key pressed
-			var message = {};
-            if (input_password == true) { // Currently typing a password
-                message.key = "pwd";
-                
-				var shaObj = new jsSHA($("#input").val()+'r0p3s4lt'); // TODO: deal with this poor static salt
-                message.value = shaObj.getHash("SHA-256","HEX");
-				
-                $("#input").val(""); // Clear input
-                marker = $('<span />').insertBefore('#input'); // Place a marker
-                $('#input').detach().attr('type', 'text').insertAfter(marker); // Detach #input, change mode and reattach it
-                marker.remove(); // Remove marker
-                $("#input").focus(); // Return focus to input
-
-				input_password = false;
-            } // TODO: Continue here
-            else if (editing) {
-                var header = 'edi ' + edit_history[edit_history.length - 1 - edit_index][0]
-                var content = $("#entrybox").val();
-                //displayOfftopic(false,"Sending content: "+content)
-                editing = 0
-                $("#autocomplete").html("");
-                edit_index = -1
-                $("#entrybox").val("");
-            }
-            
-            else if (autocomplete_buffer.length == 0) {
-                var header = 'msg';
-                var content = $("#entrybox").val();
-                // Move the last write delimiter?
-                if (content[0] == '(') {
-                    $("#toplw").remove();
-                    $("#lefttop").append('<hr id="toplw">');
-                    document.getElementById("lefttop").scrollTop = document.getElementById("lefttop").scrollHeight;
-                }
-                else {
-                    $("#bottomlw").remove();
-                    $("#leftbottom").append('<hr id="bottomlw">');
-                    document.getElementById("leftbottom").scrollTop = document.getElementById("leftbottom").scrollHeight;
-                }
-            }
-            else {
-                var header = "cmd";
-                var content = autocomplete_buffer.join("\x1b")
-                var temp = $("#entrybox").val();
-                if (temp.length > 0) {
-                    content += "\x1b" + temp
-                }
-                autocomplete_buffer = [];
-                autocomplete_stage = 0;
-                autocomplete_index = 0;
-                autocomplete_cycle = [];
-                displayAutocomplete();
-            }
-            //displayOfftopic("Content: "+content);
-            $("#entrybox").val("");
-            ws_send(header + " " + content);
-            isTyping = 0;
-            
-        }
-        
-        else {
-            //if (event.keyCode == 8) {
-                //AutoComplete(event.keyCode);
-            //}
-            
-            
-            if (isTyping == 0 && $("#entrybox").val().length > 0) {    
-                isTyping = 1;
-                update_separator = true;
-                ws_send("pit")
-            }
-            else if (isTyping == 1 && $("#entrybox").val().length == 0) {
-                isTyping = 0;
-                ws_send("pnt")
-            }
-        }
-        
-    });
-    
-    //$("#input").focusout(function(event){
-    //    setTimeout(function() { $("#entrybox").focus(); }, 0);
-    //});
-    ws_init("ws://ninjabox.sytes.net:9091")
-});*/
