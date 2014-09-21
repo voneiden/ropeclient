@@ -1,6 +1,7 @@
 from core import Core
 from database import Database, StrictRedis
 import logging
+import re
 
 
 class CharacterManager(Database):
@@ -191,7 +192,7 @@ class Character(Database):
 
         self.deliver_unread_messages()
 
-    def deliver_unread_messages(self):
+    def deliver_unread_messages(self, history=False):
         """ Search for unread messages and deliver them to the player
 
         @return:
@@ -203,14 +204,17 @@ class Character(Database):
 
         lastread = self.get("messages.lastread")
         if not lastread:
-            lastread = 0
+            lastread = -1
 
         lastread = int(lastread) + 1
         lastunread = self.llen("messages")-1
         logging.info("From {} to {}".format(lastread, lastunread))
 
         # Fetch the idents
-        unread_message_idents = self.lrange("messages",lastread, lastunread)
+        if not history:
+            unread_message_idents = self.lrange("messages", lastread, lastunread)
+        else:
+            unread_message_idents = self.lrange("messages", lastread-100, lastunread)
 
         logging.info("unread_messages_idents len: {}".format(len(unread_message_idents)))
         logging.info("said idents: {}".format(str(unread_message_idents)))
@@ -225,6 +229,8 @@ class Character(Database):
                 logging.warning("Was unable to fetch message (ident:{}".format(message_ident))
                 continue
             else:
+                # TODO handle names
+                message = self.format_names(message)
                 messages.append(message)
         if len(messages) > 0:
             self.player.send_message(messages)
@@ -236,9 +242,56 @@ class Character(Database):
         self.player = player
         self.player.character = self
 
-        self.deliver_unread_messages()
+        self.deliver_unread_messages(True)
 
 
     def detach(self):
         self.player.character = None
         self.player = None
+
+    def format_names(self, message):
+        """ Finds references to character names $(i:n) and converts them into sensible names
+
+        @param message:
+        @return:
+        """
+        message = re.sub("\$\(i:([0-9]+?)\)", self.find_character_name_from_match, message)
+
+        # Hacky solution.. This might cause unexpected things to happen!
+        tok = message.split(' ')
+        if tok[0] == "you":
+            tok[0] = "You"
+            if len(tok) > 1 and tok[1][-1] == "s":
+                tok[1] = tok[1][:-1]
+            elif len(tok) > 1 and tok[1][-2:] == "s,":
+                tok[1] = tok[1][:-2] + ","
+
+            if len(tok) > 3 and tok[2] == "and" and tok[3][-1] == "s":
+                tok[3] = tok[3][:-1]
+            elif len(tok) > 3 and tok[2] == "and" and tok[3][-2:] == "s,":
+                tok[3] = tok[3][:-2] + ","
+
+            logging.info(str(tok))
+            return " ".join(tok)
+        else:
+            return message
+
+    def find_character_name_from_match(self, match):
+        """ Takes single re.match object and determines the name for the ident found in the match
+
+        @param match:
+        @return:
+        """
+        character_ident = match.groups()[0]
+
+        if character_ident == self.ident:
+            return "you"
+
+        else:
+            character = self.world.characters.fetch(character_ident)
+
+            if not character:
+                return "unknown"
+
+            else:
+                return character.get("name")

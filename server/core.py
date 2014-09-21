@@ -153,3 +153,43 @@ class Core(object):
             l = []
         match = [object for object in l if re.match(pattern,object.name)]
         return match
+
+    @staticmethod
+    def format_say(who_ident, what, to_whom_ident=None):
+        assert isinstance(who_ident, int) or who_ident.isdigit()
+        assert isinstance(to_whom_ident, type(None)) or isinstance(to_whom_ident, int) or to_whom_ident.isdigit()
+        assert isinstance(what, str)
+
+        how = "says"
+        emotion = ""
+
+        # Format directed message
+        if not to_whom_ident:
+            to_whom = ""
+        else:
+            to_whom = " $(i:{})".format(to_whom_ident)
+
+        # Apply and strip emotions
+        if what[-2:] == ":)":
+            emotion = "smiles and "
+            what = what[:-2].strip()
+
+        elif what[-2:] == ":(":
+            emotion = "frowns and "
+            what = what[:-2].strip()
+
+        # Apply (and strip) hows
+        if what[-2:] == "!!":
+            how = "shouts"
+            what = what[:-1]
+
+        elif what[-1] == "!":
+            how = "exclaims"
+
+        elif what[-1] == "?":
+            how = "asks"
+
+        if len(what) > 0:
+            return '''$(i:{}) {}{}{}, "{}"'''.format(who_ident, emotion, how, to_whom, what)
+        else:
+            return False

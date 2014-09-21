@@ -268,7 +268,7 @@ class World(Database):
             @type recipient_idents: list
             @param owner: Either a string or a player instance
         """
-        logging.info("Creating a new IC-message")
+        logging.info("Creating a new IC-message to idents {}".format(str(recipient_idents)))
 
         if isinstance(owner, Player):
             owner = owner.get("name")
@@ -283,7 +283,7 @@ class World(Database):
         for character_ident in recipient_idents:
             character = self.characters.fetch(character_ident)
             if not character:
-                logging.warning("unable to determine character ident: {}".format(character_ident))
+                logging.warning("unable to resolve character ident: {}".format(character_ident))
                 continue
             character.message(message_ident)
 

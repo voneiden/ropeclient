@@ -94,22 +94,38 @@ class HandlerGame(Handler):
             except ValueError:
                 pass
 
-        # Character spawning TODO: this should be done with a command
+        # Offtopic messages
         if message["value"][0] == "(" or not self.player.character:
-            self.player.world.do_offtopic(message["value"], owner=self.player)
+            # Strip bracket
+            if message["value"][0] == "(":
+                message["value"] = message["value"][1:]
 
-        else:
+            # Verify that the message is not empty and deliver it
+            if len(message["value"]) > 0:
+                self.player.world.do_offtopic(message["value"], owner=self.player)
+
+        elif self.player.character:
             location_ident = self.player.character.get("location")
             location = self.player.world.locations.fetch(location_ident)
 
-            # TODO use world function for this kind of stuff?
-            location.announce_to_characters('''{} says, "{}"'''.format(self.player.character.get("name"), message["value"]))
+            # Format the message
+            message = self.core.format_say(self.player.character.ident, message["value"])
+
+            # Bad message, ignore it
+            if not message:
+                logging.warning("Bad message, ignoring")
+                return
+
+            # Announce it to everyone present
+            location.announce_to_characters(message)
 
     def show_character_menu(self):
-        self.player.clear("msg")
-        buf = []
+        """ Shows the character menu if player is not attached to a character. Currently doesn't show otherwise
+
+        """
         if self.state == 0:
             # Get list of characters owned by player
+            buf = []
             character_idents = self.player.world.characters.get_player_characters(self.player)
             logging.info(type(character_idents))
             assert isinstance(character_idents, list)
@@ -120,8 +136,8 @@ class HandlerGame(Handler):
                 for i, ident in enumerate(character_idents):
                     character = self.player.world.characters.fetch(ident)
                     buf.append("{}) {}".format(i+1, character.get("name")))
-
-        self.player.send_message(buf)
+            self.player.clear("msg")
+            self.player.send_message(buf)
 
     def process_pit(self, content):
         self.player.typing = True
