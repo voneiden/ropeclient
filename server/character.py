@@ -251,6 +251,7 @@ class Character(Database):
 
     def format_names(self, message):
         """ Finds references to character names $(i:n) and converts them into sensible names
+            Also converts from third person to first person for "you" messages.
 
         @param message:
         @return:
@@ -258,6 +259,8 @@ class Character(Database):
         message = re.sub("\$\(i:([0-9]+?)\)", self.find_character_name_from_match, message)
 
         # Hacky solution.. This might cause unexpected things to happen!
+        # Essentially it's here because all messages are saved in the third person form
+        # and this part of the code attempts to turn that third person view into first person "you" view
         tok = message.split(' ')
         if tok[0] == "you":
             tok[0] = "You"
@@ -271,16 +274,16 @@ class Character(Database):
             elif len(tok) > 3 and tok[2] == "and" and tok[3][-2:] == "s,":
                 tok[3] = tok[3][:-2] + ","
 
-            logging.info(str(tok))
             return " ".join(tok)
         else:
             return message
 
     def find_character_name_from_match(self, match):
         """ Takes single re.match object and determines the name for the ident found in the match
+        This function can handle character name memory in the future.
 
-        @param match:
-        @return:
+        @param match: a re.match object
+        @return: character name
         """
         character_ident = match.groups()[0]
 

@@ -190,6 +190,6 @@ class Core(object):
             how = "asks"
 
         if len(what) > 0:
-            return '''$(i:{}) {}{}{}, "{}"'''.format(who_ident, emotion, how, to_whom, what)
+            return '''$(i:{}) {}{}{}, "<talk>{}<reset>"'''.format(who_ident, emotion, how, to_whom, what)
         else:
             return False

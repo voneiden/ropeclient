@@ -6,24 +6,18 @@ Ropeclient is a text based virtual tabletop for roleplaying online.
 
 
 2.0 Development notes
-The MASTER branch should be up to date with the 
-public server running at ninjabox.sytes.net. To view the most recent
-developments, check out the DEV branch.
-
-DEV branch features python3 migration.
+Currently no public server is running. Development focuses on dev branch 
+and updates are pulled to master when appropriate.
 
 3.0 Ropeclient Server Installation notes
-Ropeclient runs on any system that meets the following conditions:
-- Python 2.7 (2.4 may or may not work - not tested)
-- Twisted          http://twistedmatrix.com/trac/
--- zope.interfaces http://pypi.python.org/pypi/zope.interface#download
+- Requires python 3
+- Python Autobahn http://autobahn.ws/python/
+- Redis for backend database http://redis.io/
 
 3.0 Usage
-Please look at the project homepage, section 1.0
+- Run server with python3 server.py
+- Open with browser the webclient index page
 
 4.0 Development Roadmap
-Logical restructuring ahead.
-
-5.0 Personal notes
-\x1f is the unit seperator if needed
-\x1b is escape keey 
+Upgrading slowly features from the Python 2 version to the latest 
+version.
