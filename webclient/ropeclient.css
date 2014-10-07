@@ -21,7 +21,7 @@ body,html
     flex-basis: 10em;
 }
 
-#root-left {
+#root-chat {
     background-color: black;
     height:100%;
     flex-grow: 6;
@@ -30,7 +30,13 @@ body,html
     flex-direction: column;
 }
 
-#root-left-topchat {
+#root-battlemap {
+    background-color: black;
+    height: 100%;
+    display: flex;
+    border-right: 1px solid white;
+}
+#root-chat-ooc {
     background-color: black;
     flex-grow: 0;
     flex-shrink: 0;
@@ -39,13 +45,13 @@ body,html
     border-bottom: 1px solid white;
 }
 
-#root-left-bottomchat {
+#root-chat-ic {
     background-color: black;
     flex-grow: 1;
     overflow-y:scroll;
 }
 
-#root-left-input {
+#root-chat-input {
     background-color: black;
     flex-grow: 0;
 

@@ -7,20 +7,26 @@
     <script src="jstorage.js"></script>
     <script src="sha256.js"></script>
     <script src="ropeclient.js"></script>
+    <script src="battlemap.js"></script>
 </head>
 <body>
     <div id="root">
-        <div id="root-left">
-            <div id="root-left-topchat">
+        <div id="root-battlemap">
+            <canvas id="battlemap-scene" style="display: block; height: 400px; width: 400px;" width="400" height="400"></canvas>
+            <canvas id="battlemap-mask" style="position: absolute; height: 400px; width: 400px;"></canvas>
+            <canvas id="battlemap-light" style="display: none; height: 400px; width: 400px;"></canvas>
+        </div>
+        <div id="root-chat">
+            <div id="root-chat-ooc">
                 Welcome to ropeclient browser roleplaying environment!<p>
                 Please choose a server to connect to </br>
                 <input type="text" id="connect_destination" value=""><input type="button" id="connect_button" value="Connect">
 
             </div>
-            <div id="root-left-bottomchat">
+            <div id="root-chat-ic">
 
             </div>
-            <!--<div id="root-left-input">-->
+            <!--<div id="root-chat-input">-->
                 <div id="autocomplete">
                 </div>
                 <textarea id="input" name="msg" rows="3" spellcheck="true" style="width: 100%"></textarea>

@@ -415,10 +415,10 @@ function receiveMessage(e) {
         var window = message.window || "both"
 
         if (window == "msg" || window == "both") {
-            document.getElementById('root-left-bottomchat').innerHTML = "";
+            document.getElementById('root-chat-ic').innerHTML = "";
         }
         if (window == "oft" || window == "both") {
-            document.getElementById('root-left-topchat').innerHTML = "";
+            document.getElementById('root-chat-ooc').innerHTML = "";
         }
     }
     else if (key == 'ping') {
@@ -457,10 +457,10 @@ function receiveMessage(e) {
         
         font = message.font;
         size = message.size;
-        $("#root-left-topchat").css("font-family",font);
-        $("#root-left-bottomchat").css("font-family",font);
-        $("#root-left-topchat").css("font-size",size);
-        $("#root-left-bottomchat").css("font-size",size);
+        $("#root-chat-ooc").css("font-family",font);
+        $("#root-chat-ic").css("font-family",font);
+        $("#root-chat-ooc").css("font-size",size);
+        $("#root-chat-ic").css("font-size",size);
     }
     else if (key == 'edi') {
         timestamp = tok.shift();
@@ -632,13 +632,13 @@ function  makeTimestamp(id) {
     
 }
 function displayOfftopic(text) {
-    $("#root-left-topchat").append(text);
-    document.getElementById("root-left-topchat").scrollTop = document.getElementById("root-left-topchat").scrollHeight;
+    $("#root-chat-ooc").append(text);
+    document.getElementById("root-chat-ooc").scrollTop = document.getElementById("root-chat-ooc").scrollHeight;
 
 }
 function displayMain(text) {
-    $("#root-left-bottomchat").append(text);
-    document.getElementById("root-left-bottomchat").scrollTop = document.getElementById("root-left-bottomchat").scrollHeight;
+    $("#root-chat-ic").append(text);
+    document.getElementById("root-chat-ic").scrollTop = document.getElementById("root-chat-ic").scrollHeight;
 }
 
 function nameParse(msg) {
@@ -744,8 +744,8 @@ function ws_close() {
     ws.close();
 }
 $(window).resize(function() {
-    document.getElementById("root-left-bottomchat").scrollTop = document.getElementById("root-left-bottomchat").scrollHeight;
-    document.getElementById("root-left-topchat").scrollTop = document.getElementById("root-left-topchat").scrollHeight;
+    document.getElementById("root-chat-ic").scrollTop = document.getElementById("root-chat-ic").scrollHeight;
+    document.getElementById("root-chat-ooc").scrollTop = document.getElementById("root-chat-ooc").scrollHeight;
 });
 
 $(window).blur(function(event){
@@ -753,10 +753,10 @@ $(window).blur(function(event){
     if (update_separator) {
         $("#bottomlw").remove();
         $("#toplw").remove();
-        $("#root-left-bottomchat").append('<hr id="bottomlw">');
-        $("#root-left-topchat").append('<hr id="toplw">');
-        document.getElementById("root-left-bottomchat").scrollTop = document.getElementById("root-left-bottomchat").scrollHeight;
-        document.getElementById("root-left-topchat").scrollTop = document.getElementById("root-left-topchat").scrollHeight;
+        $("#root-chat-ic").append('<hr id="bottomlw">');
+        $("#root-chat-ooc").append('<hr id="toplw">');
+        document.getElementById("root-chat-ic").scrollTop = document.getElementById("root-chat-ic").scrollHeight;
+        document.getElementById("root-chat-ooc").scrollTop = document.getElementById("root-chat-ooc").scrollHeight;
         update_separator = false;
     }
 });
