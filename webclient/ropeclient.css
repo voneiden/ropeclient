@@ -34,6 +34,8 @@ body,html
     background-color: black;
     height: 100%;
     display: flex;
+    flex-basis: 50%;
+    flex-shrink: 5;
     border-right: 1px solid white;
 }
 #root-chat-ooc {
