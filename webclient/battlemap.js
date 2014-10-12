@@ -52,6 +52,7 @@ Battlemap.prototype.init = function() {
     this.mouse_operation = null;  // Current mouse operation (shadow, move, rotate)
     this.mouse_right = false;
     this.mouse_left = false;
+    this.mouse_test = false;
 
     // Map variables
     this.map_background = false; // Background Image()
@@ -110,6 +111,14 @@ Battlemap.prototype.event_mouse = function(mode, event) {
         if (mode == 1 && event.shiftKey) {
             this.mouse_dragging_shadow = [event.offsetX + this.map_view[0], event.offsetY + this.map_view[1]];
             request_draw = true;
+        }
+        else if (mode == 1) {
+            if (!this.mouse_test) {
+                this.mouse_test = [event.offsetX + this.map_view[0], event.offsetY + this.map_view[1]];
+            }
+            else {
+                this.mouse_test = false;
+            }
         }
         // Left mouse released and we're in shadow mode
         else if (mode == -1 && this.mouse_dragging_shadow) {
@@ -175,6 +184,9 @@ Battlemap.prototype.event_mouse = function(mode, event) {
 
         // Request draw if stuff is being dragged around
         if (this.mouse_dragging_shadow) {
+            request_draw = true;
+        }
+        else if (this.mouse_test) {
             request_draw = true;
         }
     }
@@ -353,6 +365,73 @@ Battlemap.prototype.draw = function() {
         this.mask.fillRect(x, y, w, h);
     }
 
+    if (this.mouse_test) {
+        var p1 = [this.mouse_test[0], this.mouse_test[1]];
+        var p2 = [this.mouse_position[0] + this.map_view[0], this.mouse_position[1] + this.map_view[1]];
+
+        var dp = [p2[0] - p1[0], p2[1] - p1[1]]; // Shift to origin
+        var mp = Math.sqrt(dp[0]*dp[0] + dp[1] * dp[1]); // Magnitude
+        var up = [dp[0] / mp, dp[1] / mp]; // Unit vector
+
+        var rup = [-up[1], up[0]]; // Unit vector to right
+        var lup = [up[1], -up[0]]; // Unit vector to left
+
+        var width = 10; // Magnitude of the sidestep
+
+        var rp = [rup[0] * width, rup[1] * width];
+        var lp = [lup[0] * width, lup[1] * width];
+
+        var p1r = [p1[0] + rp[0], p1[1] + rp[1]];
+        var p2r = [p2[0] + rp[0], p2[1] + rp[1]];
+
+        var p1l = [p1[0] + lp[0], p1[1] + lp[1]];
+        var p2l = [p2[0] + lp[0], p2[1] + lp[1]];
+
+        var collision = false;
+        for (var z=0; z < this.map_block_rectangles.length; z++) {
+            var rect = this.map_block_rectangles[z];
+            for (var n = 0, m = rect.length- 1; n < rect.length; m = n++) {
+                var p3 = rect[n];
+                var p4 = rect[m];
+                if (this.test_intersect_line_line(p1r, p2r, p3, p4) ||
+                    this.test_intersect_line_line(p1l, p2l, p3, p4) ||
+                    this.test_intersect_line_circle(p3, p4, [p2[0], p2[1], width])) {
+                    collision = true;
+                    break;
+                }
+            }
+        }
+        if (collision) {
+            this.mask.strokeStyle = "rgba(255, 0, 0, 1)";
+        }
+        else {
+            this.mask.strokeStyle = "rgba(255, 255, 255, 1)";
+        }
+        this.mask.beginPath();
+        this.mask.moveTo(p1[0] - this.map_view[0], p1[1] - this.map_view[1]);
+        this.mask.lineTo(p2[0] - this.map_view[0], p2[1] - this.map_view[1]);
+        this.mask.stroke();
+
+        this.mask.beginPath();
+        this.mask.arc(p2[0] - this.map_view[0], p2[1] - this.map_view[1],width,0,2*Math.PI)
+        this.mask.stroke();
+
+        this.mask.strokeStyle = "rgba(0, 255, 0, 1)";
+        this.mask.beginPath();
+        this.mask.moveTo(p1r[0] - this.map_view[0], p1r[1] - this.map_view[1]);
+        this.mask.lineTo(p2r[0] - this.map_view[0], p2r[1] - this.map_view[1]);
+        this.mask.stroke();
+
+        this.mask.strokeStyle = "rgba(0, 0, 255, 1)";
+        this.mask.beginPath();
+        this.mask.moveTo(p1l[0] - this.map_view[0], p1l[1] - this.map_view[1]);
+        this.mask.lineTo(p2l[0] - this.map_view[0], p2l[1] - this.map_view[1]);
+        this.mask.stroke();
+
+
+
+    }
+
     var debug_end = new Date().getTime();
     $("#details").text(debug_loops / (debug_end - debug_start) * 1000 + "loops per second")
     debug_loops++;
@@ -526,16 +605,16 @@ Battlemap.prototype.test_intersect_point_poly = function(point, polygon) {
     return c;
 }
 
-/*
+/* ====================================================
  * Battlemap.test_intersect_point_circle(point, circle)
  * ====================================================
  * Test if point (x,y) is inside circle (x, y, radius)
  */
 Battlemap.prototype.test_intersect_point_circle = function(point, circle) {
-    return Math.sqrt(Math.pow(point[0]-circle[0], 2) + Math.pow(point[1]-circle[1], 2 )) < circle[3];
+    return Math.sqrt(Math.pow(point[0]-circle[0], 2) + Math.pow(point[1]-circle[1], 2 )) < circle[2];
 }
 
-/*
+/* ====================================================
  * Battlemap.test_intersect_line_circle(p1, p2, circle)
  * ====================================================
  * Test if line segment p1,p2 is intersects circle
@@ -553,9 +632,19 @@ Battlemap.prototype.test_intersect_line_circle = function(p1, p2, circle) {
     var b = 2 * (cx * sx + cy * sy);
     var c = cx*cx + cy*cy - circle[2] * circle[2];
 
-    var discriminant = b*b - 4*a*c;
-    if (discriminant < 0) { return false; }
-    else { return true; }
+    var d = b*b - 4*a*c;
+    if (d < 0) { return false; }
+    else {
+        // Ray has hit the circle. Now check segments
+        d = Math.sqrt(d);
+
+        var t1 = (-b - d)/(2*a);
+        var t2 = (-b + d)/(2*a);
+
+        if ( t1 >= 0 && t1 <= 1 ) { return true; }
+        else if ( t2 >= 0 && t2 <= 1 ) { return true; }
+        else { return false; }
+    }
 }
 
 $(document).ready(function() {
