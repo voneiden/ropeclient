@@ -49,12 +49,14 @@ Battlemap.prototype.init = function() {
     }
 
     // Create variables
-    this.mouse_position = [0, 0]; // Current mouse position on canvas
+    this.mouse_position_canvas = [0, 0]; // Current mouse position in canvas coordinates
+    this.mouse_position_map = [0, 0];    // Current mouse position in map coordinates
     this.mouse_dragging_shadow = false;  // Storing shadow coordinates
     this.mouse_dragging_pan = false; // Storing panning coordinates
     this.mouse_operation = null;  // Current mouse operation (shadow, move, rotate)
     this.mouse_right = false;
     this.mouse_left = false;
+    this.mouse_on_token = false;
     this.mouse_test = false;
 
     // Map variables
@@ -67,6 +69,8 @@ Battlemap.prototype.init = function() {
     this.map_scale = 50 // Map scale in pixels / meter
 
     this.map_tokens = []; // Tokens are in format of..
+    this.map_selected_token = false;
+
 
     // TODO draw battlemap welcome screen?
     this.loadmap();
@@ -227,63 +231,16 @@ Battlemap.prototype.draw = function() {
         this.mask.strokeStyle = "rgba(255, 255, 255, 1)";
         var x = this.mouse_dragging_shadow[0] - this.map_view[0];
         var y = this.mouse_dragging_shadow[1] - this.map_view[1];
-        var w = this.mouse_position[0] - x;
-        var h = this.mouse_position[1] - y;
+        var w = this.mouse_position_canvas[0] - x;
+        var h = this.mouse_position_canvas[1] - y;
 
         this.mask.fillRect(x, y, w, h);
     }
 
     if (this.mouse_test) {
-        var p1 = [this.mouse_test[0], this.mouse_test[1]];
-        var p2 = [this.mouse_position[0] + this.map_view[0], this.mouse_position[1] + this.map_view[1]];
 
-        var dp = [p2[0] - p1[0], p2[1] - p1[1]]; // Shift to origin
-        var mp = Math.sqrt(dp[0]*dp[0] + dp[1] * dp[1]); // Magnitude
-        var up = [dp[0] / mp, dp[1] / mp]; // Unit vector
 
-        var rup = [-up[1], up[0]]; // Unit vector to right
-        var lup = [up[1], -up[0]]; // Unit vector to left
-
-        var width = 10; // Magnitude of the sidestep
-
-        var rp = [rup[0] * width, rup[1] * width];
-        var lp = [lup[0] * width, lup[1] * width];
-
-        var p1r = [p1[0] + rp[0], p1[1] + rp[1]];
-        var p2r = [p2[0] + rp[0], p2[1] + rp[1]];
-
-        var p1l = [p1[0] + lp[0], p1[1] + lp[1]];
-        var p2l = [p2[0] + lp[0], p2[1] + lp[1]];
-
-        var collision = false;
-        for (var z=0; z < this.map_block_rectangles.length; z++) {
-            var rect = this.map_block_rectangles[z];
-            for (var n = 0, m = rect.length- 1; n < rect.length; m = n++) {
-                var p3 = rect[n];
-                var p4 = rect[m];
-                if (this.test_intersect_line_line(p1r, p2r, p3, p4) ||
-                    this.test_intersect_line_line(p1l, p2l, p3, p4) ||
-                    this.test_intersect_line_circle(p3, p4, [p2[0], p2[1], width])) {
-                    collision = true;
-                    break;
-                }
-            }
-        }
-        if (collision) {
-            this.mask.strokeStyle = "rgba(255, 0, 0, 1)";
-        }
-        else {
-            this.mask.strokeStyle = "rgba(255, 255, 255, 1)";
-        }
-        this.mask.beginPath();
-        this.mask.moveTo(p1[0] - this.map_view[0], p1[1] - this.map_view[1]);
-        this.mask.lineTo(p2[0] - this.map_view[0], p2[1] - this.map_view[1]);
-        this.mask.stroke();
-
-        this.mask.beginPath();
-        this.mask.arc(p2[0] - this.map_view[0], p2[1] - this.map_view[1],width,0,2*Math.PI)
-        this.mask.stroke();
-
+        /*
         this.mask.strokeStyle = "rgba(0, 255, 0, 1)";
         this.mask.beginPath();
         this.mask.moveTo(p1r[0] - this.map_view[0], p1r[1] - this.map_view[1]);
@@ -295,6 +252,7 @@ Battlemap.prototype.draw = function() {
         this.mask.moveTo(p1l[0] - this.map_view[0], p1l[1] - this.map_view[1]);
         this.mask.lineTo(p2l[0] - this.map_view[0], p2l[1] - this.map_view[1]);
         this.mask.stroke();
+        */
     }
 
     for (var t=0; t < this.map_tokens.length; t++) {
@@ -309,7 +267,33 @@ Battlemap.prototype.draw = function() {
         var diameter = token.scale * this.map_scale;
         var radius = diameter/2;
 
-        if (token.hover) {
+        if (token.selected) {
+            // Render move line
+            var p1 = [token.x, token.y];
+            var p2 = this.mouse_position_map;
+
+            var radius = token.scale * this.map_scale / 2;
+
+            var collision = this.test_intersect_move(p1, p2, radius, token);
+
+            if (collision) {
+                this.scene.strokeStyle = "rgba(255, 0, 0, 1)";
+            }
+            else {
+                this.scene.strokeStyle = "rgba(255, 255, 255, 1)";
+            }
+            this.scene.beginPath();
+            this.scene.moveTo(p1[0] - this.map_view[0], p1[1] - this.map_view[1]);
+            this.scene.lineTo(p2[0] - this.map_view[0], p2[1] - this.map_view[1]);
+            this.scene.stroke();
+
+            this.scene.beginPath();
+            this.scene.arc(p2[0] - this.map_view[0], p2[1] - this.map_view[1], radius,0,2*Math.PI)
+            this.scene.stroke();
+
+            this.scene.strokeStyle = "rgb(100, 255, 100)";
+        }
+        else if (token.hover) {
             this.scene.strokeStyle = "rgb(100, 100, 255)";
         }
         else {

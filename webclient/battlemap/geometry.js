@@ -192,3 +192,83 @@ Battlemap.prototype.test_intersect_line_circle = function(p1, p2, circle) {
         else { return false; }
     }
 }
+
+/* ========================================================
+ * Battlemap.test_intersect_circle_circle(circle1, circle2)
+ * ========================================================
+ * Test if two circles intersect
+ */
+Battlemap.prototype.test_intersect_circle_circle = function(circle1, circle2) {
+    var dx = circle1[0] - circle2[0];
+    var dy = circle1[1] - circle2[1];
+
+    return Math.sqrt(dx*dx + dy*dy) < circle1[2] + circle2[2];
+}
+
+/*
+ * Battlemap.test_intersect_move(p1, p2, radius, ignore_token)
+ * ===========================================================
+ * Return true if a line with a width of radius drawn from p1 to p2
+ * or a circle of radius at p2 intersects with any blocks in the
+ * active map. Define optional ignore_token to ignore the 'starting'
+ * token. Points are in absolute coordinatres
+ */
+Battlemap.prototype.test_intersect_move = function(p1, p2, radius, ignore_token) {
+    var dp = [p2[0] - p1[0], p2[1] - p1[1]]; // Shift to origin
+    var mp = Math.sqrt(dp[0]*dp[0] + dp[1] * dp[1]); // Magnitude
+    var up = [dp[0] / mp, dp[1] / mp]; // Unit vector
+
+    var rup = [-up[1], up[0]]; // Unit vector to right
+    var lup = [up[1], -up[0]]; // Unit vector to left
+
+    var rp = [rup[0] * radius, rup[1] * radius];
+    var lp = [lup[0] * radius, lup[1] * radius];
+
+    var p1r = [p1[0] + rp[0], p1[1] + rp[1]];
+    var p2r = [p2[0] + rp[0], p2[1] + rp[1]];
+
+    var p1l = [p1[0] + lp[0], p1[1] + lp[1]];
+    var p2l = [p2[0] + lp[0], p2[1] + lp[1]];
+
+    var p2circle = [p2[0], p2[1], radius]
+
+    var collision = false;
+
+    for (var z=0; z < this.map_block_rectangles.length; z++) {
+        var rect = this.map_block_rectangles[z];
+        for (var n = 0, m = rect.length- 1; n < rect.length; m = n++) {
+            var p3 = rect[n];
+            var p4 = rect[m];
+            if (this.test_intersect_line_line(p1r, p2r, p3, p4) ||
+                this.test_intersect_line_line(p1l, p2l, p3, p4) ||
+                this.test_intersect_point_poly(p3, [p1r, p2r, p2l, p1l]) ||
+                this.test_intersect_line_circle(p3, p4, p2circle)) {
+                collision = true;
+                break;
+            }
+        }
+    }
+    for (var t=0; t < this.map_tokens.length; t++) {
+        var token = this.map_tokens[t];
+        if (token == ignore_token) { continue; }
+
+        var token_circle = [token.x, token.y, token.scale * this.map_scale / 2]
+        if (this.test_intersect_circle_circle(token_circle, p2circle) ||
+            this.test_intersect_line_circle(p1r, p2r, token_circle) ||
+            this.test_intersect_line_circle(p1l, p2l, token_circle)) {
+            collision = true;
+            break;
+        }
+    }
+    return collision;
+}
+
+Battlemap.prototype.find_point_token = function(point) {
+    for (var t=0; t < this.map_tokens.length; t++) {
+        var token = this.map_tokens[t];
+        if (this.test_intersect_point_circle(point, [token.x, token.y, token.scale * this.map_scale / 2])) {
+            return token;
+        }
+    }
+    return false;
+}

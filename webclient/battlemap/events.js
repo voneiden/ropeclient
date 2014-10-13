@@ -7,6 +7,36 @@ Battlemap.prototype.event_mouse = function(mode, event) {
     // If request_draw is true, call draw() at the end of the event handler
     var request_draw = false;
 
+    // Store mouse movement
+    if (mode == 0) {
+        this.mouse_position_canvas = [event.offsetX, event.offsetY];
+        this.mouse_position_map = [event.offsetX + this.map_view[0], event.offsetY + this.map_view[1]];
+
+        // Request draw if stuff is being dragged around
+        if (this.mouse_dragging_shadow) {
+            request_draw = true;
+        }
+        else if (this.map_selected_token) {
+            request_draw = true;
+        }
+
+        // Test hilights
+        var mouse_on_token = this.find_point_token(this.mouse_position_map)
+
+        // If active hover does not match current hover, remove the active hover
+        if (this.mouse_on_token && mouse_on_token != this.mouse_on_token) {
+            this.mouse_on_token.hover = false;
+            this.mouse_on_token = false;
+            request_draw = true;
+        }
+        // Set current hover to active
+        if (mouse_on_token) {
+            mouse_on_token.hover = true;
+            this.mouse_on_token = mouse_on_token;
+            request_draw = true;
+        }
+    }
+
     // Left button related things
     if (event.button == 0) {
 
@@ -17,12 +47,29 @@ Battlemap.prototype.event_mouse = function(mode, event) {
             request_draw = true;
         }
         else if (mode == 1) {
-            if (!this.mouse_test) {
-                this.mouse_test = [event.offsetX + this.map_view[0], event.offsetY + this.map_view[1]];
+            // Clicked a token
+            if (this.mouse_on_token) {
+                if (this.map_selected_token && this.map_selected_token != this.mouse_on_token) {
+                    // Do nothing
+                }
+                else if (this.map_selected_token) {
+                    this.map_selected_token.selected = false;
+                    this.map_selected_token = false;
+                    request_draw = true;
+                }
+                else {
+                    this.map_selected_token = this.mouse_on_token;
+                    this.map_selected_token.selected = true;
+                    request_draw = true;
+                }
             }
-            else {
-                this.mouse_test = false;
-            }
+
+            //if (!this.mouse_test) {
+            //    this.mouse_test = [event.offsetX + this.map_view[0], event.offsetY + this.map_view[1]];
+            //}
+            //else {
+            //    this.mouse_test = false;
+            //}
         }
         // Left mouse released and we're in shadow mode
         else if (mode == -1 && this.mouse_dragging_shadow) {
@@ -82,36 +129,7 @@ Battlemap.prototype.event_mouse = function(mode, event) {
             request_draw = true;
         }
     }
-    // Store mouse movement
-    if (mode == 0) {
-        this.mouse_position = [event.offsetX, event.offsetY];
 
-        // Request draw if stuff is being dragged around
-        if (this.mouse_dragging_shadow) {
-            request_draw = true;
-        }
-        else if (this.mouse_test) {
-            request_draw = true;
-        }
-
-        // Test hilights
-        for (var t=0; t < this.map_tokens.length; t++) {
-            var token = this.map_tokens[t];
-            var rcx = token.x - this.map_view[0];
-            var rcy = token.y - this.map_view[1];
-            var radius = token.scale * this.map_scale / 2;
-            if (this.test_intersect_point_circle(this.mouse_position, [rcx, rcy, radius])) {
-                token.hover = true;
-                request_draw = true;
-            }
-            else {
-                if (token.hover) {
-                    token.hover = false;
-                    request_draw = true;
-                }
-            }
-        }
-    }
 
     if (request_draw) {
         this.draw();
