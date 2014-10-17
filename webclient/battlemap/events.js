@@ -60,8 +60,16 @@ Battlemap.prototype.event_mouse = function(mode, event) {
                 else {
                     this.map_selected_token = this.mouse_on_token;
                     this.map_selected_token.selected = true;
+                    // Clear waypoints
+                    this.map_waypoints = [this.mouse_position_map];
                     request_draw = true;
                 }
+            }
+
+            else if (this.map_selected_token && !this.move_collision) {
+                // Add a waypoint or finish a waypoint
+                this.map_waypoints.push(this.mouse_position_map);
+
             }
 
             //if (!this.mouse_test) {
@@ -178,10 +186,9 @@ Battlemap.prototype.event_keyboard = function(event) {
  */
 Battlemap.prototype.resize = function(event) {
     console.log("RES");
-    var root = $("#root-battlemap");
 
-    var w = root.width();
-    var h = root.height();
+    var w = this.root.clientWidth;
+    var h = this.root.clientHeight;
 
     if (w > this.map_background.width)  { w = this.map_background.width }
     if (h > this.map_background.height) { h = this.map_background.height }

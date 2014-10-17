@@ -23,10 +23,10 @@ function Battlemap() {}
  */
 Battlemap.prototype.init = function() {
     console.log("BM init called");
-    this.canvas_scene = document.getElementById('battlemap-scene');
-    this.canvas_mask = document.getElementById('battlemap-mask');
-    this.canvas_light = document.getElementById('battlemap-light');
-    this.root = document.getElementById('root-battlemap');
+    this.canvas_scene = document.getElementById('scene');
+    this.canvas_mask = document.getElementById('mask');
+    this.canvas_light = document.getElementById('light');
+    this.root = document.getElementById('body-left');
 
     // Define canvas contexts
     this.scene = this.canvas_scene.getContext("2d");
@@ -56,7 +56,9 @@ Battlemap.prototype.init = function() {
     this.mouse_operation = null;  // Current mouse operation (shadow, move, rotate)
     this.mouse_right = false;
     this.mouse_left = false;
-    this.mouse_on_token = false;
+    this.mouse_on_token = false; // If mouse is hovering over token, set to token object, otherwise false
+    this.mouse_collision = false;
+    this.move_collision = false;
     this.mouse_test = false;
 
     // Map variables
@@ -69,7 +71,8 @@ Battlemap.prototype.init = function() {
     this.map_scale = 50 // Map scale in pixels / meter
 
     this.map_tokens = []; // Tokens are in format of..
-    this.map_selected_token = false;
+    this.map_selected_token = false; // If a token is selected, set to token, otherwise false
+    this.map_waypoints = []; // This displays active waypoint
 
 
     // TODO draw battlemap welcome screen?
@@ -237,24 +240,6 @@ Battlemap.prototype.draw = function() {
         this.mask.fillRect(x, y, w, h);
     }
 
-    if (this.mouse_test) {
-
-
-        /*
-        this.mask.strokeStyle = "rgba(0, 255, 0, 1)";
-        this.mask.beginPath();
-        this.mask.moveTo(p1r[0] - this.map_view[0], p1r[1] - this.map_view[1]);
-        this.mask.lineTo(p2r[0] - this.map_view[0], p2r[1] - this.map_view[1]);
-        this.mask.stroke();
-
-        this.mask.strokeStyle = "rgba(0, 0, 255, 1)";
-        this.mask.beginPath();
-        this.mask.moveTo(p1l[0] - this.map_view[0], p1l[1] - this.map_view[1]);
-        this.mask.lineTo(p2l[0] - this.map_view[0], p2l[1] - this.map_view[1]);
-        this.mask.stroke();
-        */
-    }
-
     for (var t=0; t < this.map_tokens.length; t++) {
         // Render tokens!
         var token = this.map_tokens[t];
@@ -267,16 +252,39 @@ Battlemap.prototype.draw = function() {
         var diameter = token.scale * this.map_scale;
         var radius = diameter/2;
 
-        if (token.selected) {
+        if (token.selected && this.map_waypoints.length > 0) {
+            // Draw existing waypoint lines
+            if (this.map_waypoints.length > 1) {
+                this.scene.strokeStyle = "rgba(255, 255, 255, 1)";
+                this.scene.beginPath();
+                for (var w=0; w < this.map_waypoints.length; w++) {
+                    var waypoint = this.map_waypoints[w];
+                    if (w == 0) {
+                        this.scene.moveTo(waypoint[0] - this.map_view[0], waypoint[1] - this.map_view[1]);
+                    } else {
+                        this.scene.lineTo(waypoint[0] - this.map_view[0], waypoint[1] - this.map_view[1]);
+                    }
+                }
+                this.scene.stroke();
+            }
+
             // Render move line
-            var p1 = [token.x, token.y];
+            var p1 = this.map_waypoints[this.map_waypoints.length - 1];
             var p2 = this.mouse_position_map;
 
             var radius = token.scale * this.map_scale / 2;
 
-            var collision = this.test_intersect_move(p1, p2, radius, token);
+            var d2 = [p2[0] - p1[0], p2[1] - p1[1]];
+            var m2 = Math.sqrt(d2[0]*d2[0] + d2[1]*d2[1]);
+            var u2 = [d2[0]/m2, d2[1]/m2];
+            m2 -= radius;
+            d2 = [u2[0]*m2, u2[1]*m2];
+            var sp2 = [d2[0] + p1[0], d2[1] + p1[1]];
 
-            if (collision) {
+
+            this.move_collision = this.test_intersect_move(p1, p2, radius, token);
+
+            if (this.move_collision ) {
                 this.scene.strokeStyle = "rgba(255, 0, 0, 1)";
             }
             else {
@@ -284,7 +292,7 @@ Battlemap.prototype.draw = function() {
             }
             this.scene.beginPath();
             this.scene.moveTo(p1[0] - this.map_view[0], p1[1] - this.map_view[1]);
-            this.scene.lineTo(p2[0] - this.map_view[0], p2[1] - this.map_view[1]);
+            this.scene.lineTo(sp2[0] - this.map_view[0], sp2[1] - this.map_view[1]);
             this.scene.stroke();
 
             this.scene.beginPath();

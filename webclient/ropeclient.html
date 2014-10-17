@@ -6,38 +6,35 @@
     <script src="jquery.js"></script>
     <script src="jstorage.js"></script>
     <script src="sha256.js"></script>
-    <script src="ropeclient.js"></script>
+    <script src="ropeclient/ropeclient.js"></script>
+    <script src="ropeclient/events.js"></script>
+    <script src="ropeclient/format.js"></script>
+    <script src="ropeclient/autocomplete.js"></script>
     <script src="battlemap/battlemap.js"></script>
     <script src="battlemap/events.js"></script>
     <script src="battlemap/geometry.js"></script>
 </head>
 <body>
-    <div id="root">
-        <div id="root-battlemap">
-            <canvas id="battlemap-scene" style="position: absolute;"></canvas>
-            <canvas id="battlemap-mask" style="position: absolute;"></canvas>
-            <canvas id="battlemap-light" style="display: none;"></canvas>
-        </div>
-        <div id="root-chat">
-            <div id="root-chat-ooc">
-                Welcome to ropeclient browser roleplaying environment!</br></br>
-                Please choose a server to connect to </br>
-                <input type="text" id="connect_destination" value=""><input type="button" id="connect_button" value="Connect">
-
-            </div>
-            <div id="root-chat-ic">
-
-            </div>
-            <!--<div id="root-chat-input">-->
-                <div id="autocomplete">
-                </div>
-                <textarea id="input" name="msg" rows="3" spellcheck="true" style="width: 100%"></textarea>
-                <input id="input-password" type="password" style="display: none">
-            <!--</div>-->
-        </div>
-        <div id="root-right">
-
-        </div>
+    <div id="body-left">
+        <canvas id="scene" style="position: absolute;"></canvas>
+        <canvas id="mask" style="position: absolute;"></canvas>
+        <canvas id="light" style="display: none;"></canvas>
     </div>
+    <div id="body-middle">
+        <div id="output-2">
+            Welcome to ropeclient browser roleplaying environment!</br></br>
+            Please choose a server to connect to </br>
+            <input type="text" id="input-destination" value=""><input type="button" id="input-destination-connect" value="Connect">
+        </div>
+        <div id="output-1"></div>
+        <div id="input-autocomplete"></div>
+        <textarea id="input-plain" name="msg" rows="3" spellcheck="true" style="width: 100%"></textarea>
+        <input id="input-password" type="password" style="display: none">
+
+    </div>
+    <div id="body-right">
+        <div id="output-3"></div>
+    </div>
+
 </body>
 </html>

@@ -4,24 +4,23 @@ body,html
     margin: 0;
     padding: 0;
     color: #FFF;
-}
-
-#root {
     display: flex;
     width: 100%;
     height: 100%;
     flex-direction: row;
 }
 
-#root-right {
+
+#body-left {
     background-color: black;
     height: 100%;
-    flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: 10em;
+    display: flex;
+    flex-basis: 50%;
+    flex-shrink: 5;
+    border-right: 1px solid white;
 }
 
-#root-chat {
+#body-middle {
     background-color: black;
     height:100%;
     flex-grow: 6;
@@ -30,15 +29,21 @@ body,html
     flex-direction: column;
 }
 
-#root-battlemap {
+#body-right  {
     background-color: black;
     height: 100%;
-    display: flex;
-    flex-basis: 50%;
-    flex-shrink: 5;
-    border-right: 1px solid white;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 10em;
 }
-#root-chat-ooc {
+
+#output-1 {
+    background-color: black;
+    flex-grow: 1;
+    overflow-y:scroll;
+}
+
+#output-2 {
     background-color: black;
     flex-grow: 0;
     flex-shrink: 0;
@@ -47,21 +52,25 @@ body,html
     border-bottom: 1px solid white;
 }
 
-#root-chat-ic {
-    background-color: black;
-    flex-grow: 1;
-    overflow-y:scroll;
-}
+#output-3 {}
 
-#root-chat-input {
+/*
+#input-plain {
     background-color: black;
     flex-grow: 0;
-
     display: flex;
     flex-direction: column;
+}*/
+
+#input-plain, #input-password {
+    background-color:black;
+    color:white;
+    margin: 0;
+
 }
 
-#input{
+/* Obsolete ? */
+#input-plain {
     flex-shrink: 100000;
     resize: none;
 }
@@ -162,13 +171,7 @@ span.dice
     right:12%;
 }
 
-#input, #input-password
-{
-    background-color:black;
-    color:white;
-    margin: 0;
 
-}
 #righttop
 {
     background-color:black;
