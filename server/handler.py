@@ -1,6 +1,7 @@
 import logging
+import base64
+import os
 
-#import server
 
 class Handler(object):
     def __init__(self, player):
@@ -211,10 +212,13 @@ class HandlerLogin(Handler):
             ident = self.core.players.hget("names", self.name.lower())
             if ident:
                 self.ident = ident
+                player = self.core.players.fetch(ident)
+                assert player
+
                 self.player.send_message("Account found!")
                 self.state = 1
                 self.player.send_message("Password?")
-                self.player.send_password()
+                self.player.send_password(player.get("password-unique"))
                 return
             else:
                 self.player.send_message("Account not found! Create a new one? (y/n)")

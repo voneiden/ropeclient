@@ -32,6 +32,8 @@ import cgi
 from cgi import escape
 from collections import OrderedDict
 import logging
+import os
+import base64
 
 import server
 import world
@@ -213,9 +215,7 @@ class Player(Database):
         logging.info("Sending OFT")
         self.connection.send_message(message)
 
-
-
-    def send_password(self):
+    def send_password(self, unique_hash=None, random_hash=None):
         self.connection.send_password()
 
     def disconnect(self):
@@ -354,10 +354,11 @@ class PlayerOLD(object):
     
     def send_message_fail(self, message):
         self.connection.send_message_fail(message)
-         
-    
-    def send_password(self):
-        self.connection.send_password()
+
+    def send_password(self, unique_salt=None, random_salt=None):
+        if not unique_salt:
+            unique_salt = base64.b64encode(os.random(32))
+        self.connection.send_password(unique_salt, random_salt)
         
         """
         if isinstance(message,list):

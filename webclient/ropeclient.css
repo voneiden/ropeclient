@@ -16,15 +16,17 @@ body,html
     height: 100%;
     display: flex;
     flex-basis: 50%;
-    flex-shrink: 5;
+    flex-grow: 1;
+    flex-shrink: 1;
     border-right: 1px solid white;
 }
 
 #body-middle {
     background-color: black;
     height:100%;
-    flex-grow: 6;
-
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 40em;
     display: flex;
     flex-direction: column;
 }
@@ -40,7 +42,10 @@ body,html
 #output-1 {
     background-color: black;
     flex-grow: 1;
+    flex-shrink: 0;
     overflow-y:scroll;
+    word-wrap: break-word;
+    padding: 1em;
 }
 
 #output-2 {
@@ -50,6 +55,8 @@ body,html
     flex-basis: 30%;
     overflow-y:scroll;
     border-bottom: 1px solid white;
+    word-wrap: break-word;
+    padding-left: 1em;
 }
 
 #output-3 {}
@@ -91,11 +98,11 @@ pre
 span.msg 
 {
     display: block;
-    margin:0px;
-    line-height:100%;
+    margin: 0;
+    line-height: 100%;
     min-height: 1em;
-    padding:0px;
-    margin-left:10px;
+    padding: 0px;
+    margin-left: 10px;
     white-space: pre-wrap;
 }
 span.dice

@@ -6,7 +6,11 @@
 
 // Customize default url
 
-
+// TODO TODO TODO
+/*
+ * Error causes page to lose flow
+ * Unique hash not implemented
+ */
 
 function Ropeclient() {}
 

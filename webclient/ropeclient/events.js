@@ -21,6 +21,38 @@ Ropeclient.prototype.event_key_enter = function (event)
     if (this.input_password_mode == true)
     {
         message.key = "pwd";
+        message.server_salt = this.password_server_salt;
+
+        // Generate client salt. If available, use more secure functions, otherwise fall back
+        var random_array;
+        if (false && window.crypto && window.crypto.getRandomValues && window.Uint8Array) {
+            random_array = new Uint8Array(32);
+            crypto.getRandomValues(random_array);
+        }
+        else {
+            this.print_2("Warning: your browser does not support a relatively \
+                         new pseudo-random number generator function (crypto.getRandomValues). \
+                         Your password will be salted using a less secure method. In reality, this \
+                         is probably not a big problem. Consider upgrading your browser anyway. \
+                         <a href=\"http://caniuse.com/#feat=getrandomvalues\">Check here for supported browsers</a>");
+            random_array = new Array();
+            for (var i=0; i < 32; i++) {
+                random_array.push(Math.round(Math.random()*255))
+            }
+        }
+        var random_string = ""
+        for (var i=0; i < random_array.length; i++) {
+            var hex = random_array[i].toString(16);
+            if (hex.length == 1) { hex = "0" + hex; }
+            random_string += hex;
+        }
+
+        console.log("array", random_array);
+
+        console.log("hexxe", random_string)
+        var shaObj = new jsSHA(random_string); // TODO: deal with this poor static salt
+        this.password_unique_hash += shaObj.getHash("SHA-256","HEX");
+        console.log("uniqu", this.password_unique_hash);
 
 		var shaObj = new jsSHA(this.input_password.val()+'r0p3s4lt'); // TODO: deal with this poor static salt
         message.value = shaObj.getHash("SHA-256","HEX");      // Though; does this service require such strong authentication?
@@ -154,6 +186,10 @@ Ropeclient.prototype.receive_message = function(event) {
         this.input_password.show();
         this.input_password.focus();
         this.input_password_mode = true;
+
+        // Store server hash
+        this.password_server_salt = message.server_salt;
+
     }
     else if (key == "clr") {
         var window = message.window || "both"

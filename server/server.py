@@ -24,11 +24,12 @@ from autobahn.asyncio.websocket import WebSocketServerProtocol
 from autobahn.asyncio.websocket import WebSocketServerFactory
 
 #from collections import OrderedDict
-
+import base64
 import json
 import logging
-import time
+import os
 import sys
+import time
 import traceback
 
 from handler import HandlerLogin
@@ -216,8 +217,10 @@ class WebPlayer(WebSocketServerProtocol):
         message["value"] = "<fail>" + message["value"]
         self.send_message(message)
 
-    def send_password(self):
-        self.write(json.dumps({"key":"pwd"}))
+    def send_password(self, server_salt):
+        if not server_salt:
+            server_salt = base64.b64encode(os.urandom(32)).decode("utf8")
+        self.write(json.dumps({"key": "pwd", "server_salt": server_salt}))
             
     def sendColor(self,c1,c2):
         self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))
