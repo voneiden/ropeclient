@@ -30,7 +30,7 @@ Ropeclient.prototype.event_key_enter = function (event)
             crypto.getRandomValues(random_array);
         }
         else {
-            this.print_2("Warning: your browser does not support a relatively \
+            this.print_oft("Warning: your browser does not support a relatively \
                          new pseudo-random number generator function (crypto.getRandomValues). \
                          Your password will be salted using a less secure method. In reality, this \
                          is probably not a big problem. Consider upgrading your browser anyway. \
@@ -151,28 +151,18 @@ Ropeclient.prototype.receive_message = function(event) {
 
     var key = message.key;
 
-    // msg is a single line in-topic message
-    if (key == "msg") {
-        this.print_1(this.format_msg(message));
+    // Singe ontopic message
+    if (key == "ont") {
+        var o = this.format_message(message);
+        console.log("<-", o);
+        this.print_ont(this.format_message(message));
+        console.log("MSG",message);
     }
 
-    // msg_list consists of a list of multiple msg elements
-    else if (key == "msg_list")
-    {
-        var buffer = [];
-        for (var i = 0; i < message.value.length; i++)
-        {
-            console.log(this);
-            var test2 = message.value[i];
-            var test = this.format_msg(test2);
-            buffer.push(this.format_msg(message.value[i]));
-        }
-        this.print_1(buffer.join(""));
-    }
 
     // oft is a single line off-topic message
     else if (key == "oft") {
-        this.print_2(this.format_oft(message));
+        this.print_oft(this.format_oft(message));
     }
 
     // oft_list consists of a list of multiple oft elements
@@ -182,7 +172,7 @@ Ropeclient.prototype.receive_message = function(event) {
         {
             buffer.push(this.format_oft(message.value[i]));
         }
-        this.print_2(buffer.join(""))
+        this.print_oft(buffer.join(""))
     }
 
     // pwd requests the client to go into password typing mode (hide input and hash output)
@@ -201,11 +191,11 @@ Ropeclient.prototype.receive_message = function(event) {
     else if (key == "clr") {
         var window = message.window || "both"
 
-        if (window == "msg" || window == "both") {
-            this.output_1.html("");
+        if (window == "ont" || window == "both") {
+            this.output_ont.html("");
         }
         if (window == "oft" || window == "both") {
-            this.output_2.html("");
+            this.output_oft.html("");
         }
     }
     else if (key == 'ping') {
@@ -267,6 +257,7 @@ Ropeclient.prototype.receive_message = function(event) {
         if (element != null) { element.innerHTML = "[EDITED  ] " + message }
     }
     else {
-        displayOfftopic('unknown header msg: ' + message.toString());
+        this.print_oft('unknown header msg: ' + message.toString());
+        console.log("error", message)
     }
 };

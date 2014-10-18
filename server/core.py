@@ -52,7 +52,7 @@ class Core(object):
         logging.info("Logger configured")
 
         self.version = "0.f"
-        self.greeting = open('motd.txt', 'r').readlines()
+        self.greeting = [line.strip("\n") for line in open('motd.txt', 'r')]
 
         # Establish redis connection
         logging.info("Creating base database object..")
@@ -230,6 +230,10 @@ class Core(object):
                     stack[-1]["sub"].append(sep_block)
                 continue
 
+            elif sep == "<br>":
+                stack[-1]["sub"].append("{}{}".format("<br>", sep_block))
+                continue
+
             new_span = {"sub": []}
             stack[-1]["sub"].append(new_span)
             stack.append(new_span)
@@ -237,16 +241,26 @@ class Core(object):
 
 
             # Test simple color
-            if re.match("<[A-z]+?>", sep):
+            if re.match("<[#0-9A-z]+?>", sep):
                 color = sep[1:][:-1]
-                new_span["style"] = "color: {}".format(color)
+                new_span["style"] = {"color": color}
                 if len(sep_block) > 0:
                     new_span["sub"].append(sep_block)
                 continue
 
             # Test css
             elif re.match("<[0-9A-z;:\-# ]+?>", sep):
-                style = sep[1:][:-1]
+                styles = sep[1:][:-1].split(";")
+                style = {}
+                for s in styles:
+                    if len(s.strip()) == 0:
+                        continue
+                    tok = s.split(":")
+                    if len(tok) == 2:
+                        style[tok[0]] = tok[1]
+                    else:
+                        logging.error("Unable to tokenize css: {}".format(styles))
+
                 new_span["style"] = style
                 if len(sep_block) > 0:
                     new_span["sub"].append(sep_block)

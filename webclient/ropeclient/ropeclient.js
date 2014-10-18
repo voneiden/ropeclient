@@ -30,8 +30,8 @@ Ropeclient.prototype.init =  function() {
     this.input_destination_connect = $("#input-destination-connect");
     this.input_plain = $("#input-plain");
     this.input_password = $("#input-password");
-    this.output_1 = $("#output-1");
-    this.output_2 = $("#output-2");
+    this.output_ont = $("#output-ont");
+    this.output_oft = $("#output-oft");
     this.output_3 = $("#output-3");
 
 
@@ -89,23 +89,23 @@ Ropeclient.prototype.connect = function (url) {
     //else { ws = new WebSocket(url); }
     ws = new WebSocket(url);
     var self = this;
-    this.print_2("Connecting to " + url + "... socket state "+ws.readyState+"<br>");
+    this.print_oft("Connecting to " + url + "... socket state "+ws.readyState+"<br>");
     
     ws.onopen = function() {
         $.jStorage.set("last_url", url);
-        self.print_2("Connection established.<br>");
+        self.print_oft("Connection established.<br>");
     };
     ws.onmessage = function(event) {
         self.receive_message(event);
     }
     
     ws.onclose = function() {
-        self.print_1('<span style="font-size: large; color: red;">Disconnected, hit F5 to reconnect</font>')
-        self.print_2('<span style="font-size: large; color: red;">Disconnected, hit F5 to reconnect</font>')
+        self.print_ont('<span style="font-size: large; color: red;">Disconnected, hit F5 to reconnect</font>')
+        self.print_oft('<span style="font-size: large; color: red;">Disconnected, hit F5 to reconnect</font>')
     };
     
     ws.onerror = function (error) {
-        self.print_2(false,"Error: "+error.data+" (Hit F5 to reconnect)");
+        self.print_oft(false,"Error: "+error.data+" (Hit F5 to reconnect)");
     };
 }
 
@@ -171,15 +171,15 @@ function  makeTimestamp(id) {
     return '<font color="' + color_timestamp + '">[' + hours + ":" + minutes + ":" + seconds + "]</font> "
     
 }
-Ropeclient.prototype.print_2 = function(text) {
-    this.output_2.append(text);
-    console.log(this.output_2);
-    this.output_2.scrollTop(this.output_2[0].scrollHeight);
+Ropeclient.prototype.print_oft = function(text) {
+    this.output_oft.append(text);
+    console.log(this.output_oft);
+    this.output_oft.scrollTop(this.output_oft[0].scrollHeight);
     //document.getElementById("root-chat-ooc").scrollTop = document.getElementById("root-chat-ooc").scrollHeight;
 }
-Ropeclient.prototype.print_1 = function(text) {
-    this.output_1.append(text);
-    this.output_1.scrollTop(this.output_1[0].scrollHeight);
+Ropeclient.prototype.print_ont = function(text) {
+    this.output_ont.append(text);
+    this.output_ont.scrollTop(this.output_ont[0].scrollHeight);
 }
 
 function nameParse(msg) {

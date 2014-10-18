@@ -57,14 +57,17 @@ class WebPlayer(WebSocketServerProtocol):
         self.login_handler = HandlerLogin(self)
 
         # Send MOTD
-        buf = []
-        for line in self.core.greeting:
-            buf.append({"key": "msg", "value": line, "font-family": "monospace"})
-        self.send_message(buf)
+
+        message = Core.format_input("<br>".join(self.core.greeting))
+        message["key"] = "ont"
+        message["style"] = {"font-family": "monospace",
+                            "white-space": "pre-wrap"}
+
+        self.send_message(message)
 
         #self.do_ping()
     
-    def do_ping(self,*args):
+    def do_ping(self, *args):
         self.ping_timer = False
         if self.ping_time: # This means last request was not replied
             logging.info("ping not replied, disconnecting")
@@ -162,60 +165,41 @@ class WebPlayer(WebSocketServerProtocol):
         self.sendMessage(data.encode("utf-8"))
 
     def send_message(self, message):
+        """ Sends a message to the connection
+
+        @param message: must be correctly formatted message. use Core.format_input(text)
+        @return:
         """
-        message may be either a dictionary or a list of dictionaries
-        a dictionary must contain "value" key which is the body of the text
-        it may also contain: 
-            - timestamp  - if defined, the client will display a timestamp
-            - edit       - if true, the user can edit the line
         """
-        # Convert string/unicode based messages into correct dict format
-        if isinstance(message, str):
-            message = {"key": "msg", "value": message}
+        Updated send_message only to accept properly formatted messages
+        """
+        if not isinstance(message, dict) or "key" not in message or "sub" not in message:
+            import inspect
+            origin = inspect.stack()[1]
+            logging.error("Got invalid message format. Called from: {}:{}".format(origin[1], origin[2]))
 
-        try:
-            if isinstance(message, list):  # Multi-line messages
-                assert len(message) > 0
-
-                for si, submessage in enumerate(message):
-                    if isinstance(submessage, dict) and "value" in submessage:  # Sanitize
-                        submessage["value"] = self.core.sanitize(submessage["value"])
-                        if "key" not in submessage:
-                            submessage["key"] = "msg"
-
-                    elif isinstance(submessage, str):  # Convert str to dict & sanit.
-                        message[si] = {"key": "msg", "value": self.core.sanitize(submessage)}
-                    else:
-                        logging.error("Error, unable to process submessages in list")
-                        raise AssertionError
-            else:
-                assert isinstance(message, dict)
-                if message["key"] == "msg" and "value" in message:
-                    message["value"] = self.core.sanitize(message["value"])
-        except:
-            logging.error("sendMessage got invalid format: {}".format(str(message)))
-            raise
             return
-        
-        if isinstance(message, list) and len(message) > 0:
-            if "key" in message[0] and message[0]["key"] == "msg":
-                self.write(json.dumps({"key": "msg_list", "value": message}))
-            elif "key" in message[0] and message[0]["key"] == "oft":
-                self.write(json.dumps({"key": "oft_list", "value": message}))
-            else:
-                logging.error("Unable to determine key type of list send: " + message[0]["key"])
-        else:
-            self.write(json.dumps(message))
 
-    def send_message_fail(self, message):
-        if isinstance(message, str):
-            message = {"key":"msg", "value":message}
-        else:
-            assert isinstance(message, dict)
-            assert "value" in message
+        # TODO colorize message etc.
+        # Or should the colorizing be done on the client side?
 
-        message["value"] = "<fail>" + message["value"]
+        data = json.dumps(message)
+        logging.info("send -> {}".format(data))
+        self.write(data)
+
+    def send_text(self, text, key="ont"):
+        message = self.core.format_input(text)
+        message["key"] = key
         self.send_message(message)
+
+    def send_text_fail(self, text):
+        self.send_text("<fail>" + text)
+
+    def send_text_oft(self, text):
+        self.send_text(text, "oft")
+
+    def send_text_oft_fail(self, text):
+        self.send_text_oft("<fail>" + text)
 
     def send_password(self, server_salt=None):
         handshake = False

@@ -29,7 +29,7 @@ Ropeclient.prototype.format_timestamp = function(text, timestamp) {
         }
     }
     return text;
-}
+};
 
 Ropeclient.prototype.format_oft = function(message) {
     // TODO: Message ID
@@ -45,33 +45,84 @@ Ropeclient.prototype.format_oft = function(message) {
     text = this.format_timestamp(text, timestamp);
     text = this.format_color(text)
     return '<span class="msg">' + text + "</span>";
-}
+};
 
 Ropeclient.prototype.format_msg = function(message) {
     var text = message.value;
     text = this.format_color(text)
-    text = this.format_span(text, message);
+    //text = this.format_span(text, message);
     return '<span class="msg">' + text + "</span>";
-}
+};
 
-Ropeclient.prototype.format_span = function(text, message) {
-    var style = [];
-    console.log(message);
-    if (message["font-family"]) {
-        style.push(["font-family", message["font-family"]]);
-    }
-    var span = '<span class="msg"';
-    if (style.length > 0) {
-        span += ' style="'
-        for (var i=0; i < style.length; i++) {
-            span += style[i][0] + ": " + style[i][1];
+Ropeclient.prototype.format_message = function(message, stack) {
+    var root = false;
+    if (!stack) {
+        root = $('<span class="msg" />');
+        stack = [root];
+        console.log("root created");
+        console.log(root);
+        // Customize for output 1
+        if (message.key == "msg") {
+
         }
-        span += '"'
+
+        // Customize for output 2
+        else if (message.key == "oft") {
+
+        }
+    }
+    console.log("fm() called", message);
+    var active = stack[stack.length - 1];
+    if (message.style) {
+        active.css(message.style);
+        console.log("Set active", active, " CSS", message.style);
+    };
+
+    // TODO: handle specials
+    if (message.special) {}
+    else {
+        for (var sub_i=0; sub_i < message.sub.length; sub_i++) {
+
+            var sub = message.sub[sub_i]
+            if ($.type(sub) === "string") {
+                active.append(sub);
+                continue;
+            }
+            else {
+                console.log("SUB NOT INSTANCE OF STRING");
+                console.log(typeof sub);
+                var new_span = $('<span />');
+                active.append(new_span);
+                stack.push(new_span);
+                stack = this.format_message(sub, stack);
+            }
+        }
+    }
+    if (stack.length > 1) {
+        stack.pop();
     }
 
-    span += '>' + text + '</span>';
-    return span;
-}
+    if (root) {
+        console.log("root terminated")
+        console.log(stack[0]);
+        return stack[0];
+    }
+    else {
+        console.log("non root terminated");
+        return stack;
+    }
+};
+
+Ropeclient.prototype.format_message_subs = function(message, stack) {
+    if (!stack) {
+        var root = $('<span />');
+        stack = [root];
+    }
+    else {
+        var new_span = $('<span />');
+
+    }
+};
 
 function EditHistoryName(msg){
     var pattern = /\$\(disp\=(.*?)\)/;

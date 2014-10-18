@@ -39,16 +39,15 @@ body,html
     flex-basis: 10em;
 }
 
-#output-1 {
+#output-ont {
     background-color: black;
     flex-grow: 1;
     flex-shrink: 0;
     overflow-y:scroll;
     word-wrap: break-word;
-    padding: 1em;
 }
 
-#output-2 {
+#output-oft {
     background-color: black;
     flex-grow: 0;
     flex-shrink: 0;
@@ -56,7 +55,6 @@ body,html
     overflow-y:scroll;
     border-bottom: 1px solid white;
     word-wrap: break-word;
-    padding-left: 1em;
 }
 
 #output-3 {}
@@ -76,33 +74,14 @@ body,html
 
 }
 
-/* Obsolete ? */
-#input-plain {
-    flex-shrink: 100000;
-    resize: none;
-}
-pre
-{
-    font-style: inherit;
-    font-family: inherit;
-    font-size: inherit;
-    display:block;
-    margin:0;
-    padding:0;
-    border:0;
-    margin-left:10px;
-    margin-bottom:0px;
-    line-height:100%;
-    white-space: pre-wrap;
-}
+
 span.msg 
 {
     display: block;
-    margin: 0;
+    margin: 0 0.5em 0 0.5em;
+    padding: 0
     line-height: 100%;
     min-height: 1em;
-    padding: 0px;
-    margin-left: 10px;
     white-space: pre-wrap;
 }
 span.dice
@@ -114,83 +93,6 @@ span.dice
     display:inline-block;
 }
 
-#main
-{
-    height:100%;
-    
-}
-
-#left
-{
-    background-color:gray;
-    width:88%;
-    height:100%;
-    float: left;
-
-}
-#right
-{
-    background-color:blue;
-    width:12%;
-    height:100%;
-    float: left;
-}
-
-#lefttop
-{
-    background-color:black;
-    position:absolute;
-    height:auto;
-    width:auto;
-    bottom:60.5%;
-    top:0;
-    left:0;
-    right:12.25%;
-    overflow-y:scroll;
-    overflow-x:hidden;
-   
-
-}
-#leftbottom
-{
-    background-color:black;
-    position:absolute;
-    height:auto;
-    width:auto;
-    bottom:24px;
-    top:40%;
-    left:0;
-    right:12.25%;
-    overflow-y:scroll;
-    overflow-x:hidden;
-}
-
-
-#leftentry
-{
-    
-    background-color:black;
-    position:absolute;
-    height:24px;
-    width:auto;
-    bottom:0px;
-    left:0;
-    right:12%;
-}
-
-
-#righttop
-{
-    background-color:black;
-    width:100%;
-    height:50%;
-}
-#rightbottom
-{
-    background-color:black;
-    width:100%;
-    height:50%;
-}
 
 
 #bottomlp,#toplp

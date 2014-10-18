@@ -9,9 +9,9 @@ Welcome to ropeclient
     <#ff0000>I<#ff7f00>n <#ffff00>c<#00ff00>o<#0000ff>l<#4b0082>o<#8f00ff>r<white>!<default>     Version 0.dev              `---==|  ;  \==---'
                                                    |  ;.  \
         Version notes                              |  `;   \
-         - This is a development version           |   ;.   \
-           Expect things to break..                |   `;    \
-                                                   |    ;.    \
+         - This is an eternal development          |   ;.   \
+           version where things will keep          |   `;    \
+           breaking forever. HAHAHA!               |    ;.    \
                                                    |    `;     \ 
                                                    |     ;.     \
                                                    |     `;      \

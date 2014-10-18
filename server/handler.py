@@ -177,14 +177,17 @@ class HandlerLogin(Handler):
         state 0 msg - receiving username
 
     """
-    def __init__(self, player):
+    def __init__(self, connection):
         """
 
         @param player:
         @type player: server.WebPlayer
         @return:
         """
-        Handler.__init__(self, player)
+        Handler.__init__(self, connection)
+        self.player = None
+        self.connection = connection
+
         self.state = 0
         self.name = None
         self.password = None
@@ -201,13 +204,13 @@ class HandlerLogin(Handler):
             self.name = message["value"]
 
             # Test max length
-            if len(self.name) > self.player.core.settings["max_login_name_length"]:
-                self.player.send_message_fail("Login name is too long. Your name?")
+            if len(self.name) > self.core.settings["max_login_name_length"]:
+                self.connection.send_text_fail("Login name is too long. Your name?")
                 return
 
             # Test account has only characters
             if not self.name.isalpha():
-                self.player.send_message_fail("Login name may not contain numbers or special characters. Your name?")
+                self.connection.send_text_fail("Login name may not contain numbers or special characters. Your name?")
                 return
 
             # Test if account exists
@@ -217,13 +220,13 @@ class HandlerLogin(Handler):
                 player = self.core.players.fetch(ident)
                 assert player
 
-                self.player.send_message("Account found!")
+                self.connection.send_text("Account found!")
                 self.state = 1
-                self.player.send_message("Password?")
-                self.player.send_password(player.get("password.salt"))
+                self.connection.send_text("Password?")
+                self.connection.send_password(player.get("password.salt"))
                 return
             else:
-                self.player.send_message("Account not found! Create a new one? (y/n)")
+                self.connection.send_text("Account not found! Create a new one? (y/n)")
                 self.state = 10
                 return
 
@@ -231,15 +234,15 @@ class HandlerLogin(Handler):
         elif self.state == 10:
             if message["value"][0].lower() == "y":
                 self.state = 11
-                self.player.send_message("Password?")
-                self.player.send_password()
+                self.connection.send_text("Password?")
+                self.connection.send_password()
             else:
                 self.state = 0
-                self.player.send_message("Your name?")
+                self.connection.send_text("Your name?")
 
         # Else - restart
         else:
-            self.player.send_message("Something went wrong, restarting. Your name?")
+            self.connection.send_text("Something went wrong, restarting. Your name?")
             self.state = 0
 
     def process_pwd(self, pwd):
@@ -250,19 +253,20 @@ class HandlerLogin(Handler):
             player = self.core.players.fetch(self.ident)
             #TODO verify client salt input
             if pwd["value"] == hashlib.sha256((player.get("password") + pwd["client_salt"]).encode("utf8")).hexdigest():
-                self.player.send_message("Password correct!")
+                self.connection.send_text("Password correct!")
 
                 # Link connection and player interface together
-                player.connection = self.player
+                player.connection = self.connection
 
                 # This sets the WebPlayers player attribute to point to the player interface (awkward..)
-                self.player.player = player
+                self.connection.player = player
 
                 # Create handler for player interface
                 player.handler = HandlerWorld(player)
+                return
 
             else:
-                self.player.send_message("Password incorrect! Your name?")
+                self.connection.send_text("Password incorrect! Your name?")
                 self.state = 0
 
         elif self.state == 11:  # Registering a new password
@@ -270,8 +274,8 @@ class HandlerLogin(Handler):
             self.password_salt = pwd["client_salt"]
 
             logging.info("Got pwd: {}".format(self.password))
-            self.player.send_message("Repeat password")
-            self.player.send_password(self.password_salt)
+            self.connection.send_text("Repeat password")
+            self.connection.send_password(self.password_salt)
             self.state = 12
 
         elif self.state == 12:  # Password retype check
@@ -283,15 +287,15 @@ class HandlerLogin(Handler):
 
             if rehashed_password == pwd["value"]:
                 self.core.players.new(self.name, self.password, self.password_salt)
-                self.player.send_message("Account created. You may now login. Your name?")
+                self.connection.send_text("Account created. You may now login. Your name?")
                 self.state = 0
             else:
-                self.player.send_message("Passwords mismatch. Try again. Your password?")
-                self.player.send_password()
+                self.connection.send_text("Passwords mismatch. Try again. Your password?")
+                self.connection.send_password()
                 self.state = 11
 
         else:
-            self.player.send_message("Something went wrong, restarting. Your name?")
+            self.connection.send_text("Something went wrong, restarting. Your name?")
             self.state = 0
 
 
