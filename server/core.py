@@ -193,3 +193,87 @@ class Core(object):
             return '''$(i:{}) {}{}{}, "<talk>{}<reset>"'''.format(who_ident, emotion, how, to_whom, what)
         else:
             return False
+
+    @staticmethod
+    def format_input(text):
+        """
+
+        @param text: A user input string that can be broken down into json compatible object
+        @return: dictionary
+        """
+
+        root = {"sub": []}
+        stack = [root]
+
+        re_span_separators = ["(?:![d0-9\+\-\*/]+(?:[<>=]+[0-9]+)?)",  # Dice match
+                              "(?:<[0-9A-z;:\-# ]+?>)",                                 # Style match
+                              "(?:\$\(i:[0-9]+\))"]                         # Name match
+        re_separator = "|".join(re_span_separators)
+        # (?:![d0-9\+\-\*/]+(?:[<>=]+[0-9]+)?)|(?:<[0-9A-z;:\-# ]+?>)(?:\$\(i:[0-9]+\))
+        print (re_separator)
+        re_test = re.compile(re_separator)
+        span_separators = re.findall(re_separator, text)
+        span_blocks = re.split(re_separator, text)
+
+        print("span_separators:", span_separators, "Total", len(span_separators))
+        print("span_blocks    :", span_blocks, "Total", len(span_blocks))
+        root["sub"].append(span_blocks[0])
+
+        for i, sep in enumerate(span_separators):
+
+            sep_block = span_blocks[i+1]
+
+            if sep == "<reset>" or sep == "<r>":
+                if len(stack) > 1:
+                    stack.pop()
+                if len(sep_block) > 0:
+                    stack[-1]["sub"].append(sep_block)
+                continue
+
+            new_span = {"sub": []}
+            stack[-1]["sub"].append(new_span)
+            stack.append(new_span)
+
+
+
+            # Test simple color
+            if re.match("<[A-z]+?>", sep):
+                color = sep[1:][:-1]
+                new_span["style"] = "color: {}".format(color)
+                if len(sep_block) > 0:
+                    new_span["sub"].append(sep_block)
+                continue
+
+            # Test css
+            elif re.match("<[0-9A-z;:\-# ]+?>", sep):
+                style = sep[1:][:-1]
+                new_span["style"] = style
+                if len(sep_block) > 0:
+                    new_span["sub"].append(sep_block)
+                continue
+
+            # Test dice
+            elif re.match("![d0-9\+\-\*/]+(?:[<>=]+[0-9]+)?", sep):
+                new_span["special"] = "dice"
+                # TODO: roll the dice here
+                if len(stack) > 1:
+                    stack.pop()
+                continue
+
+            # Test name
+            elif re.match("\$\(i:[0-9]+\)", sep):
+                new_span["special"] = "name"
+                new_span["sub"] = sep[4:][:-1]
+                if len(stack) > 1:
+                    stack.pop()
+                continue
+
+            # otherwise raise warning
+            else:
+                logging.warning("Was unable to determine separator: {}".format(sep))
+
+        return root
+
+class Span(dict):
+    def __init__(self):
+        self["sub"] = []

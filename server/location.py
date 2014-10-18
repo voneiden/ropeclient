@@ -180,6 +180,7 @@ class Location(Database):
             return keys
 
 
-    def announce_to_characters(self, text):
+    def announce_to_characters(self, message):
+        assert isinstance(message, dict) and "sub" in message
         character_idents = self.smembers("characters")
-        self.world.do_message(text, character_idents)
+        self.world.do_character_message(character_idents, message)

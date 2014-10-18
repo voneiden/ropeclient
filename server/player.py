@@ -80,7 +80,7 @@ class PlayerManager(Database):
         else:
             return False
 
-    def new(self, name, password, **kwargs):
+    def new(self, name, password, password_salt, **kwargs):
         """
 
         Used to create a new player
@@ -126,6 +126,7 @@ class PlayerManager(Database):
         # Add details
         player.set("name", name)
         player.set("password", password)
+        player.set("password.salt", password_salt)
 
         logging.info("New player created successfully!")
 
@@ -172,6 +173,8 @@ class Player(Database):
         self.character = None
         self.typing = False
 
+        self.world = None
+
 
     def path(self, *args):
         """ Provides path for world objects
@@ -215,7 +218,7 @@ class Player(Database):
         logging.info("Sending OFT")
         self.connection.send_message(message)
 
-    def send_password(self, unique_hash=None, random_hash=None):
+    def send_password(self, server_salt=None):
         self.connection.send_password()
 
     def disconnect(self):
@@ -223,7 +226,8 @@ class Player(Database):
             self.character.detach()
             logging.info("Detached player from character due to disconnecting")
 
-        self.world.remove_player(self)
+        if self.world:
+            self.world.remove_player(self)
 
 
     def clear(self, window="both"):

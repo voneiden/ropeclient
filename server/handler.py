@@ -1,4 +1,5 @@
 import logging
+import hashlib
 import base64
 import os
 
@@ -81,7 +82,6 @@ class HandlerGame(Handler):
                     self.player.send_message("Don't be silly.")
                     return
 
-
                 # Clear message window and attach character
                 self.player.clear("msg")
                 character = self.player.world.characters.fetch(ident)
@@ -110,7 +110,8 @@ class HandlerGame(Handler):
             location = self.player.world.locations.fetch(location_ident)
 
             # Format the message
-            message = self.core.format_say(self.player.character.ident, message["value"])
+            say_text = self.core.format_say(self.player.character.ident, message["value"])
+            message = self.core.format_input(say_text)
 
             # Bad message, ignore it
             if not message:
@@ -187,6 +188,7 @@ class HandlerLogin(Handler):
         self.state = 0
         self.name = None
         self.password = None
+        self.password_salt = None
         self.ident = None
 
     def process_msg(self, message):
@@ -218,13 +220,14 @@ class HandlerLogin(Handler):
                 self.player.send_message("Account found!")
                 self.state = 1
                 self.player.send_message("Password?")
-                self.player.send_password(player.get("password-unique"))
+                self.player.send_password(player.get("password.salt"))
                 return
             else:
                 self.player.send_message("Account not found! Create a new one? (y/n)")
                 self.state = 10
                 return
 
+        # State 10 - Create new account?
         elif self.state == 10:
             if message["value"][0].lower() == "y":
                 self.state = 11
@@ -234,6 +237,7 @@ class HandlerLogin(Handler):
                 self.state = 0
                 self.player.send_message("Your name?")
 
+        # Else - restart
         else:
             self.player.send_message("Something went wrong, restarting. Your name?")
             self.state = 0
@@ -244,8 +248,8 @@ class HandlerLogin(Handler):
 
         if self.state == 1:  # Login attempt
             player = self.core.players.fetch(self.ident)
-
-            if pwd["value"] == player.get("password"):
+            #TODO verify client salt input
+            if pwd["value"] == hashlib.sha256((player.get("password") + pwd["client_salt"]).encode("utf8")).hexdigest():
                 self.player.send_message("Password correct!")
 
                 # Link connection and player interface together
@@ -263,14 +267,22 @@ class HandlerLogin(Handler):
 
         elif self.state == 11:  # Registering a new password
             self.password = pwd["value"]
+            self.password_salt = pwd["client_salt"]
+
             logging.info("Got pwd: {}".format(self.password))
             self.player.send_message("Repeat password")
-            self.player.send_password()
+            self.player.send_password(self.password_salt)
             self.state = 12
 
         elif self.state == 12:  # Password retype check
-            if self.password == pwd["value"]:
-                self.core.players.new(self.name, self.password)
+            retyped_salt = pwd["client_salt"]
+            rehashed_password = hashlib.sha256((self.password + retyped_salt).encode("utf8")).hexdigest()
+            logging.info("Original password: {}".format(self.password))
+            logging.info("Retyped  password: {}".format(pwd["value"]))
+            logging.info("Rehashed password: {}".format(rehashed_password))
+
+            if rehashed_password == pwd["value"]:
+                self.core.players.new(self.name, self.password, self.password_salt)
                 self.player.send_message("Account created. You may now login. Your name?")
                 self.state = 0
             else:
@@ -352,20 +364,6 @@ class HandlerWorld(Handler):
         buf.append("Choose a world to join by typing the number, or 'create' to create a new world")
 
         self.player.send_message(buf)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

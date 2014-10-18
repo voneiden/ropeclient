@@ -18,6 +18,7 @@
     Copyright 2010-2013 Matti Eiden <snaipperi()gmail.com>
 
 """
+import json
 import logging
 import time
 from core import Core
@@ -205,7 +206,7 @@ class World(Database):
         assert ident in self.character_instances
 
         return self.character_instances[ident]
-
+    '''
     def form_offtopic_message(self, ident):
         """
         Given ident forms a proper dict oft message
@@ -230,7 +231,7 @@ class World(Database):
                    "timestamp": timestamp}
 
         return message
-
+    '''
     def do_offtopic(self, message, owner="Server"):
         """
         Save a new offtopic message and deliver it to players who are online
@@ -246,24 +247,31 @@ class World(Database):
             owner = owner.get("name")
 
         assert isinstance(owner, str)
+        assert isinstance(message, dict) and "sub" in message
 
         ident = str(self.incr("offtopic"))
         path = "offtopic:{}".format(ident)
-        self.hset(path, "value", message)
-        self.hset(path, "owner", owner)
-        self.hset(path, "time", time.time())
 
-        message = self.form_offtopic_message(ident)
+        message["owner"] = owner
+        message["timestamp"] = time.time()
+        message["key"] = "oft"
+        message = json.dumps(message)
+
+        self.hset(path, "value", message)
+        #self.hset(path, "owner", owner)
+        #self.hset(path, "time", time.time())
+
+        #message = self.form_offtopic_message(ident)
 
         for player in self.players:
             player.send_offtopic(message)
 
-    def do_message(self, message, recipient_idents, owner="Server"):
+    def do_character_message(self, recipient_idents, message, owner="Server"):
         """ Store a message to world database, and attach it to every recipient character
             Finally, if a player is available, attempt to deliver it
 
-            @param message: message to deliver
-            @type message: str
+            @param message: message object as returned by core.format_text
+            @type message: dict
             @param recipient_idents: list of character idents to deliver
             @type recipient_idents: list
             @param owner: Either a string or a player instance
@@ -273,10 +281,12 @@ class World(Database):
         if isinstance(owner, Player):
             owner = owner.get("name")
 
+        assert isinstance(message, dict) and "sub" in message
+
         message_ident = str(self.incr("messages"))
         path = "messages:{}".format(message_ident)
 
-        self.hset(path, "value", message)
+        self.hset(path, "value", json.dumps(message))
         self.hset(path, "owner", owner)
         self.hset(path, "time", time.time())
 

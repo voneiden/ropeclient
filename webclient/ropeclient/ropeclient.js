@@ -284,10 +284,12 @@ function ws_close() {
     log("closing connection..");
     ws.close();
 }
+/*
 $(window).resize(function() {
     document.getElementById("root-chat-ic").scrollTop = document.getElementById("root-chat-ic").scrollHeight;
     document.getElementById("root-chat-ooc").scrollTop = document.getElementById("root-chat-ooc").scrollHeight;
 });
+*/
 
 $(window).blur(function(event){
     //displayOfftopic(0,"Lost focus");

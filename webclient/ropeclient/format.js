@@ -50,7 +50,27 @@ Ropeclient.prototype.format_oft = function(message) {
 Ropeclient.prototype.format_msg = function(message) {
     var text = message.value;
     text = this.format_color(text)
+    text = this.format_span(text, message);
     return '<span class="msg">' + text + "</span>";
+}
+
+Ropeclient.prototype.format_span = function(text, message) {
+    var style = [];
+    console.log(message);
+    if (message["font-family"]) {
+        style.push(["font-family", message["font-family"]]);
+    }
+    var span = '<span class="msg"';
+    if (style.length > 0) {
+        span += ' style="'
+        for (var i=0; i < style.length; i++) {
+            span += style[i][0] + ": " + style[i][1];
+        }
+        span += '"'
+    }
+
+    span += '>' + text + '</span>';
+    return span;
 }
 
 function EditHistoryName(msg){

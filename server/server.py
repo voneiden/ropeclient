@@ -59,7 +59,7 @@ class WebPlayer(WebSocketServerProtocol):
         # Send MOTD
         buf = []
         for line in self.core.greeting:
-            buf.append({"key": "msg", "value": line})
+            buf.append({"key": "msg", "value": line, "font-family": "monospace"})
         self.send_message(buf)
 
         #self.do_ping()
@@ -217,10 +217,12 @@ class WebPlayer(WebSocketServerProtocol):
         message["value"] = "<fail>" + message["value"]
         self.send_message(message)
 
-    def send_password(self, server_salt):
+    def send_password(self, server_salt=None):
+        handshake = False
         if not server_salt:
             server_salt = base64.b64encode(os.urandom(32)).decode("utf8")
-        self.write(json.dumps({"key": "pwd", "server_salt": server_salt}))
+            handshake = True
+        self.write(json.dumps({"key": "pwd", "server_salt": server_salt, "handshake": handshake}))
             
     def sendColor(self,c1,c2):
         self.write(u"col {c1} {c2}".format(c1=c1,c2=c2))

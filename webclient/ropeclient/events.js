@@ -21,11 +21,11 @@ Ropeclient.prototype.event_key_enter = function (event)
     if (this.input_password_mode == true)
     {
         message.key = "pwd";
-        message.server_salt = this.password_server_salt;
+        //message.server_salt = this.password_server_salt;
 
         // Generate client salt. If available, use more secure functions, otherwise fall back
         var random_array;
-        if (false && window.crypto && window.crypto.getRandomValues && window.Uint8Array) {
+        if (window.crypto && window.crypto.getRandomValues && window.Uint8Array) {
             random_array = new Uint8Array(32);
             crypto.getRandomValues(random_array);
         }
@@ -40,22 +40,28 @@ Ropeclient.prototype.event_key_enter = function (event)
                 random_array.push(Math.round(Math.random()*255))
             }
         }
-        var random_string = ""
+        var client_salt = "";
         for (var i=0; i < random_array.length; i++) {
             var hex = random_array[i].toString(16);
             if (hex.length == 1) { hex = "0" + hex; }
-            random_string += hex;
+            client_salt += hex;
         }
 
-        console.log("array", random_array);
+        // If this is a handshake, we gotta create just a preshared key from the password, random server salt and random client salt
+        if (this.password_handshake) {
+            console.log("HANDSHAKE")
+            message.value = new jsSHA(this.input_password.val() + this.password_server_salt + client_salt).getHash("SHA-256","HEX");
+            message.client_salt =  this.password_server_salt + client_salt
+        }
+        // Otherwise we hash the preshared key with random client salt
+        else {
+            console.log("NO HANDSHAKE")
+            console.log("Server salt:", this.password_server_salt)
+            var h1 = new jsSHA(this.input_password.val() + this.password_server_salt).getHash("SHA-256","HEX");
+            message.value = new jsSHA(h1 + client_salt).getHash("SHA-256","HEX");
+            message.client_salt = client_salt;
+        }
 
-        console.log("hexxe", random_string)
-        var shaObj = new jsSHA(random_string); // TODO: deal with this poor static salt
-        this.password_unique_hash += shaObj.getHash("SHA-256","HEX");
-        console.log("uniqu", this.password_unique_hash);
-
-		var shaObj = new jsSHA(this.input_password.val()+'r0p3s4lt'); // TODO: deal with this poor static salt
-        message.value = shaObj.getHash("SHA-256","HEX");      // Though; does this service require such strong authentication?
 
         this.input_password.val("");
         this.input_password.hide();
@@ -76,7 +82,7 @@ Ropeclient.prototype.event_key_enter = function (event)
         message.key = "msg";
         message.value = this.input_plain.val();
         if (message.value.length == 0) { return; }
-        $("#input").val("");
+        this.input_plain.val("");
         event.preventDefault();
     }
     else if (autocomplete_buffer.length > 0) {
@@ -189,6 +195,7 @@ Ropeclient.prototype.receive_message = function(event) {
 
         // Store server hash
         this.password_server_salt = message.server_salt;
+        this.password_handshake = message.handshake;
 
     }
     else if (key == "clr") {
