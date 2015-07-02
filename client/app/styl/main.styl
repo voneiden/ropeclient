@@ -1,0 +1,65 @@
+// Useful mixins for CSS3 effects.
+//@import 'nib'
+
+// Make browsers render HTML elements consistently.
+//@import 'normalize'
+
+
+//@import '_variables'
+//@import '_mixins';
+
+//@import '_fonts';
+html
+  height: 100%
+
+body
+  font-family: 'Helvetica Neue', 'Arial', sans-serif
+  margin: 0 auto
+  height: 100%
+  background-color: grey
+
+.root-container
+  height: 100%
+
+.flex-container
+  display: flex
+  background-color: red
+
+.flex-row
+  flex-direction: row
+
+.flex-column
+  flex-direction: column
+
+for num in 1 2 3 4 5 6
+  .flex-grow-{num}
+    flex-grow: num
+
+  .flex-shrink-{num}
+    flex-shrink: num
+
+.flex-content
+  //width: 100%
+  //height: 100%
+#map
+  background-color: blue
+
+
+#offtopic
+  background-color: green
+
+
+#players
+  background-color: purple
+
+#ontopic
+  background-color: yellow
+
+#input
+  background-color: floralwhite
+
+textarea
+  width: 100%
+  box-sizing: border-box
+  resize: none
+  vertical-align: top // Chrome hack
