@@ -17,6 +17,7 @@ test_messages = [
 ]
 
 
+connection = require("connection")
 
 ###
   Parse colors from raw messages. Colors are
@@ -88,49 +89,53 @@ parse_dice = (text) ->
   or it can be a string. Also, additional formatting (timestamp) is applied if offtopic is set to true.
 ###
 render_message = (message, offtopic) ->
-  if !message?
-    console.error("Invalid message")
-    return null
-
-  if !offtopic?
-    offtopic = false
-
-  if message.raw
-    html = message.raw
-    if offtopic
-      pad = (" " for i in [1..10-message.owner.length]).join("")
-      html = "[hh:mm] #{pad}#{message.owner}: #{html}"
+  if message instanceof Array
+    return (render_message(msg, offtopic) for msg in message).join("")
   else
-    html = message
+    if !message?
+      console.error("Invalid message")
+      return null
 
-  # Add colors
-  html = parse_colors(html)
-  html = parse_dice(html)
+    if !offtopic?
+      offtopic = false
 
-  html = "<div>#{html}</div>"
-  return $.parseHTML(html)
+    if message.raw
+      html = message.raw
+      if offtopic
+        pad = (" " for i in [1..10-message.owner.length]).join("")
+        html = "[hh:mm] #{pad}#{message.owner}: #{html}"
+    else
+      html = message
+
+    # Add colors
+    html = parse_colors(html)
+    html = parse_dice(html)
+
+    html = "<div>#{html}</div>"
+    return $.parseHTML(html)
 
 ###
   Append HTML into offtopic
 ###
-append_offtopic = (element) ->
-  if !element?
+append_offtopic = (message) ->
+  if !message?
     console.error("Invalid element")
     return
-
+  html = render_message(message, true)
   offtopic = $("#offtopic")
-  append(offtopic, element)
+  append(offtopic, html)
 
 ###
   Append HTML into ontopic
 ###
-append_ontopic = (element) ->
-  if !element?
+append_ontopic = (message) ->
+  if !message?
     console.error("Invalid element")
     return
 
+  html = render_message(message)
   ontopic = $("#ontopic")
-  append(ontopic, element)
+  append(ontopic, html)
 
 ###
   Append HTML (element) to parent and scroll the element
@@ -179,16 +184,19 @@ resize_event = (event) ->
 init = ->
   console.log("Ready!")
   console.log("Jquery", $)
-  append_offtopic(render_message("Hello!"))
+  #append_offtopic(render_message("Hello!"))
   for i in [0..50]
     msg = test_messages[Math.floor(Math.random() * test_messages.length)]
-    append_offtopic(render_message(msg, true))
-    append_ontopic(render_message(msg))
+    append_offtopic(msg)
+    append_ontopic(msg)
 
   #window.setInterval(test, 1000)
 
   $(window).resize(resize_event)
 
+  connection.connect()
+
 
 exports.init = init
-
+exports.render_message = render_message
+exports.append_offtopic = append_offtopic
