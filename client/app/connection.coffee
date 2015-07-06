@@ -1,4 +1,5 @@
 main = require("main")
+ui = require("ui")
 websocket = null
 
 
@@ -9,7 +10,7 @@ handle = (data) ->
 
   # Offtopic message
   if data.k == "oft"
-    main.append_offtopic(data.v)
+    ui.append_offtopic(data.v)
 
   else
     console.warn("Unimplemented key:", data.key)
@@ -28,11 +29,14 @@ onmessage = (event) ->
 
   handle(data)
 
+onerror = (event) ->
+  ui.append_offtopic("<red>Connection failed!")
+
 connect = ->
   websocket = new WebSocket("ws://localhost:8090")
   websocket.onopen = onopen
   websocket.onmessage = onmessage
-
+  websocket.onerror = onerror
 
 
 exports.connect = connect
