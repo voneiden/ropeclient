@@ -11,8 +11,14 @@ html(lang='en')
             $(document).ready(main.init)
     body
         .root-container.flex-container.flex-row
-            .flex-content.flex-left#map
-                span map
+            .flex-content.flex-left#info
+                .flex-container.flex-row
+                    .flex-grow-1.tab-header
+                        span Story
+                    .flex-grow-1.tab-header
+                        span Map
+                .tab-content
+                    span info
             .flex-container.flex-column.flex-right
                 .flex-container.flex-row.flex-offtopic
                     .flex-content.flex-grow-5#offtopic
@@ -30,4 +36,4 @@ html(lang='en')
                 span ws://
                 input
                 p
-                    button Connect
+                    button#connect Connect

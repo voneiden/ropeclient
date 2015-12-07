@@ -56,9 +56,10 @@ init = ->
   $(window).resize(resize_event)
 
   #connection.connect()
-  $("button").click(->
+  $("#connect").click(->
     $(".connection-container").fadeOut()
   )
+  $("#connect").click()
 
 
 exports.init = init
