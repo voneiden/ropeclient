@@ -1,24 +1,37 @@
 main = require("main")
 ui = require("ui")
 websocket = null
-
+typeIsArray = Array.isArray || ( value ) -> return {}.toString.call( value ) is '[object Array]'
 
 handle = (data) ->
-  if !data.k?
+  console.warn("Handle data", data)
+  if typeIsArray(data)
+    for message in data
+      process(message)
+  else
+    process(data)
+
+process = (message) ->
+  if !message.k?
     console.warn("Invalid data packet, key is missing. Ignoring")
     return
 
   # Offtopic message
-  if data.k == "oft"
-    ui.append_offtopic(data.v)
+  if message.k == "oft"
+    console.warn("APpending")
+    ui.append_offtopic(message.v)
 
   else
-    console.warn("Unimplemented key:", data.key)
+    console.warn("Unimplemented key:", message.key)
+
 
 onopen = (event) ->
+  console.warn("Open")
   if websocket?
-    websocket.send("Testing! Stuff!")
-
+    console.warn("Sending test")
+    #websocket.send("Testing! Stuff!")
+  else
+    console.warn("No websocket")
 
 onmessage = (event) ->
   try

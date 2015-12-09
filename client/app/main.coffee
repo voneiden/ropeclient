@@ -55,7 +55,7 @@ init = ->
 
   $(window).resize(resize_event)
 
-  #connection.connect()
+  connection.connect()
   $("#connect").click(->
     $(".connection-container").fadeOut()
   )
