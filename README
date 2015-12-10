@@ -1,8 +1,17 @@
 0.0 LATEST NEWS
 
-This project is definitely not dead. Current active development focuses
-on redis database integration and rather big code refactoring. The
-active development branches are dev and redis as of writing this.
+This project is definitely (still) not dead. The code in the master branch is usable 
+as is (and was used historically to play quite a few games). However, as is in the spirit of 
+this neverending little hobby project a fresh start is again ongoing. Check out the dewdrop 
+branch for something completely same but different.
+
+The battlemap branch features a concept of utilizing a 2D map with dynamic light and shadow (and 
+field of view) to aid gaming. This branch probably wont be merged anywhere ever, but the idea is 
+solid and dewdrop will likely feature something similar.
+
+Dewdrop uses an SQL(ite) database, Pony ORM and Python on the backend. The frontend is built 
+with brunch using various goodies that I've enjoyed previously using such as coffeescript, jade 
+and stylus.
 
 1.0 About
 Ropeclient is a text based virtual tabletop for roleplaying online.
