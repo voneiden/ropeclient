@@ -1,6 +1,8 @@
 main = require("main")
 ui = require("ui")
 websocket = null
+
+# From Coffeescript cookbook - to determine if an incoming message is an array
 typeIsArray = Array.isArray || ( value ) -> return {}.toString.call( value ) is '[object Array]'
 
 handle = (data) ->

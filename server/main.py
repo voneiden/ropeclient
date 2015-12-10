@@ -1,9 +1,13 @@
 #!/usr/bin/env python
-
 import asyncio
 import websockets
 import json
 import logging
+
+SECURE = True
+
+if SECURE:
+    import ssl
 
 from controllers.login import LoginController
 from models.database import db
@@ -59,11 +63,18 @@ class ConnectionHandler(object):
 
 def run():
     handler = ConnectionHandler()
+    sc = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    sc.load_cert_chain('selfsigned.cert', 'selfsigned.key')
+
     server = websockets.serve(handler.connection, 'localhost', 8090)
     logging.basicConfig(level=logging.DEBUG)
-    asyncio.get_event_loop().set_debug(enabled=True)
-    asyncio.get_event_loop().run_until_complete(server)
-    asyncio.get_event_loop().run_forever()
+    loop = asyncio.get_event_loop()
+    loop.set_debug(enabled=True)
+    loop.run_until_complete(server)
+    if SECURE:
+        secure_server = websockets.serve(handler.connection, 'localhost', 8091, ssl=sc)
+        loop.run_until_complete(secure_server)
+    loop.run_forever()
 
 
 if __name__ == "__main__":
