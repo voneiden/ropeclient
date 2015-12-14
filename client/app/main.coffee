@@ -19,9 +19,11 @@ test_messages = [
 
 connection = require("connection")
 ui = require("ui")
+input = require("input")
 
 
 interval = 0
+
 
 
 test = ->
@@ -52,8 +54,10 @@ init = ->
     ui.append_ontopic(msg)
 
   #window.setInterval(test, 1000)
-
+  input.init()
   $(window).resize(resize_event)
+
+
 
   connection.connect()
   $("#connect").click(->

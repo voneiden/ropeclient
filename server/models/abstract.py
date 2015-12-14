@@ -1,10 +1,12 @@
 __author__ = 'wizard'
-from pony.orm import PrimaryKey, Required, Optional, Set, LongStr, datetime
-from database import db
+from pony.orm import PrimaryKey, Required, Optional, Set, LongStr
+from datetime import datetime
+from models.database import db
 
 
 class Utterance(db.Entity):
     id = PrimaryKey(int, auto=True)
+    text = Required(LongStr)
     heard = Set("Being", reverse="heard")
     being = Optional("Being", reverse="utterances")
 
@@ -18,6 +20,7 @@ class Association(db.Entity):
 
 class Offtopic(db.Entity):
     id = PrimaryKey(int, auto=True)
+    text = Required(LongStr)
     universe = Required("Universe")
-    account = Required("Account")
+    account = Optional("Account")
     timestamp = Required(datetime, sql_default='CURRENT_TIMESTAMP')

@@ -5,6 +5,22 @@ websocket = null
 # From Coffeescript cookbook - to determine if an incoming message is an array
 typeIsArray = Array.isArray || ( value ) -> return {}.toString.call( value ) is '[object Array]'
 
+message_pit = JSON.stringify({'k':'pit'})
+message_pnt = JSON.stringify({'k':'pnt'})
+message_msg = {'k': 'msg', 'v': ''}
+
+send_pit = ->
+  if websocket?
+    websocket.send(message_pit)
+send_pnt = ->
+  if websocket?
+    websocket.send(message_pnt)
+
+send_msg = (value)->
+  if websocket?
+    message_msg.v = value
+    websocket.send(JSON.stringify(message_msg))
+
 handle = (data) ->
   console.warn("Handle data", data)
   if typeIsArray(data)
@@ -55,3 +71,6 @@ connect = ->
 
 
 exports.connect = connect
+exports.send_pit = send_pit
+exports.send_pnt = send_pnt
+exports.send_msg = send_msg

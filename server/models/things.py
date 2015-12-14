@@ -1,6 +1,6 @@
 __author__ = 'wizard'
 from pony.orm import PrimaryKey, Required, Optional, Set, LongStr
-from database import db
+from models.database import db
 
 
 
