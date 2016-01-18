@@ -5,7 +5,7 @@ from models.database import db
 
 class Account(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str, 32)
+    name = Required(str, 32, unique=True)
     password = Required(str, 64)
     salt = Required(str, 64)
     god_universes = Set("Universe")
