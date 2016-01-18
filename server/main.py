@@ -42,8 +42,14 @@ class Connection(object):
     def recv(self):
         logging.info("Handling requests from " + self.address)
         while True:
-            message = yield from self.websocket.recv()
-            logging.info("Received payload from " + self.address + ": " + message)
+            raw_message = yield from self.websocket.recv()
+            logging.info("Received payload from " + self.address + ": " + raw_message)
+            try:
+                message = json.loads(raw_message)
+            except json.decoder.JSONDecodeError:
+                logging.error("Unable to parse message")
+                continue
+            self.controller.handle(message)
             if message is None:
                 break
 

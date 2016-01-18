@@ -16,10 +16,6 @@ class BaseController(object):
             raise KeyError
 
 
-    def request_password(self):
-        self.send([{'k': "oft", "v": "Please type your password"},
-                   {'k': 'pwd'}])
-
     def send_offtopic(self, content):
         logging.info("Sending offtopic")
         if isinstance(content, str):

@@ -140,8 +140,14 @@ append = (parent, element) ->
     parent.scrollTop(parent[0].scrollHeight - parent.innerHeight())
 
 
+password_mode = () ->
+  $("#input").hide()
+  $("#password").show().focus()
+
+
 show_connect = ->
 
 
 exports.append_offtopic = append_offtopic
 exports.append_ontopic = append_ontopic
+exports.password_mode = password_mode

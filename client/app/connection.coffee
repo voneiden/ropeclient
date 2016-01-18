@@ -38,7 +38,8 @@ process = (message) ->
   if message.k == "oft"
     console.warn("APpending")
     ui.append_offtopic(message.v)
-
+  if message.k == "pwd"
+    ui.password_mode()
   else
     console.warn("Unimplemented key:", message.key)
 
