@@ -1,18 +1,46 @@
-__author__ = 'wizard'
-from controllers.base import BaseController
-from utils.messages import OfftopicMessage, PasswordRequest
-from models.database import db
-from models.account import Account
+#!/usr/bin/env python
+"""
+    Login controller for ropeclient server
+    Copyright (C) 2010 - 2016  Matti Eiden
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import os
 import hashlib
-from pony.orm import db_session
 import logging
+from controllers.base import BaseController
+from utils.messages import OfftopicMessage, PasswordRequest
+from utils.enum import AutoNumber
+from models.database import db
+from models.account import Account
+from pony.orm import db_session
+
+
+class State(AutoNumber):
+    login_username = ()  # Greeted by login and username prompt, expecting username
+    login_password = ()  # Matching Account was found, expecting password
+    create_account = ()  # Matching Account not found, expecting yes/no to create new account
+    create_password = () # Expecting password hashed with static salt
+    create_password_repeat = ()  # Expecting double hashed password with static and dynamic salt
+
 
 class LoginController(BaseController):
     def __init__(self, *args):
         BaseController.__init__(self, *args)
         self.account = None
-        self.state = 1
+        self.state = State.login_username
         self.static_salt = None
         self.dynamic_salt = None
         self.password = None # For creating a new account, store the password temporarily
@@ -48,19 +76,19 @@ class LoginController(BaseController):
                 return
 
             # Received username
-            if self.state == 1:
+            if self.state == State.login_username:
                 self.account = Account.get(lambda account: account.name.lower() == value.lower())
 
                 if self.account:
                     self.request_password()
-                    self.state = 2
+                    self.state = State.login_password
                 else:
                     self.send_offtopic("Create new account with this name y/n?")
                     self.account = value
-                    self.state = 10
+                    self.state = State.create_account
 
             # Received password
-            elif self.state == 2:
+            elif self.state == State.login_password:
                 # Do something
                 if self.hash_password_with_salt(self.account.password, self.dynamic_salt) == value:
                     self.send_offtopic("Login OK")
@@ -68,27 +96,27 @@ class LoginController(BaseController):
                     self.send_offtopic("Login fail")
 
             # New account
-            elif self.state == 10:
+            elif self.state == State.create_account:
                 if value.lower()[0] == "y":
                     self.request_password(True, False)
-                    self.state = 11
+                    self.state = State.create_password
                 else:
                     self.greeting()
-                    self.state = 1
+                    self.state = State.login_username
 
-            elif self.state == 11:
+            elif self.state == State.create_password:
                 self.password = value
                 logging.info("Received password 1: {}".format(value))
 
                 self.request_password(False)
-                self.state = 12
+                self.state = State.create_password_repeat
 
-            elif self.state == 12:
+            elif self.state == State.create_password_repeat:
                 dynamic_password = self.hash_password_with_salt(self.password, self.dynamic_salt)
                 logging.info("Received password 2: {}".format(value))
 
                 if dynamic_password == value:
-                    self.state = 1
+                    self.state = State.login_username
                     self.send_offtopic("New account has been created, you may now login.")
                     self.greeting()
                     account = Account(name=self.account,
@@ -100,7 +128,7 @@ class LoginController(BaseController):
                 else:
                     self.send_offtopic("Password mismatch. Account not created.")
                     self.greeting()
-                    self.state = 1
+                    self.state = State.login_username
 
     def greeting(self):
         self.send_offtopic("Welcome to ropeclient dewdrop server. Please type your name.")
