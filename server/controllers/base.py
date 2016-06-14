@@ -33,3 +33,7 @@ class BaseController(object):
 
     def send(self, message):
         self.connection.send(json.dumps(message))
+
+    def send_messages(self, *args):
+        messages_list = [message.__dict__ for message in args]
+        self.connection.send(json.dumps(messages_list))

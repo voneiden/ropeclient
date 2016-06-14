@@ -1,10 +1,12 @@
 __author__ = 'wizard'
 from controllers.base import BaseController
+from utils.messages import OfftopicMessage, PasswordRequest
 from models.database import db
 from models.account import Account
 import os
 import hashlib
-
+from pony.orm import db_session
+import logging
 
 class LoginController(BaseController):
     def __init__(self, *args):
@@ -15,9 +17,28 @@ class LoginController(BaseController):
         self.dynamic_salt = None
         self.password = None # For creating a new account, store the password temporarily
         self.greeting()
-     
 
+    @staticmethod
+    def hash_password_with_salt(password, salt):
+        """
+        Hash a password with a salt using SHA-256
+
+        :param password:
+        :param salt:
+        :return:
+        """
+        return hashlib.sha256((password + salt).encode("utf8")).hexdigest()
+
+    # TODO: Optimize db session?
+    # TODO: BaseController could return a boolean instead of raising
+    @db_session
     def handle(self, message={}):
+        """
+        Handle a received message in login state
+
+        :param message:
+        :return:
+        """
         try:
             BaseController.handle(self, message)
         except KeyError:
@@ -29,6 +50,7 @@ class LoginController(BaseController):
             # Received username
             if self.state == 1:
                 self.account = Account.get(lambda account: account.name.lower() == value.lower())
+
                 if self.account:
                     self.request_password()
                     self.state = 2
@@ -40,7 +62,7 @@ class LoginController(BaseController):
             # Received password
             elif self.state == 2:
                 # Do something
-                if hashlib.sha256(self.account.password + self.dynamic_salt).hexdigest() == value:
+                if self.hash_password_with_salt(self.account.password, self.dynamic_salt) == value:
                     self.send_offtopic("Login OK")
                 else:
                     self.send_offtopic("Login fail")
@@ -56,12 +78,15 @@ class LoginController(BaseController):
 
             elif self.state == 11:
                 self.password = value
+                logging.info("Received password 1: {}".format(value))
 
                 self.request_password(False)
                 self.state = 12
 
             elif self.state == 12:
-                dynamic_password = hashlib.sha256(self.password + self.dynamic_salt).hexdigest()
+                dynamic_password = self.hash_password_with_salt(self.password, self.dynamic_salt)
+                logging.info("Received password 2: {}".format(value))
+
                 if dynamic_password == value:
                     self.state = 1
                     self.send_offtopic("New account has been created, you may now login.")
@@ -95,7 +120,5 @@ class LoginController(BaseController):
         else:
             self.dynamic_salt = None
 
-        self.send([{'k': "oft", "v": "Please type your password"},
-                   {'k': 'pwd',
-                    'ss': self.static_salt,
-                    'ds': self.dynamic_salt}])
+        self.send_messages(OfftopicMessage("Please type your password"),
+                           PasswordRequest(self.static_salt, self.dynamic_salt))

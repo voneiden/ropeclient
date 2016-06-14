@@ -3,50 +3,65 @@ import asyncio
 import websockets
 import json
 import logging
+from controllers.login import LoginController
+from models.database import db, db_mapping
+
 
 SECURE = False
+DEVELOPMENT = True
 
 if SECURE:
     import ssl
 
-from controllers.login import LoginController
-from models.database import db
-db.bind("sqlite", "database.sqlite")
+if DEVELOPMENT:
+    db.bind('sqlite', ':memory:')
 
+else:
+    db.bind("sqlite", "database.sqlite")
 
-#test_message = {
-#    "raw": "This is a <green>test<reset> message from the server!",
-#    "owner": "server",
-#    "stamp": 1435959022.9176872
-#}#
-#
-#test_payload = {
-#    'k': 'oft',
-#    'v': test_message
-#}
+# Map the models to the database
+db_mapping()
 
 
 class Connection(object):
     def __init__(self, websocket, address):
+        """
+        Connection object that is created when a new client connects.
+
+        :param websocket: Websocket bound to the connection
+        :param address: Address of the connection
+        :return:
+        """
         self.account = None
         self.websocket = websocket
         self.address = address
         self.controller = LoginController(self)
 
-    #@asyncio.coroutine
     def send(self, payload):
+        """
+        Send a raw payload in the websocket
+
+        :param payload: Payload to be sent
+        :type payload: str
+        :return:
+        """
         logging.info("Queueing payload to " + self.address)
         asyncio.ensure_future(self.websocket.send(payload))
 
     @asyncio.coroutine
     def recv(self):
+        """
+        Ready to receive data from the websocket. Passes the data to a controller handler.
+
+        :return:
+        """
         logging.info("Handling requests from " + self.address)
         while True:
             raw_message = yield from self.websocket.recv()
             logging.info("Received payload from " + self.address + ": " + raw_message)
             try:
                 message = json.loads(raw_message)
-            except json.decoder.JSONDecodeError:
+            except ValueError:
                 logging.error("Unable to parse message")
                 continue
             self.controller.handle(message)
@@ -62,6 +77,14 @@ class ConnectionHandler(object):
         yield from c.recv()
 
 
+# Python bug 23057
+def display_startup_info():
+    print("\n\n##### NOTE #####\n")
+    print("On windows machines the server can be stopped using CTRL+break")
+    print("Due to Python bug 23057 CTRL+C does not work.")
+    print("\n################\n\n")
+
+
 def run():
     # Setup logging
     logger = logging.getLogger("")
@@ -75,8 +98,6 @@ def run():
     logger.addHandler(console_handler)
     logging.info("Logger configured")
 
-
-
     handler = ConnectionHandler()
     if SECURE:
         sc = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -86,10 +107,16 @@ def run():
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
     loop.set_debug(enabled=True)
+
+    # Python bug 23057 workaround for windows
+    #asyncio.async(windows_dumb_do_nothing_routine())
+
     loop.run_until_complete(server)
     if SECURE:
         secure_server = websockets.serve(handler.connection, 'localhost', 8091, ssl=sc)
         loop.run_until_complete(secure_server)
+
+    loop.call_later(1, display_startup_info)
     loop.run_forever()
 
 
