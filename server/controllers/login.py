@@ -29,10 +29,10 @@ from pony.orm import db_session
 
 
 class State(AutoNumber):
-    login_username = ()  # Greeted by login and username prompt, expecting username
-    login_password = ()  # Matching Account was found, expecting password
-    create_account = ()  # Matching Account not found, expecting yes/no to create new account
-    create_password = () # Expecting password hashed with static salt
+    login_username = ()          # Greeted by login and username prompt, expecting username
+    login_password = ()          # Matching Account was found, expecting password
+    create_account = ()          # Matching Account not found, expecting yes/no to create new account
+    create_password = ()         # Expecting password hashed with static salt
     create_password_repeat = ()  # Expecting double hashed password with static and dynamic salt
 
 
@@ -43,7 +43,7 @@ class LoginController(BaseController):
         self.state = State.login_username
         self.static_salt = None
         self.dynamic_salt = None
-        self.password = None # For creating a new account, store the password temporarily
+        self.password = None  # For creating a new account, store the password temporarily
         self.greeting()
 
     @staticmethod
@@ -75,7 +75,7 @@ class LoginController(BaseController):
             if key != "msg" or len(value) == 0:
                 return
 
-            # Received username
+            # State - Login username
             if self.state == State.login_username:
                 self.account = Account.get(lambda account: account.name.lower() == value.lower())
 
@@ -87,7 +87,7 @@ class LoginController(BaseController):
                     self.account = value
                     self.state = State.create_account
 
-            # Received password
+            # State - Login password
             elif self.state == State.login_password:
                 # Do something
                 if self.hash_password_with_salt(self.account.password, self.dynamic_salt) == value:
@@ -95,7 +95,7 @@ class LoginController(BaseController):
                 else:
                     self.send_offtopic("Login fail")
 
-            # New account
+            # State - Create account
             elif self.state == State.create_account:
                 if value.lower()[0] == "y":
                     self.request_password(True, False)
@@ -104,6 +104,7 @@ class LoginController(BaseController):
                     self.greeting()
                     self.state = State.login_username
 
+            # State - Create account - password
             elif self.state == State.create_password:
                 self.password = value
                 logging.info("Received password 1: {}".format(value))
@@ -111,6 +112,7 @@ class LoginController(BaseController):
                 self.request_password(False)
                 self.state = State.create_password_repeat
 
+            # State - Create account - password repeat
             elif self.state == State.create_password_repeat:
                 dynamic_password = self.hash_password_with_salt(self.password, self.dynamic_salt)
                 logging.info("Received password 2: {}".format(value))
@@ -123,7 +125,6 @@ class LoginController(BaseController):
                                       password=self.password,
                                       salt=self.static_salt)
                     db.commit()
-
 
                 else:
                     self.send_offtopic("Password mismatch. Account not created.")

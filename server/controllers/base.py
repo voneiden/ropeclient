@@ -2,6 +2,7 @@ import asyncio
 import json
 import pony.orm
 import logging
+from utils.messages import *
 
 class BaseController(object):
     def __init__(self, connection):
@@ -15,24 +16,53 @@ class BaseController(object):
         else:
             raise KeyError
 
+    @staticmethod
+    def convert_content(content):
+        """
+        Converts content to message objects. Content can be either string or a database (message) model
 
-    def send_offtopic(self, content):
-        logging.info("Sending offtopic")
+        :param content: Content to be converted
+        :return:
+        """
         if isinstance(content, str):
-            self.send({"k": "oft", "v": content})
+            return OfftopicMessage(content)
         elif isinstance(content, pony.orm.core.Entity):
-            self.send({"k": "oft",
-                       "v": content.text,
-                       "t": content.timestamp,
-                       "a": content.account})
+            return OfftopicMessage.from_model(content)
+        else:
+            raise ValueError("Unknown content: {}".format(content))
+
+    def send_offtopic(self, *offtopic_lines):
+        """
+        Converts and sends offtopic messages
+
+        :param offtopic_lines: Valid offtopic content *args
+        :return:
+        """
+        logging.info("Sending offtopic")
+
+        messages = [self.convert_content(OfftopicMessage, line) for line in offtopic_lines]
+        self.send_messages(messages)
+
         logging.info("Success")
 
-    def send_ontopic(self, text):
+    def send_ontopic(self, *ontopic_lines):
+        """
+        Converts and sends ontopic messages
+
+        :param ontopic_lines: Valid ontopic content *args
+        :return:
+        """
         logging.info("Sending ontopic")
-        self.send({"k": "ont", "v": text})
+
+        messages = [self.convert_content(OntopicMessage, line) for line in ontopic_lines]
+        self.send_messages(messages)
+
+        logging.info("Success")
 
     def send(self, message):
         self.connection.send(json.dumps(message))
+
+
 
     def send_messages(self, *args):
         messages_list = [message.__dict__ for message in args]
