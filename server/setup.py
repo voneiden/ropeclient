@@ -44,10 +44,12 @@ def setup_development_environment():
     sql_debug(True)
 
     # Create test user
-    test_password = hashlib.sha256("test".encode("utf8")).hexdigest()
-    account = Account(name="test",
+    test_name = "test"
+    test_salt = "salt"
+    test_password = hashlib.sha256("{name}{salt}".format(name=test_name, salt=test_salt).encode("utf8")).hexdigest()
+    account = Account(name=test_name,
                       password=test_password,
-                      salt="")
+                      salt=test_salt)
 
     # Create test universe
     universe = Universe(name="Test universe")

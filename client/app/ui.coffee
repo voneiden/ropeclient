@@ -140,10 +140,19 @@ append = (parent, element) ->
     parent.scrollTop(parent[0].scrollHeight - parent.innerHeight())
 
 
-password_mode = () ->
-  $("#input").hide()
-  $("#password").show().focus()
+password_mode = (static_salt, dynamic_salt) ->
+  $("#input").hide 0, ->
+    $("#password")
+      .show 0, ->
+        $(this).focus()
+      .data("static_salt", static_salt)
+      .data("dynamic_salt", dynamic_salt)
 
+normal_mode = () ->
+  $("#password").hide(0).blur()
+  $("#input")
+    .show 0, ->
+      $(this).focus()
 
 show_connect = ->
 
@@ -151,3 +160,4 @@ show_connect = ->
 exports.append_offtopic = append_offtopic
 exports.append_ontopic = append_ontopic
 exports.password_mode = password_mode
+exports.normal_mode = normal_mode

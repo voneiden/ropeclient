@@ -14,13 +14,17 @@ if SECURE:
     import ssl
 
 if DEVELOPMENT:
+    import setup
     db.bind('sqlite', ':memory:')
+    db_mapping()
+    setup.setup_development_environment()
+
 
 else:
     db.bind("sqlite", "database.sqlite")
+    db_mapping()
 
-# Map the models to the database
-db_mapping()
+
 
 
 class Connection(object):

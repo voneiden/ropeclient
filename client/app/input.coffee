@@ -1,4 +1,5 @@
 connection = require("connection")
+ui = require("ui")
 
 textarea = null;
 password = null;
@@ -16,11 +17,26 @@ keypress = (e) ->
 
 keypress_password = (e) ->
   if e.which == 13
-    v = password.val()
+    password_element = $("#password")
+
+    # Hash password
+    static_salt = password_element.data("static_salt")
+    dynamic_salt = password_element.data("dynamic_salt")
+    v = sha256(password.val() + static_salt)
+    if dynamic_salt?
+      v = sha256(v + dynamic_salt)
+
+    # Clear password
     password.val("")
-    $("#password").hide()
-    $("#input").show().focus()
+
+    # Return to normal input mode
+    ui.normal_mode()
+
+    # Send login password
     connection.send_msg(v)
+
+    return false
+
 
 
 

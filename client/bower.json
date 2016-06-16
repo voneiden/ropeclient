@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "main": "public/uas.js",
   "dependencies": {
-    "jquery": "~2.1.4"
+    "jquery": "~2.1.4",
+    "js-sha256": "0.3.0"
   },
   "overrides": {}
 }
