@@ -36,6 +36,7 @@ class Connection(object):
         self.websocket = websocket
         self.address = address
         self.controller = LoginController(self)
+        logging.info("Connection established to address [{}]".format(str(address)))
 
     def send(self, payload):
         """
@@ -45,7 +46,7 @@ class Connection(object):
         :type payload: str
         :return:
         """
-        logging.info("Queueing payload to " + self.address)
+        logging.info("Queueing payload [{payload}] to address [{address}]".format(payload=payload, address=self.address))
         asyncio.ensure_future(self.websocket.send(payload))
 
     @asyncio.coroutine
@@ -58,7 +59,9 @@ class Connection(object):
         logging.info("Handling requests from " + self.address)
         while True:
             raw_message = yield from self.websocket.recv()
-            logging.info("Received payload from " + self.address + ": " + raw_message)
+            if not raw_message:
+                break
+            logging.info("Received payload from address [{address}]: {message}".format(address=self.address, message=raw_message))
             try:
                 message = json.loads(raw_message)
             except ValueError:

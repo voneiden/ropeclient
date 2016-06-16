@@ -1,8 +1,10 @@
 import asyncio
+import warnings
 import json
 import pony.orm
 import logging
 from utils.messages import *
+
 
 class BaseController(object):
     def __init__(self, connection):
@@ -17,17 +19,18 @@ class BaseController(object):
             raise KeyError
 
     @staticmethod
-    def convert_content(content):
+    def convert_content(message_class, content):
         """
         Converts content to message objects. Content can be either string or a database (message) model
 
+        :param message_class: Message class to convert into
         :param content: Content to be converted
         :return:
         """
         if isinstance(content, str):
-            return OfftopicMessage(content)
+            return message_class(content)
         elif isinstance(content, pony.orm.core.Entity):
-            return OfftopicMessage.from_model(content)
+            return message_class.from_model(content)
         else:
             raise ValueError("Unknown content: {}".format(content))
 
@@ -41,7 +44,7 @@ class BaseController(object):
         logging.info("Sending offtopic")
 
         messages = [self.convert_content(OfftopicMessage, line) for line in offtopic_lines]
-        self.send_messages(messages)
+        self.send_messages(*messages)
 
         logging.info("Success")
 
@@ -55,14 +58,13 @@ class BaseController(object):
         logging.info("Sending ontopic")
 
         messages = [self.convert_content(OntopicMessage, line) for line in ontopic_lines]
-        self.send_messages(messages)
+        self.send_messages(*messages)
 
         logging.info("Success")
 
     def send(self, message):
+        warnings.warn("Deprecated method", DeprecationWarning)
         self.connection.send(json.dumps(message))
-
-
 
     def send_messages(self, *args):
         messages_list = [message.__dict__ for message in args]
