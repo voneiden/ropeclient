@@ -21,6 +21,7 @@ import os
 import hashlib
 import logging
 from controllers.base import BaseController
+from controllers.menu import MenuController
 from utils.messages import OfftopicMessage, PasswordRequest
 from utils.enum import AutoNumber
 from models.database import db
@@ -37,8 +38,8 @@ class State(AutoNumber):
 
 
 class LoginController(BaseController):
-    def __init__(self, *args):
-        BaseController.__init__(self, *args)
+    def __init__(self, connection):
+        BaseController.__init__(self, connection)
         self.account = None
         self.state = State.login_username
         self.static_salt = None
@@ -89,11 +90,20 @@ class LoginController(BaseController):
 
             # State - Login password
             elif self.state == State.login_password:
-                # Do something
                 if self.hash_password_with_salt(self.account.password, self.dynamic_salt) == value:
                     self.send_offtopic("Login OK")
+                    # Set controller to menu controller
+                    self.connection.controller = MenuController(self.connection, self.account)
+                    return
+
                 else:
+                    logging.info("Expected password: {}".format(
+                        self.hash_password_with_salt(self.account.password, self.dynamic_salt)))
+                    logging.info("Received password: {}".format( value))
                     self.send_offtopic("Login fail")
+                    self.state = State.login_username
+                    self.greeting()
+
 
             # State - Create account
             elif self.state == State.create_account:

@@ -141,18 +141,23 @@ append = (parent, element) ->
 
 
 password_mode = (static_salt, dynamic_salt) ->
-  $("#input").hide 0, ->
-    $("#password")
-      .show 0, ->
-        $(this).focus()
-      .data("static_salt", static_salt)
-      .data("dynamic_salt", dynamic_salt)
+  $("#input").hide().blur()
+  password = $("#password")
+  password
+    .show()
+    .data("static_salt", static_salt)
+    .data("dynamic_salt", dynamic_salt)
+    .find("input")
+      .focus()
+
+
 
 normal_mode = () ->
-  $("#password").hide(0).blur()
+  $("#password").hide().blur()
   $("#input")
-    .show 0, ->
-      $(this).focus()
+    .show()
+    .find("textarea")
+      .focus()
 
 show_connect = ->
 
