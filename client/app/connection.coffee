@@ -37,9 +37,19 @@ process = (message) ->
   # Offtopic message
   if message.k == "oft"
     console.warn("APpending")
-    ui.append_offtopic(message.v)
+    ui.append_offtopic(message)
   else if message.k == "pwd"
     ui.password_mode(message.ss, message.ds)
+  else if message.k == "clr"
+    if message.v == "oft"
+      ui.clear_offtopic()
+      
+    else if message.v == "ont"
+      ""
+    else if message.v == "all"
+      ""
+    else
+      console.error("Unknown value for clear")
   else
     console.warn("Unimplemented key:", message.k)
 

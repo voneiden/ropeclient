@@ -7,3 +7,4 @@ class AutoNumber(Enum):
         obj = object.__new__(cls)
         obj._value_ = value
         return obj
+

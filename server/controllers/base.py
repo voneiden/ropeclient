@@ -34,16 +34,22 @@ class BaseController(object):
         else:
             raise ValueError("Unknown content: {}".format(content))
 
-    def send_offtopic(self, *offtopic_lines):
+    def send_offtopic(self, *offtopic_lines, clear=False):
         """
         Converts and sends offtopic messages
 
         :param offtopic_lines: Valid offtopic content *args
+        :param clear: Send along with a clear message
         :return:
         """
         logging.info("Sending offtopic")
 
         messages = [self.convert_content(OfftopicMessage, line) for line in offtopic_lines]
+
+        # If clear is requested, clear the offtopic view
+        if clear:
+            messages.insert(0, ClearOfftopic())
+
         self.send_messages(*messages)
 
         logging.info("Success")
@@ -69,3 +75,6 @@ class BaseController(object):
     def send_messages(self, *args):
         messages_list = [message.__dict__ for message in args]
         self.connection.send(json.dumps(messages_list))
+
+    def syntax_error(self):
+        self.send_offtopic("Come again?")

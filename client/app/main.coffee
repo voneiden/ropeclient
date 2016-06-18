@@ -1,18 +1,21 @@
 test_messages = [
   {
-    raw: "This is a simple test message!"
-    owner: "voneiden"
-    stamp: 1435958925.9176872
+    k: "oft"
+    v: "This is a simple test message!"
+    a: "voneiden"
+    t: 1435958925.9176872
   },
   {
-    raw: "Another message. Testing <red>red<reset> color."
-    owner: "player"
-    stamp: 1435958985.9176872
+    k: "oft"
+    v: "Another message. Testing <red>red<reset> color."
+    a: "player"
+    t: 1435958985.9176872
   },
   {
-    raw: "Dice test: I rolled {2d6;3,6}..."
-    owner: "afkguy"
-    stamp: 1435959022.9176872
+    k: "oft"
+    v: "Dice test: I rolled {2d6;3,6}..."
+    a: "afkguy"
+    t: 1435959022.9176872
   }
 ]
 

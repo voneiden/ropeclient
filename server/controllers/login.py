@@ -23,7 +23,7 @@ import logging
 from controllers.base import BaseController
 from controllers.menu import MenuController
 from utils.messages import OfftopicMessage, PasswordRequest
-from utils.enum import AutoNumber
+from utils.autonumber import AutoNumber
 from models.database import db
 from models.account import Account
 from pony.orm import db_session

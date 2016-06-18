@@ -67,30 +67,29 @@ parse_dice = (text) ->
   Render a message received from server. The message can be a valid message object
   or it can be a string. Also, additional formatting (timestamp) is applied if offtopic is set to true.
 ###
-render_message = (message, offtopic) ->
+render_message = (message) ->
   if message instanceof Array
-    return (render_message(msg, offtopic) for msg in message).join("")
+    return (render_message(msg) for msg in message).join("")
   else
-    if !message?
-      console.error("Invalid message")
+    if !message? || !message.k? || !message.v?
+      console.error("Invalid message:", message)
       return null
 
-    if !offtopic?
-      offtopic = false
-
-    if message.raw
-      html = message.raw
-      if offtopic
-        pad = (" " for i in [1..10-message.owner.length]).join("")
-        html = "[hh:mm] #{pad}#{message.owner}: #{html}"
-    else
-      html = message
-
     # Add colors
-    html = parse_colors(html)
-    html = parse_dice(html)
+    value = parse_colors(message.v)
+    value = parse_dice(value)
 
-    html = "<div>#{html}</div>"
+    html = ""
+
+    # Display three col
+    if message.k == "oft" && (message.a? || message.t?)
+      timestamp = "[hh:mm]"
+      account = if message.a? then message.a else "Unknown"
+      html = "<tr><td>#{timestamp}</td><td>#{account}</td><td>#{value}</td>"
+
+    # Display full width
+    else
+      html = "<tr><td colspan=\"3\">#{value}</td></tr>"
     return $.parseHTML(html)
 
 ###
@@ -101,7 +100,7 @@ append_offtopic = (message) ->
     console.error("Invalid element")
     return
   html = render_message(message, true)
-  offtopic = $("#offtopic")
+  offtopic = $("#offtopic-table")
   append(offtopic, html)
 
 ###
@@ -161,8 +160,12 @@ normal_mode = () ->
 
 show_connect = ->
 
+clear_offtopic = () ->
+  offtopic = $("#offtopic-table").html("")
+
 
 exports.append_offtopic = append_offtopic
 exports.append_ontopic = append_ontopic
+exports.clear_offtopic = clear_offtopic
 exports.password_mode = password_mode
 exports.normal_mode = normal_mode

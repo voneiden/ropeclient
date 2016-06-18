@@ -17,10 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from utils.enum import AutoNumber
+from utils.autonumber import AutoNumber
 from controllers.base import BaseController
-from pony.orm import db_session
+from pony.orm import db_session, select
 from models.universe import Universe
+
 
 class State(AutoNumber):
     main_menu = ()
@@ -41,10 +42,49 @@ class MenuController(BaseController):
         BaseController.__init__(self, connection)
         self.account = account
         self.state = State.main_menu
+        self.selected_universe = None
         self.main_menu_view()
 
-    def main_menu_view(self):
-        self.send_offtopic("Following universes are available:", *[universe.name for universe in self.fetch_universes()])
+    def handle(self, message={}):
+        try:
+            return BaseController.handle(self, message)
+        except KeyError:
+            pass
+
+        key = message.get("k")
+        value = message.get("v")
+        if key != "msg" or len(value) == 0:
+            return
+
+        if self.state == State.main_menu:
+            if value.lower() == "c":
+                pass
+            else:
+                try:
+                    number_choice = int(value) - 1
+                    if number_choice < 0:
+                        raise ValueError
+
+                except ValueError:
+                    return self.syntax_error()
+
+                self.selected_universe = self.fetch_nth_universe(number_choice)
+                if not self.selected_universe:
+                    return self.main_menu_view(error_message="No such number was found..")
+
+                print("Selected universe:", self.selected_universe)
+
+    def main_menu_view(self, error_message=""):
+        buffer = ["Following universes are available:", ""]
+        buffer += ["{N}) {name}".format(N=i+1,
+                                        name=universe.name)
+                   for i, universe in enumerate(self.fetch_universes())]
+        buffer += ["", "To join a universe, type its number. Alternatively to create a new universe, type 'c'"]
+
+        if error_message:
+            buffer.append("<fail>{message}<reset>".format(message=error_message))
+
+        self.send_offtopic(*buffer, clear=True)
 
     @db_session
     def fetch_universes(self):
@@ -54,4 +94,9 @@ class MenuController(BaseController):
         :return: List of all universes
         """
         return Universe.select(lambda universe: True)[:]
+
+    @db_session
+    def fetch_nth_universe(self, nth):
+        return select(universe for universe in Universe)[nth:nth+1]
+
 
