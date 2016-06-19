@@ -19,6 +19,7 @@
 
 from utils.autonumber import AutoNumber
 from controllers.base import BaseController
+from controllers.play import PlayController
 from pony.orm import db_session, select
 from models.universe import Universe
 
@@ -42,7 +43,6 @@ class MenuController(BaseController):
         BaseController.__init__(self, connection)
         self.account = account
         self.state = State.main_menu
-        self.selected_universe = None
         self.main_menu_view()
 
     def handle(self, message={}):
@@ -68,11 +68,12 @@ class MenuController(BaseController):
                 except ValueError:
                     return self.syntax_error()
 
-                self.selected_universe = self.fetch_nth_universe(number_choice)
-                if not self.selected_universe:
+                selected_universe = self.fetch_nth_universe(number_choice)
+                if not selected_universe:
                     return self.main_menu_view(error_message="No such number was found..")
 
-                print("Selected universe:", self.selected_universe)
+                print("Selected universe:", selected_universe)
+                self.connection.controller = PlayController(self.account, selected_universe[0])
 
     def main_menu_view(self, error_message=""):
         buffer = ["Following universes are available:", ""]

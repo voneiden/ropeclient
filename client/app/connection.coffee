@@ -36,18 +36,28 @@ process = (message) ->
 
   # Offtopic message
   if message.k == "oft"
-    console.warn("APpending")
     ui.append_offtopic(message)
+
+  # Ontopic message
+  else if message.k == "ont"
+    ui.append_ontopic(message)
+
+  # Password request
   else if message.k == "pwd"
     ui.password_mode(message.ss, message.ds)
+
+  # Clear view
   else if message.k == "clr"
     if message.v == "oft"
       ui.clear_offtopic()
-      
+
     else if message.v == "ont"
-      ""
+      ui.clear_ontopic()
+
     else if message.v == "all"
-      ""
+      ui.clear_offtopic()
+      ui.clear_ontopic()
+
     else
       console.error("Unknown value for clear")
   else
