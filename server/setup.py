@@ -52,10 +52,8 @@ def setup_development_environment():
                       salt=test_salt)
 
     # Create test universe
-    universe = Universe(name="Test universe")
-    universe.god_accounts.add(account)
+    universe = Universe.create(name="Test universe", owner=account)
 
-    db.commit()
 
 
 

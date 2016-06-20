@@ -7,6 +7,39 @@ from utils.messages import *
 
 
 class BaseController(object):
+    def __new__(cls, *args):
+        instance = super().__new__(cls)
+        commands = {}
+        startswith = {}
+        instance._commands = commands
+        instance._startswith = startswith
+        instance._dynamic_commands = []
+
+        # Loop through all class methods
+        for name, method in cls.__dict__.items():
+
+            # Check for static commands
+            if hasattr(method, "_commands"):
+
+                # Bind all commands to method, raise KeyError on duplicates
+                for handle in method._commands:
+                    if handle in commands:
+                        raise KeyError("Duplicate key in commands")
+                    commands[handle] = method
+
+            # Check for dynamic commands
+            if hasattr(method, "_dynamic_command"):
+                instance._dynamic_commands.append(method)
+
+            if hasattr(method, "_startswith"):
+                for command in method._startswith:
+                    if command in startswith or command in instance._dynamic_commands:
+                        raise KeyError("Duplicate key in startswith or dynamic commands")
+                    startswith[command] = method
+
+        print("Instance handles:", instance._commands)
+        return instance
+
     def __init__(self, connection):
         self.connection = connection
         self.account = None

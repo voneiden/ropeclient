@@ -1,12 +1,21 @@
-class Handlers(object):
-    def __init__(self, *handles):
-        self.handles = handles
+class Commands(object):
+    def __init__(self, *commands, startswith=None):
+        self.commands = commands
+        if startswith:
+            self.startswith = startswith
 
     def __call__(self, f):
-        f._handles = self.handles
+        f._commands = self.commands
+        if self.startswith:
+            f._startswith = self.startswith
         return f
 
 
+def dynamic_command(f):
+    f._dynamic_command = True
+    return f
+
+"""
 def handler_controller(controller_cls):
     handles = {}
     if not hasattr(controller_cls, "_handles"):
@@ -18,8 +27,4 @@ def handler_controller(controller_cls):
                 if handle in handles:
                     raise KeyError("Duplicate key in handler")
                 handles[handle] = method
-
-
-
-
-
+"""
