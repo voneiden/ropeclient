@@ -21,4 +21,8 @@ class Being(db.Entity):
 class Thing(db.Entity):
     id = PrimaryKey(int, auto=True)
     being = Optional("Being")
-    place = Optional("Place")
+    place = Required("Place")
+    universe = Required("Universe")
+    account = Required("Account")
+
+

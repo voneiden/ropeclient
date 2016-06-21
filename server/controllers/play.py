@@ -21,6 +21,8 @@ from controllers.base import BaseController
 from utils.decorators.commands import Commands, dynamic_command
 from utils.decorators.requirements import *
 from utils.autonumber import AutoNumber
+from pony.orm import db_session, select, get
+from models.things import Thing
 
 
 class State(AutoNumber):
@@ -28,6 +30,7 @@ class State(AutoNumber):
 
 
 class PlayController(BaseController):
+    @db_session
     def __init__(self, connection, account, universe):
         """
         MenuController is used for the main menu where the user can choose which universe to join or
@@ -45,6 +48,12 @@ class PlayController(BaseController):
         self.account = account
         self.universe = universe
         self.state = State.normal
+
+        self.thing = get(account for account in self.universe.things if account == self.account)
+        if not self.thing:
+            self.thing = Thing(account=self.account, universe=self.universe)
+            # TODO place!
+
         self.being = None
 
     #TODO: db session?
@@ -78,9 +87,6 @@ class PlayController(BaseController):
                 return dcommand(self, command, tokens[1:])
             except NotImplementedError:
                 continue
-
-
-
 
         return self.syntax_error()
 

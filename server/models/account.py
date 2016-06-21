@@ -11,3 +11,6 @@ class Account(db.Entity):
     god_universes = Set("Universe")
     beings = Set("Being")
     offtopics = Set("Offtopic")
+    thing = Optional("Thing")
+
+

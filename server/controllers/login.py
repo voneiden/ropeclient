@@ -104,7 +104,6 @@ class LoginController(BaseController):
                     self.state = State.login_username
                     self.greeting()
 
-
             # State - Create account
             elif self.state == State.create_account:
                 if value.lower()[0] == "y":
