@@ -1,42 +1,17 @@
-0.0 LATEST NEWS
-
-This project is definitely (still) not dead. The code in the master branch is usable 
-as is (and was used historically to play quite a few games). However, as is in the spirit of 
-this neverending little hobby project a fresh start is again ongoing. Check out the dewdrop 
-branch for something completely same but different.
-
-The battlemap branch features a concept of utilizing a 2D map with dynamic light and shadow (and 
-field of view) to aid gaming. This branch probably wont be merged anywhere ever, but the idea is 
-solid and dewdrop will likely feature something similar.
-
-Dewdrop uses an SQL(ite) database, Pony ORM and Python on the backend. The frontend is built 
-with brunch using various goodies that I've enjoyed previously using such as coffeescript, jade 
-and stylus.
-
 1.0 About
-Ropeclient is a text based virtual tabletop for roleplaying online.
+Ropeclient is a text based virtual tabletop for roleplaying online. The 
+appearance of the environemnt resembles closely that of MUDs while 
+trying to offer a flexible environment to play games in. Game worlds, 
+known as universes, can span from single storytelling rooms to detailed 
+worlds where the player characters can explore freely.
 
-- Project homepage: http://www.eiden.fi/ropeclient
-- Discussion: http://groups.google.com/group/ropeclient
+
+2.0 Requirements
+TBA
 
 
-2.0 Development notes
-The MASTER branch should be up to date with the 
-public server running at ninjabox.sytes.net. To view the most recent
-developments, check out the DEV branch.
+3.0 Older versions
 
-3.0 Ropeclient Server Installation notes
-Ropeclient runs on any system that meets the following conditions:
-- Python 2.7 (2.4 may or may not work - not tested)
-- Twisted          http://twistedmatrix.com/trac/
--- zope.interfaces http://pypi.python.org/pypi/zope.interface#download
+The software is going through it's n-th iteration. Previously usable 
+iteration can be found from the tags section under the name 0.F-final.
 
-3.0 Usage
-Please look at the project homepage, section 1.0
-
-4.0 Development Roadmap
-Logical restructuring ahead.
-
-5.0 Personal notes
-\x1f is the unit seperator if needed
-\x1b is escape keey 
