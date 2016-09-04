@@ -15,14 +15,14 @@ def gamemaster(f):
         :return:
         """
         if hasattr(self, "account") and hasattr(self, "universe"):
-            if self.universe in self.account.god_universes:
+            if self.universe in self.account_id.god_universes:
                 return f(self, *args, **kwargs)
         raise PermissionError
 
     return is_gamemaster
 
 
-def being(f):
+def is_being(f):
     """
     Decorator for limiting a command to a being only.
 
@@ -36,7 +36,7 @@ def being(f):
     return is_being
 
 
-def soul(f):
+def is_soul(f):
     """
     Decorator for limiting a command to a being only.
 
@@ -48,3 +48,18 @@ def soul(f):
         return f(self, *args, **kwargs)
 
     return is_soul
+
+
+def has_account(f):
+    """
+    Ensures that the called function has an account available
+
+    :param f:
+    :return:
+    """
+    def wrapper(self, *args, **kwargs):
+        if not self or self.account_id is None:
+            raise RuntimeError("The called method requires an account")
+        return f(self, *args, **kwargs)
+
+    return wrapper

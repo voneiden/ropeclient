@@ -8,6 +8,11 @@ class Account(db.Entity):
     name = Required(str, 32, unique=True)
     password = Required(str, 64)
     salt = Required(str, 64)
-    god_universes = Set("Universe")
-    beings = Set("Being")
+    master_universes = Set("Universe", reverse="master_accounts")
+
+    active_being = Optional("Being", reverse="active_account")
+    beings = Set("Being", reverse="account")
+
     offtopics = Set("Offtopic")
+    universe = Optional("Universe")
+

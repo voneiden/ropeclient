@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from pony.orm import sql_debug, db_session
+from pony.orm import sql_debug, db_session, select
 from models.database import db
 from models.account import *
 from models.universe import *
@@ -53,6 +53,10 @@ def setup_development_environment():
 
     # Create test universe
     universe = Universe.create(name="Test universe", owner=account)
+
+
+
+
 
 
 

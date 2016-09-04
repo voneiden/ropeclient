@@ -4,7 +4,7 @@ import json
 import pony.orm
 import logging
 from utils.messages import *
-
+from pony.orm import db_session, get
 
 class BaseController(object):
     def __new__(cls, *args):
@@ -42,7 +42,7 @@ class BaseController(object):
 
     def __init__(self, connection):
         self.connection = connection
-        self.account = None
+        self.account_id = None
 
     def handle(self, message={}):
         assert "k" in message
@@ -111,3 +111,14 @@ class BaseController(object):
 
     def syntax_error(self):
         self.send_offtopic("Come again?")
+
+    def fetch_account(self):
+        """
+        Fetches a new account for the ongoing transaction. Must be called from inside a transaction!
+
+        :return: models.account.Account
+        """
+        if self.account_id:
+            return get(account for account in Account if account.id == self.account_id)
+        else:
+            raise RuntimeError

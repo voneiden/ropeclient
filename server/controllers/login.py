@@ -23,6 +23,7 @@ import logging
 from controllers.base import BaseController
 from controllers.menu import MenuController
 from utils.messages import OfftopicMessage, PasswordRequest
+from utils.decorators.kwargs import fetch_account
 from utils.autonumber import AutoNumber
 from models.database import db
 from models.account import Account
@@ -40,26 +41,38 @@ class State(AutoNumber):
 class LoginController(BaseController):
     def __init__(self, connection):
         BaseController.__init__(self, connection)
-        self.account = None
+        self.account_name = None
         self.state = State.login_username
         self.static_salt = None
         self.dynamic_salt = None
         self.password = None  # For creating a new account, store the password temporarily
         self.greeting()
 
-    @staticmethod
-    def hash_password_with_salt(password, salt):
+
+    @fetch_account
+    def hash_password_with_salt(self, account, password=None, salt=None):
         """
         Hash a password with a salt using SHA-256
 
+        :param account:
         :param password:
         :param salt:
         :return:
         """
+
+        if password is None:
+            password = account.password
+
+        if salt is None:
+            salt = account.salt
+
+        print("password:", password)
+        print("salt:", salt)
         return hashlib.sha256((password + salt).encode("utf8")).hexdigest()
 
     # TODO: Optimize db session?
     # TODO: BaseController could return a boolean instead of raising
+    # TODO:
     @db_session
     def handle(self, message={}):
         """
@@ -78,28 +91,31 @@ class LoginController(BaseController):
 
             # State - Login username
             if self.state == State.login_username:
-                self.account = Account.get(lambda account: account.name.lower() == value.lower())
+                account = Account.get(lambda account: account.name.lower() == value.lower())
 
-                if self.account:
+                if account:
+                    self.account_id = account.id
                     self.request_password()
                     self.state = State.login_password
                 else:
                     self.send_offtopic("Create new account with this name y/n?")
-                    self.account = value
+                    self.account_name = value
                     self.state = State.create_account
 
             # State - Login password
             elif self.state == State.login_password:
-                if self.hash_password_with_salt(self.account.password, self.dynamic_salt) == value:
+                account = self.fetch_account()
+                # TODO TODO TODO lets make a decorator for fetch account (args) and modify these states to work with the autohandler
+                if self.hash_password_with_salt(salt=self.dynamic_salt) == value:
                     self.send_offtopic("Login OK")
                     # Set controller to menu controller
-                    self.connection.controller = MenuController(self.connection, self.account)
+                    self.connection.controller = MenuController(self.connection, self.account_id)
                     return
 
                 else:
                     logging.info("Expected password: {}".format(
-                        self.hash_password_with_salt(self.account.password, self.dynamic_salt)))
-                    logging.info("Received password: {}".format( value))
+                        self.hash_password_with_salt(salt=self.dynamic_salt)))
+                    logging.info("Received password: {}".format(value))
                     self.send_offtopic("Login fail")
                     self.state = State.login_username
                     self.greeting()
@@ -108,30 +124,31 @@ class LoginController(BaseController):
             # State - Create account
             elif self.state == State.create_account:
                 if value.lower()[0] == "y":
-                    self.request_password(True, False)
+                    self.request_password(account=None, clear_static=True, dynamic=False)
                     self.state = State.create_password
                 else:
                     self.greeting()
                     self.state = State.login_username
 
-            # State - Create account - password
+            # State - Create account - password (1st)
             elif self.state == State.create_password:
                 self.password = value
                 logging.info("Received password 1: {}".format(value))
 
-                self.request_password(False)
+                self.request_password(account=None, clear_static=False, dynamic=True)
                 self.state = State.create_password_repeat
 
             # State - Create account - password repeat
             elif self.state == State.create_password_repeat:
-                dynamic_password = self.hash_password_with_salt(self.password, self.dynamic_salt)
-                logging.info("Received password 2: {}".format(value))
+                dynamic_password = self.hash_password_with_salt(account=None, password=self.password, salt=self.dynamic_salt)
+                logging.info("Received password 2: {}, type {} ".format(value, type(value)))
+                print("expected:", dynamic_password, type(dynamic_password))
 
                 if dynamic_password == value:
                     self.state = State.login_username
                     self.send_offtopic("New account has been created, you may now login.")
                     self.greeting()
-                    account = Account(name=self.account,
+                    account = Account(name=self.account_name,
                                       password=self.password,
                                       salt=self.static_salt)
                     db.commit()
@@ -147,9 +164,10 @@ class LoginController(BaseController):
     def try_again(self):
         self.send_offtopic("Please try again.")
 
-    def request_password(self, clear_static=True, dynamic=True):
-        if isinstance(self.account, Account):
-            self.static_salt = self.account.salt
+    @fetch_account
+    def request_password(self, account, clear_static=True, dynamic=True):
+        if isinstance(account, Account):
+            self.static_salt = account.salt
         else:
             if clear_static or not self.static_salt:
                 self.static_salt = hashlib.sha256(os.urandom(256)).hexdigest()

@@ -17,10 +17,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import logging
 from controllers.base import BaseController
 from utils.decorators.commands import Commands, dynamic_command
 from utils.decorators.requirements import *
 from utils.autonumber import AutoNumber
+from utils.decorators.kwargs import fetch_account
+from pony.orm import db_session, select, get
+from models.database import db
+from models.universe import Universe
+from models.account import Account
+from models.abstract import Utterance, Association, Offtopic
+
+from models.things import Being
+
 
 
 class State(AutoNumber):
@@ -28,7 +38,7 @@ class State(AutoNumber):
 
 
 class PlayController(BaseController):
-    def __init__(self, connection, account, universe):
+    def __init__(self, connection, account_id, universe_id):
         """
         MenuController is used for the main menu where the user can choose which universe to join or
         create a new universe.
@@ -42,12 +52,16 @@ class PlayController(BaseController):
         :return:
         """
         BaseController.__init__(self, connection)
-        self.account = account
-        self.universe = universe
+        self.account_id = account_id
+        self.universe_id = universe_id
         self.state = State.normal
-        self.being = None
+        self.being = self.get_soul()
+
+        self.account = None
+        self.universe = None
 
     #TODO: db session?
+    @db_session
     def handle(self, message={}):
         try:
             return BaseController.handle(self, message)
@@ -62,6 +76,17 @@ class PlayController(BaseController):
 
         tokens = value.split(" ")
         command = tokens[0].lower()
+
+        # Refresh universe and account
+        #universe = get(universe for universe in Universe if universe == self.universe_id)
+        #account = get(account for account in Account if account.id == self.account_id)
+
+        #command_kwargs = {
+        #    "universe", universe
+        #    "account", account
+        #}
+
+
 
         # Look for a matching handler
         if command in self._commands:
@@ -79,13 +104,10 @@ class PlayController(BaseController):
             except NotImplementedError:
                 continue
 
-
-
-
         return self.syntax_error()
 
     @Commands("default", "say")
-    @being
+    @is_being
     def do_say(self, command, tokens):
         pass
 
@@ -102,9 +124,37 @@ class PlayController(BaseController):
         pass
 
     @Commands("offtopic", startswith=["("])
-    def do_offtopic(self, command, tokens):
-        pass
+    @fetch_account
+    def do_offtopic(self, command, tokens, account):
+        logging.info("Offtopic requested")
+        logging.info("Command:", command)
+        logging.info("Tokens:", tokens)
+        logging.info("Account:", account)
+
 
     @Commands("roll", startswith=["!"])
     def do_roll(self, command, tokens):
+
         pass
+
+    @db_session
+    def get_soul(self):
+        logging.info("Got account {}".format(str(self.account_id)))
+        being = get(being for being in Being if being.account is self.account_id and being.soul)
+        if not being:
+            logging.info("Create a new being for the player")
+            place = self.universe.get_spawn()
+            logging.info("Derp")
+            db.commit()
+
+            being = Being(name="Soul of {}".format(self.account_id.name),
+                          account=self.account_id,
+                          universe=self.universe,
+                          place=place,
+                          soul=True)
+
+        else:
+            logging.info("Found being")
+
+        return being
+

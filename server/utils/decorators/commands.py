@@ -1,8 +1,7 @@
 class Commands(object):
     def __init__(self, *commands, startswith=None):
         self.commands = commands
-        if startswith:
-            self.startswith = startswith
+        self.startswith = startswith if startswith else None
 
     def __call__(self, f):
         f._commands = self.commands
