@@ -27,11 +27,14 @@ export default class Ropeclient extends React.Component {
 
         this.state = {
             ontopicMessages: [],
-            offtopicMessages: []
+            offtopicMessages: [],
+            passwordMode: false
         };
         this.socket = null;
 
         this.connect = this.connect.bind(this);
+        this.send = this.send.bind(this);
+        this.sendIsTyping = this.sendIsTyping.bind(this);
         this.onSocketOpen = this.onSocketOpen.bind(this);
         this.onSocketClose = this.onSocketClose.bind(this);
         this.onSocketMessage = this.onSocketMessage.bind(this);
@@ -40,16 +43,50 @@ export default class Ropeclient extends React.Component {
         this.process = this.process.bind(this);
 
     }
+
+    componentDidMount() {
+        this.connect();
+    }
+
     /*
      * Connection specific methods
      */
     connect(url) {
         this.socket = new WebSocket("ws://localhost:8090");
+        this.socket.onopen = this.onSocketOpen;
+        this.socket.onerror = this.onSocketError;
+        this.socket.onmessage = this.onSocketMessage;
+        this.socket.onclose = this.onSocketClose;
 
     }
 
-    onSocketOpen() {
+    send(text) {
+        if (this.socket) {
+            let message = {
+                k: "msg",
+                v: text ? text : ""
+            };
+            console.log("Send", message);
+            this.socket.send(JSON.stringify(message));
+        }
+        if (this.state.passwordMode) {
+            this.setState({
+                passwordMode: false
+            });
+        }
+    }
+    sendIsTyping(isTyping) {
+        if (this.socket) {
+            let message = {
+                k: isTyping ? "pit" : "pnt",
+            };
+            console.log("Send", message);
+            this.socket.send(JSON.stringify(message));
+        }
+    }
 
+    onSocketOpen() {
+        this.send("voneiden");
     }
     onSocketClose() {
 
@@ -62,56 +99,79 @@ export default class Ropeclient extends React.Component {
             return this.process(JSON.parse(event.data));
         }
         catch (ex) {
-            console.warn("Failed to parse data: " + event.data, ex);
+            console.error("Failed to parse data: " + event.data, ex);
             return false;
         }
 
 
     }
 
-    process(data) {
-        if (!data.k) {
-            console.warn("Invalid data, no key", data);
-            return false;
+    process(dataset) {
+
+        if (!Array.isArray(dataset)) {
+            dataset = [dataset];
         }
 
-        switch (data.k) {
-            case "oft":
-                this.setState({
-                    offtopicMessages: this.state.offtopicMessages.concat(data)
-                });
-                break;
-            case "ont":
-                this.setState({
-                    ontopicMessages: this.state.ontopicMessages.concat(data)
-                });
-                break;
+        let clearOfftopic = false;
+        let offtopicMessages = [];
 
-            case "pwd":
-                break;
-            case "clr":
-                switch (data.v) {
-                    case "oft":
-                        this.setState({
-                            offtopicMessages: []
-                        });
-                        break;
-                    case "ont":
-                        this.setState({
-                            ontopicMessages: []
-                        });
-                        break;
-                    default:
-                        this.setState({
-                            offtopicMessages: [],
-                            ontopicMessages: []
-                        });
-                        break;
-                }
-                break;
-            default:
-                console.warn("Unknown data packet", data);
+        let clearOntopic = false;
+        let ontopicMessages = [];
+
+        let state = {
+            passwordMode: false
+        };
+
+        for (let data of dataset) {
+            if (!data.k) {
+                console.warn("Invalid data, no key", data);
+                return false;
+            }
+
+            switch (data.k) {
+                case "oft":
+                    offtopicMessages.push(data);
+                    break;
+                case "ont":
+                    ontopicMessages.push(data);
+                    break;
+
+                case "pwd":
+                    console.log("Password mode requested:", data);
+                    state.passwordMode = data;
+
+                    break;
+                case "clr":
+                    switch (data.v) {
+                        case "oft":
+                            clearOfftopic = true;
+                            offtopicMessages = [];
+                            break;
+                        case "ont":
+                            clearOntopic = true;
+                            ontopicMessages = [];
+                            break;
+                        default:
+                            clearOfftopic = clearOntopic = true;
+                            offtopicMessages = [];
+                            offtopicMessages = [];
+                            break;
+                    }
+                    break;
+                default:
+                    console.warn("Unknown data packet", data);
+            }
         }
+
+        if (offtopicMessages.length || clearOfftopic) {
+            state.offtopicMessages = clearOfftopic ? offtopicMessages : this.state.offtopicMessages.concat(offtopicMessages);
+        }
+
+        if (ontopicMessages.length || clearOntopic) {
+            state.ontopicMesseages = clearOntopic ? ontopicMessages : this.state.ontopicMessages.concat(ontopicMessages);
+        }
+
+        this.setState(state);
     }
 
     render() {
@@ -121,6 +181,10 @@ export default class Ropeclient extends React.Component {
                 <MainView
                     ontopicMessages={this.state.ontopicMessages}
                     offtopicMessages={this.state.offtopicMessages}
+                    passwordMode={this.state.passwordMode}
+                    sendMessage={this.send}
+                    sendIsTyping={this.sendIsTyping}
+
                 />
             </div>
         );

@@ -8,11 +8,7 @@
   "dependencies": {
     "jquery": "3.1.x",
     "classnames": "2.2.5",
-    "muicss": "0.9.3",
-    "mqtt": "2.0.1",
-    "react-ace": "4.0.0",
-    "plotly": "1.0.6",
-    "gcode": "0.4.0"
+    "js-sha256": "0.3.0"
   },
   "devDependencies": {
     "babel": "^5.4.7",

@@ -26,8 +26,8 @@ class Universe(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str, 128, unique=True)
     places = Set("Place")
-    beings = Set("Beings")
-    things = Set("Things")
+    beings = Set("Being")
+    things = Set("Thing")
 
     password = Optional(str, 64)
     salt = Optional(str, 64)

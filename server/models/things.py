@@ -12,6 +12,7 @@ class Being(db.Entity):
     utterances = Set("Utterance", reverse="being")
     associations = Set("Association", reverse="known_by")
     known_as = Set("Association", reverse="being")
+    universe = Required("Universe")
     place = Required("Place")
     things = Set("Thing")
     account = Optional("Account")

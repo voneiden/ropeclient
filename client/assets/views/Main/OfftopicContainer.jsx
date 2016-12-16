@@ -1,6 +1,6 @@
 import React from "react";
 import classNames from "classnames";
-import OntopicMessage from "./OntopicMessage";
+import OfftopicMessage from "./OfftopicMessage";
 
 
 export default class OfftopicContainer extends React.Component {
