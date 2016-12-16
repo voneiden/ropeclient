@@ -1,20 +1,18 @@
-Ropeclient webclient
-===========================
+GrblMgmr
+========
 
-Webclient for the ropeclient roleplaying environment
+GrblMgmr provides a user interface to Grbl via [GrblMqtt](https://github.com/voneiden/grblmqtt). 
 
-## Requirements
+Currently in experimental stage so hold your horses.
 
-- Nodejs & npm
-- Brunch (npm install -g brunch)
-- Bower (npm install -g bower)
 
-## Get started
+Development mode
+----------------
 
-Run
+`node server.js`
 
-- npm install
-- bower install
-- brunch watch -s
 
- 
+Production build
+----------------
+
+`node build.js`

@@ -1,3 +1,48 @@
+let websocket = null;
+
+const defaultUrl = "ws://localhost:8090";
+
+export function connect(onopen, onerrorurl=defaultUrl) {
+
+}
+
+
+function onopen() {
+
+}
+
+function onerror() {
+
+
+}
+
+function onmessage() {
+
+}
+
+export default class Network {
+    constructor() {
+
+    }
+
+    static connect() {
+        if (websocket === null) {
+            websocket = new WebSocket("ws://localhost:8090")
+            websocket.onopen = onopen;
+            websocket.onmessage = onmessage;
+            websocket.onerror = onerror;
+        }
+    }
+
+    stat
+}
+
+function foo () {
+    return 1;
+}
+
+`
+
 main = require("main")
 ui = require("ui")
 websocket = null
@@ -95,3 +140,4 @@ exports.connect = connect
 exports.send_pit = send_pit
 exports.send_pnt = send_pnt
 exports.send_msg = send_msg
+`

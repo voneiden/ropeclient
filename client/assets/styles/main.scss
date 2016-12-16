@@ -1,0 +1,93 @@
+/**
+    Ropeclient is a text-based roleplaying platform
+    Copyright (C) 2010-2016 Matti Eiden
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+body {
+
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-grow {
+  flex-grow: 1;
+}
+
+.flex-grow-2 {
+  flex-grow: 2;
+}
+
+.flex-grow-3 {
+  flex-grow: 3;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.flex-align-center {
+  align-items: center;
+}
+
+.flex-justify-center {
+  justify-content: center;
+}
+.flexy-view-container > * {
+  flex-basis: 0;
+  flex-grow: 1;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+#ropeclient-container,
+#ropeclient-app,
+#rc-main {
+  height: 100%;
+}
+
+#rc-namelist {
+  flex-basis: 100px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+#rc-ontopic {
+  border-top: 1px solid black;
+}
+
+$rc-input-height: 50px;
+#rc-input {
+  flex-basis: $rc-input-height;
+  flex-grow: 0;
+  flex-shrink: 0;
+  border-top: 1px solid black;
+
+  textarea {
+    height: $rc-input-height;
+    resize: none;
+  }
+}
+
+#rc-namelist {
+  border-left: 1px solid black;
+}
