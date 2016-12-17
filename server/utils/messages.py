@@ -53,7 +53,7 @@ class OfftopicMessage(object):
         self.t = timestamp
 
         if isinstance(account, Account):
-            account = account.id
+            account = account.name
         self.a = account
 
     @classmethod

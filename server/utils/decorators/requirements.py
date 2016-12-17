@@ -15,7 +15,7 @@ def gamemaster(f):
         :return:
         """
         if hasattr(self, "account") and hasattr(self, "universe"):
-            if self.universe in self.account.god_universes:
+            if self.universe_id in self.account_id.god_universes:
                 return f(self, *args, **kwargs)
         raise PermissionError
 

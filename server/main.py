@@ -25,6 +25,20 @@ else:
     db_mapping()
 
 
+class Runtime(object):
+    def __init__(self):
+        self.controller_mapping = {}
+
+    def add_controller(self, universe_id, account_id, controller):
+        if universe_id not in self.controller_mapping:
+            self.controller_mapping[universe_id] = {}
+        self.controller_mapping[universe_id][account_id] = controller
+
+    def remove_controller(self, universe_id, account_id):
+        if universe_id in self.controller_mapping and account_id in self.controller_mapping[universe_id]:
+            del self.controller_mapping[universe_id][account_id]
+
+runtime = Runtime()
 
 class Connection(object):
     def __init__(self, websocket, address):
@@ -38,7 +52,7 @@ class Connection(object):
         self.account = None
         self.websocket = websocket
         self.address = address
-        self.controller = LoginController(self)
+        self.controller = LoginController(self, runtime)
         logging.info("Connection established to address [{}]".format(str(address)))
 
     def send(self, payload):
@@ -73,6 +87,8 @@ class Connection(object):
             self.controller.handle(message)
             if message is None:
                 break
+
+        self.controller.stop()
 
 
 class ConnectionHandler(object):

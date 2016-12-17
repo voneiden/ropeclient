@@ -16,10 +16,10 @@ export default class MainView extends React.Component {
 
     render() {
         return (
-            <div id ="rc-main" className="flex flex-row">
-                <div className="flex flex-column flex-grow">
-                    <div className="flex-grow-2"><OfftopicContainer messages={this.props.offtopicMessages}/></div>
-                    <div className="flex-grow-3"><OntopicContainer messages={this.props.ontopicMessages}/></div>
+            <div id="rc-main" className="flex flex-row">
+                <div id="rc-main-bodytext" className="flex flex-column flex-grow">
+                    <div className="flex-grow-2 flex-column"><OfftopicContainer messages={this.props.offtopicMessages}/></div>
+                    <div className="flex-grow-3 flex-column"><OntopicContainer messages={this.props.ontopicMessages}/></div>
                     <Input
                         sendMessage={this.props.sendMessage}
                         sendIsTyping={this.props.sendIsTyping}

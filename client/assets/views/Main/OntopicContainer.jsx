@@ -16,7 +16,7 @@ export default class OntopicContainer extends React.Component {
             return <OntopicMessage message={message} key={index}/>;
         });
         return (
-            <div id ="rc-ontopic" className="">
+            <div id ="rc-ontopic" className="flex-grow">
                 { messages }
             </div>
         );

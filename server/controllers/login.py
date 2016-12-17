@@ -38,9 +38,11 @@ class State(AutoNumber):
 
 
 class LoginController(BaseController):
-    def __init__(self, connection):
-        BaseController.__init__(self, connection)
-        self.account = None
+    def __init__(self, connection, runtime):
+        BaseController.__init__(self, connection, runtime)
+        self.account_id = None
+        self.account_name = None
+        # self.account = None
         self.state = State.login_username
         self.static_salt = None
         self.dynamic_salt = None
@@ -78,27 +80,30 @@ class LoginController(BaseController):
 
             # State - Login username
             if self.state == State.login_username:
-                self.account = Account.get(lambda account: account.name.lower() == value.lower())
+                account = Account.get(lambda account: account.name.lower() == value.lower())
+                self.account_id = account.id
 
-                if self.account:
+                if account:
                     self.request_password()
                     self.state = State.login_password
                 else:
                     self.send_offtopic("Create new account with this name y/n?")
-                    self.account = value
+                    self.account_name = value
                     self.state = State.create_account
 
             # State - Login password
             elif self.state == State.login_password:
-                if self.hash_password_with_salt(self.account.password, self.dynamic_salt) == value:
+                account = Account[self.account_id]
+
+                if self.hash_password_with_salt(account.password, self.dynamic_salt) == value:
                     self.send_offtopic("Login OK")
                     # Set controller to menu controller
-                    self.connection.controller = MenuController(self.connection, self.account)
+                    self.connection.controller = MenuController(self.connection, self.runtime, self.account_id)
                     return
 
                 else:
                     logging.info("Expected password: {}".format(
-                        self.hash_password_with_salt(self.account.password, self.dynamic_salt)))
+                        self.hash_password_with_salt(account.password, self.dynamic_salt)))
                     logging.info("Received password: {}".format( value))
                     self.send_offtopic("Login fail")
                     self.state = State.login_username
@@ -130,7 +135,7 @@ class LoginController(BaseController):
                     self.state = State.login_username
                     self.send_offtopic("New account has been created, you may now login.")
                     self.greeting()
-                    account = Account(name=self.account,
+                    account = Account(name=self.account_name,
                                       password=self.password,
                                       salt=self.static_salt)
                     db.commit()
@@ -146,9 +151,10 @@ class LoginController(BaseController):
     def try_again(self):
         self.send_offtopic("Please try again.")
 
-    def request_password(self, clear_static=True, dynamic=True):
-        if isinstance(self.account, Account):
-            self.static_salt = self.account.salt
+    def request_password(self, clear_static=True, dynamic=True, repeat=False):
+        account = Account.get(lambda account: account.id == self.account_id)
+        if isinstance(account, Account):
+            self.static_salt = account.salt
         else:
             if clear_static or not self.static_salt:
                 self.static_salt = hashlib.sha256(os.urandom(256)).hexdigest()
@@ -158,5 +164,6 @@ class LoginController(BaseController):
         else:
             self.dynamic_salt = None
 
-        self.send_messages(OfftopicMessage("Please type your password"),
+        message = "Please repeat your password" if repeat else "Please type your password"
+        self.send_messages(OfftopicMessage(message),
                            PasswordRequest(self.static_salt, self.dynamic_salt))

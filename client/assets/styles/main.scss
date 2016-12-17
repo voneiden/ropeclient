@@ -17,7 +17,7 @@
 */
 
 body {
-
+  background-image: url(https://rustycockrell.files.wordpress.com/2012/01/beautiful-dark-scenery-moon-in-forest.jpg);
 }
 
 .flex {
@@ -30,17 +30,21 @@ body {
 
 .flex-grow-2 {
   flex-grow: 2;
+  flex-basis: 2px;
 }
 
 .flex-grow-3 {
   flex-grow: 3;
+  flex-basis: 3px;
 }
 
 .flex-column {
+  display: flex;
   flex-direction: column;
 }
 
 .flex-row {
+  display: flex;
   flex-direction: row;
 }
 
@@ -61,18 +65,40 @@ html, body {
   padding: 0;
 }
 #ropeclient-container,
-#ropeclient-app,
-#rc-main {
+#ropeclient-app {
   height: 100%;
+  justify-content: center;
+}
+#rc-main {
+  height: 80%;
+  justify-content: center;
+
+}
+
+#rc-main-bodytext {
+  max-width: 600px;
+  border-left: 1px solid black;
 }
 
 #rc-namelist {
   flex-basis: 100px;
   flex-grow: 0;
   flex-shrink: 0;
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+}
+
+#rc-offtopic {
+  background-color: black;
+  color: white;
+  overflow-y: auto;
+  border-bottom: 1px solid white;
 }
 #rc-ontopic {
   border-top: 1px solid black;
+  background-color:  black;
+  color: white;
+  overflow-y: auto;
 }
 
 $rc-input-height: 50px;
@@ -88,6 +114,3 @@ $rc-input-height: 50px;
   }
 }
 
-#rc-namelist {
-  border-left: 1px solid black;
-}

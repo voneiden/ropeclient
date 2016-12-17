@@ -29,7 +29,7 @@ class State(AutoNumber):
 
 
 class MenuController(BaseController):
-    def __init__(self, connection, account):
+    def __init__(self, connection, runtime, account_id):
         """
         MenuController is used for the main menu where the user can choose which universe to join or
         create a new universe.
@@ -40,8 +40,8 @@ class MenuController(BaseController):
         :type account: models.account.Account
         :return:
         """
-        BaseController.__init__(self, connection)
-        self.account = account
+        BaseController.__init__(self, connection, runtime)
+        self.account_id = account_id
         self.state = State.main_menu
         self.main_menu_view()
 
@@ -73,7 +73,7 @@ class MenuController(BaseController):
                     return self.main_menu_view(error_message="No such number was found..")
 
                 print("Selected universe:", selected_universe)
-                self.connection.controller = PlayController(self.account, selected_universe[0])
+                self.connection.controller = PlayController(self.connection, self.runtime, self.account_id, selected_universe[0].id)
 
     def main_menu_view(self, error_message=""):
         buffer = ["Following universes are available:", ""]

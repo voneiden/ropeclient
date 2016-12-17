@@ -18,7 +18,7 @@
 """
 
 import utils.crypt
-from pony.orm import PrimaryKey, Required, Optional, Set, db_session
+from pony.orm import PrimaryKey, Required, Optional, Set, db_session, select
 from models.database import db
 
 
@@ -53,3 +53,4 @@ class Universe(db.Entity):
             universe.salt = utils.crypt.generate_salt()
             universe.password = utils.crypt.hash(password, universe.salt)
         universe.god_accounts.add(owner)
+

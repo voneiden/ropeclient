@@ -40,13 +40,16 @@ class BaseController(object):
         print("Instance handles:", instance._commands)
         return instance
 
-    def __init__(self, connection):
+    def __init__(self, connection, runtime):
         self.connection = connection
-        self.account = None
+        self.account_id = None
+        self.runtime = runtime
 
-    def handle(self, message={}):
+    def handle(self, message):
         assert "k" in message
-        if "k" == "png":
+        if message.k == "pit":
+            pass
+        elif message.k == "pnt":
             pass
         else:
             raise KeyError
@@ -111,3 +114,6 @@ class BaseController(object):
 
     def syntax_error(self):
         self.send_offtopic("Come again?")
+
+    def stop(self):
+        logging.info("Stopping base controller for account: ", self.account_id)

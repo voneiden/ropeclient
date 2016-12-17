@@ -16,7 +16,7 @@ export default class OfftopicContainer extends React.Component {
             return <OfftopicMessage message={message} key={index}/>;
         });
         return (
-            <div id ="rc-offtopic" className="">
+            <div id ="rc-offtopic" className="flex-grow">
                 { messages }
             </div>
         );

@@ -86,7 +86,7 @@ export default class Ropeclient extends React.Component {
     }
 
     onSocketOpen() {
-        this.send("voneiden");
+        this.send("test");
     }
     onSocketClose() {
 
@@ -177,7 +177,7 @@ export default class Ropeclient extends React.Component {
     render() {
         console.log();
         return (
-            <div id ="ropeclient-app">
+            <div id ="ropeclient-app" className="flex-column">
                 <MainView
                     ontopicMessages={this.state.ontopicMessages}
                     offtopicMessages={this.state.offtopicMessages}

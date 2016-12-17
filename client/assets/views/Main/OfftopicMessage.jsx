@@ -1,6 +1,7 @@
 import React from "react";
 import classNames from "classnames";
 import Message from "./Message";
+import moment from "moment";
 
 export default class OfftopicMessage extends Message {
     constructor(props) {
@@ -21,10 +22,13 @@ export default class OfftopicMessage extends Message {
             );
         }
         else {
+            let timestamp = moment.unix(message.t).format("HH:mm");
             return (
                 <div className="rc-message">
-                    <span className="rc-timestamp">{message.t}</span>
-                    <span className="rc-account">{message.a}</span>
+                    <span className="rc-timestamp">[{timestamp}]</span>
+                    {" "}
+                    <span className="rc-account">&lt;{message.a}&gt;</span>
+                    {" "}
                     <span className="rc-text">{message.v}</span>
                 </div>
             );
