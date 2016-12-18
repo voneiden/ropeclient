@@ -2,6 +2,7 @@ import asyncio
 import warnings
 import json
 import pony.orm
+from pony.orm import db_session
 import logging
 from utils.messages import *
 
@@ -42,16 +43,23 @@ class BaseController(object):
 
     def __init__(self, connection, runtime):
         self.connection = connection
+        self.universe_id = None
         self.account_id = None
         self.runtime = runtime
 
     def handle(self, message):
-        assert "k" in message
-        if message.k == "pit":
-            pass
-        elif message.k == "pnt":
-            pass
+        key = message.get("k", None)
+
+        if key == "pit":
+            if self.account_id is not None:
+                self.broadcast_universe(lambda controller: controller.send_pit(Account[self.account_id]))
+
+        elif key == "pnt":
+            if self.account_id is not None:
+                self.broadcast_universe(lambda controller: controller.send_pnt(Account[self.account_id]))
         else:
+            if key is None:
+                logging.warning("Invalid message:", message)
             raise KeyError
 
     @staticmethod
@@ -103,6 +111,21 @@ class BaseController(object):
         self.send_messages(*messages)
 
         logging.info("Success")
+
+    def send_playerlist(self, players):
+        self.send_messages(PlayerList(players))
+
+    @db_session
+    def broadcast_universe(self, f):
+        if self.universe_id is not None:
+            for controller in self.runtime.find_controllers(self.universe_id):
+                f(controller)
+
+    def send_pit(self, account):
+        self.send_messages(PlayerIsTyping(account))
+
+    def send_pnt(self, account):
+        self.send_messages(PlayerNotTyping(account))
 
     def send(self, message):
         warnings.warn("Deprecated method", DeprecationWarning)

@@ -86,6 +86,10 @@ html, body {
   flex-shrink: 0;
   border-left: 1px solid black;
   border-right: 1px solid black;
+
+  .is-typing::before {
+    content: "*";
+  }
 }
 
 #rc-offtopic {

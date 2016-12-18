@@ -38,6 +38,9 @@ class Runtime(object):
         if universe_id in self.controller_mapping and account_id in self.controller_mapping[universe_id]:
             del self.controller_mapping[universe_id][account_id]
 
+    def find_controllers(self, universe_id):
+        return self.controller_mapping.get(universe_id, {}).values()
+
 runtime = Runtime()
 
 class Connection(object):

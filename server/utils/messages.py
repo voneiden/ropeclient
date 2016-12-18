@@ -74,10 +74,21 @@ class PasswordRequest(object):
         self.ds = dynamic_salt
 
 
+class PlayerList(object):
+    def __init__(self, players):
+        """
+        @param players: List of player objects {name, typing
+        @type players: list
+
+        """
+        self.k = "pll"
+        self.v = players
+
+
 class PlayerIsTyping(object):
     def __init__(self, account):
         if isinstance(account, Account):
-            account = account.id
+            account = account.name
         self.k = "pit"
         self.a = account
 
@@ -85,7 +96,7 @@ class PlayerIsTyping(object):
 class PlayerNotTyping(object):
     def __init__(self, account):
         if isinstance(account, Account):
-            account = account.id
+            account = account.name
         self.k = "pnt"
         self.a = account
 

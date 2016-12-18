@@ -62,6 +62,13 @@ class PlayController(BaseController):
         runtime.add_controller(universe_id, account_id, self)
 
         self.being = None
+        self.start()
+
+    @db_session
+    def start(self):
+        # Send player list
+        account_names = [Account[controller.account_id].name for controller in self.runtime.find_controllers(self.universe_id)]
+        self.send_playerlist(account_names)
 
     #TODO: db session?
     def handle(self, message={}):
@@ -94,6 +101,7 @@ class PlayController(BaseController):
             print("Command", command)
             print("Self.commands", self._commands)
             raise NotImplementedError
+
 
         """
 
@@ -128,8 +136,8 @@ class PlayController(BaseController):
             universe=Universe[self.universe_id],
             timestamp=datetime.datetime.now()
         )
-        controllers = self.runtime.controller_mapping[self.universe_id].values()
-        for controller in controllers:
+
+        for controller in self.runtime.find_controllers(self.universe_id):
             controller.send_offtopic(offtopic)
 
 

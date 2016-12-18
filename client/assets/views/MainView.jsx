@@ -26,7 +26,7 @@ export default class MainView extends React.Component {
                         passwordMode={this.props.passwordMode}
                     />
                 </div>
-                <NameList/>
+                <NameList players={this.props.players}/>
             </div>
         );
     }

@@ -28,7 +28,8 @@ export default class Ropeclient extends React.Component {
         this.state = {
             ontopicMessages: [],
             offtopicMessages: [],
-            passwordMode: false
+            passwordMode: false,
+            players: {}
         };
         this.socket = null;
 
@@ -111,7 +112,6 @@ export default class Ropeclient extends React.Component {
         if (!Array.isArray(dataset)) {
             dataset = [dataset];
         }
-
         let clearOfftopic = false;
         let offtopicMessages = [];
 
@@ -158,6 +158,32 @@ export default class Ropeclient extends React.Component {
                             break;
                     }
                     break;
+
+                case "pll": {
+                    let players = {};
+                    for (let player of data.v) {
+                        players[player] = false;
+                    }
+                    state.players = players;
+                    break;
+                }
+
+                case "pit": {
+                    let update = {};
+                    update[data.a] = true;
+                    state.players = Object.assign(this.state.players, update);
+                    console.log("pit", state.players);
+                    break;
+                }
+
+                case "pnt": {
+                    let update = {};
+                    update[data.a] = false;
+                    state.players = Object.assign(this.state.players, update);
+                    console.log("pnt", state.players);
+                    break;
+                }
+
                 default:
                     console.warn("Unknown data packet", data);
             }
@@ -182,6 +208,7 @@ export default class Ropeclient extends React.Component {
                     ontopicMessages={this.state.ontopicMessages}
                     offtopicMessages={this.state.offtopicMessages}
                     passwordMode={this.state.passwordMode}
+                    players={this.state.players}
                     sendMessage={this.send}
                     sendIsTyping={this.sendIsTyping}
 
