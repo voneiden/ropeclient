@@ -133,6 +133,7 @@ export default class Ropeclient extends React.Component {
                     offtopicMessages.push(data);
                     break;
                 case "ont":
+                    console.log("Got ont message");
                     ontopicMessages.push(data);
                     break;
 
@@ -194,7 +195,7 @@ export default class Ropeclient extends React.Component {
         }
 
         if (ontopicMessages.length || clearOntopic) {
-            state.ontopicMesseages = clearOntopic ? ontopicMessages : this.state.ontopicMessages.concat(ontopicMessages);
+            state.ontopicMessages = clearOntopic ? ontopicMessages : this.state.ontopicMessages.concat(ontopicMessages);
         }
 
         this.setState(state);

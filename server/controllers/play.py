@@ -21,11 +21,11 @@ from controllers.base import BaseController
 from utils.decorators.commands import Commands, dynamic_command
 from utils.decorators.requirements import *
 from utils.autonumber import AutoNumber
-from pony.orm import db_session, select, get
-from models.things import Thing
+from pony.orm import db_session, commit, select, get
+from models.things import Thing, Being
 from models.account import Account
 from models.universe import Universe
-from models.abstract import Offtopic
+from models.abstract import Utterance, Offtopic
 
 import re
 import datetime
@@ -61,7 +61,7 @@ class PlayController(BaseController):
 
         runtime.add_controller(universe_id, account_id, self)
 
-        self.being = None
+        self.being_id = None
         self.start()
 
     @db_session
@@ -69,6 +69,21 @@ class PlayController(BaseController):
         # Send player list
         account_names = [Account[controller.account_id].name for controller in self.runtime.find_controllers(self.universe_id)]
         self.send_playerlist(account_names)
+        self.send_clear()
+
+        # Create a ghost or something..
+        universe = Universe[self.universe_id]
+        default_place = [place for place in universe.places][0]
+        account = Account[self.account_id]
+        being = Being(
+            name="Ghost of {}".format(account.name),
+            universe=universe,
+            place=default_place,
+            account=account
+        )
+        commit()
+        self.being_id = being.id
+        self.do_look()
 
     #TODO: db session?
     def handle(self, message={}):
@@ -123,8 +138,26 @@ class PlayController(BaseController):
 
     @Commands("default", "say")
     @being
+    @db_session
     def do_say(self, command=None, startswith=None, tokens=None, value=""):
         print("Player would like to say:", value)
+        if self.being_id is not None:
+            being = Being[self.being_id]
+            place = being.place
+            heard_by = [place_being for place_being in place.beings]
+            text = '{{me}} says,"{content}"'.format(content=value)
+            utterance = Utterance(
+                text=text,
+                being=being,
+                heard=heard_by,
+                timestamp=datetime.datetime.now()
+            )
+            print("OK", heard_by)
+            heard_by_ids = [place_being.id for place_being in heard_by]
+            for controller in self.runtime.find_controllers(self.universe_id):
+                print("Account id", controller.account_id, "in", heard_by_ids)
+                if controller.being_id in heard_by_ids:
+                    controller.send_ontopic(utterance)
 
     @Commands("offtopic", startswith=["("])
     @db_session
@@ -153,7 +186,19 @@ class PlayController(BaseController):
     def do_move_dynamic(self, command=None, startswith=None, tokens=None, value=""):
         pass
 
-
+    @Commands("look")
+    @db_session
+    def do_look(self, **kwargs):
+        if self.being_id is not None:
+            being = Being[self.being_id]
+            place = being.place
+            place_being_names = [place_being.name for place_being in place.beings]
+            buf = [
+                place.name,
+                place.description,
+                ", ".join(place_being_names)
+            ]
+            self.send_ontopic(*buf)
 
     @Commands("roll", startswith=["!"])
     def do_roll(self, command=None, startswith=None, tokens=None, value=""):

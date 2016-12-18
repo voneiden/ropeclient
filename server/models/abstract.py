@@ -9,6 +9,7 @@ class Utterance(db.Entity):
     text = Required(LongStr)
     heard = Set("Being", reverse="heard")
     being = Optional("Being", reverse="utterances")
+    timestamp = Required(datetime, sql_default='CURRENT_TIMESTAMP')
 
 
 class Association(db.Entity):

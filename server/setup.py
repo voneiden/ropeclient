@@ -53,6 +53,12 @@ def setup_development_environment():
 
     # Create test universe
     universe = Universe.create(name="Test universe", owner=account)
+    place = Place(
+        name="Void",
+        description="You are in the void",
+        universe=universe
+    )
+
 
 
 

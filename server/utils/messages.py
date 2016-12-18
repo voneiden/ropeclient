@@ -1,7 +1,8 @@
 import datetime
 import random
 from models.account import Account
-
+from models.things import Being
+from pony.orm import db_session
 
 class OntopicMessage(object):
     def __init__(self, text, timestamp=None, account=None):
@@ -28,8 +29,11 @@ class OntopicMessage(object):
         self.a = account
 
     @classmethod
+    @db_session
     def from_model(cls, model):
-        return cls(text=model.text, timestamp=model.timestamp, account=model.account)
+        account = Being[model.being.id].account
+        account_id = account.id if account else None
+        return cls(text=model.text, timestamp=model.timestamp, account=account_id)
 
 
 class OfftopicMessage(object):
@@ -58,7 +62,8 @@ class OfftopicMessage(object):
 
     @classmethod
     def from_model(cls, model):
-        return cls(text=model.text, timestamp=model.timestamp, account=model.account)
+        account_id = model.account.id if model.account else None
+        return cls(text=model.text, timestamp=model.timestamp, account=account_id)
 
 
 class PasswordRequest(object):

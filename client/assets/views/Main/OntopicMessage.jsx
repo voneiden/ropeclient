@@ -9,9 +9,10 @@ export default class OntopicMessage extends Message {
     }
 
     render() {
+        console.log("Render ont message", this.props.message);
         return (
             <div className="rc-message">
-                Message
+                {this.props.message.v}
             </div>
         );
     }

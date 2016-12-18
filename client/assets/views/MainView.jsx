@@ -35,6 +35,7 @@ export default class MainView extends React.Component {
 MainView.propTypes = {
     offtopicMessages: React.PropTypes.array.isRequired,
     ontopicMessages: React.PropTypes.array.isRequired,
-    sendMessage: React.PropTypes.array.isRequired,
-    sendIsTyping: React.PropTypes.array.isRequired
+    players: React.PropTypes.object.isRequired,
+    sendMessage: React.PropTypes.func.isRequired,
+    sendIsTyping: React.PropTypes.func.isRequired
 };

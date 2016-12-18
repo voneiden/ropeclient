@@ -115,6 +115,9 @@ class BaseController(object):
     def send_playerlist(self, players):
         self.send_messages(PlayerList(players))
 
+    def send_clear(self):
+        self.send_messages(ClearBoth())
+
     @db_session
     def broadcast_universe(self, f):
         if self.universe_id is not None:

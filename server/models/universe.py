@@ -35,7 +35,6 @@ class Universe(db.Entity):
     offtopics = Set("Offtopic")
 
     @classmethod
-    @db_session
     def create(cls, name, owner, password=None):
         """
 
@@ -53,4 +52,6 @@ class Universe(db.Entity):
             universe.salt = utils.crypt.generate_salt()
             universe.password = utils.crypt.hash(password, universe.salt)
         universe.god_accounts.add(owner)
+        return universe
+
 
