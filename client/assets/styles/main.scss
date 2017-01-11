@@ -118,3 +118,14 @@ $rc-input-height: 50px;
   }
 }
 
+.rc-dice-roll {
+  border: 1px solid lime;
+  cursor: pointer;
+}
+
+.rc-dice-roll .rc-dice-roll-results {
+  display: none;
+}
+.rc-dice-roll:hover .rc-dice-roll-results {
+  display: inline;
+}

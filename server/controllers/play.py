@@ -27,6 +27,8 @@ from models.account import Account
 from models.universe import Universe
 from models.abstract import Utterance, Offtopic
 
+from utils.dice import Dice
+
 import re
 import datetime
 
@@ -173,28 +175,29 @@ class PlayController(BaseController):
     @db_session
     def do_say(self, command=None, startswith=None, tokens=None, value=""):
         print("Player would like to say:", value)
+        value = Dice.find_and_roll(value)
         being = self.being
-        if being is not None:
-            place = being.place
-            heard_by = [place_being for place_being in place.beings]
-            text = '{{me}} says,"{content}"'.format(content=value)
-            utterance = Utterance(
-                text=text,
-                being=being,
-                heard=heard_by,
-                timestamp=datetime.datetime.now()
-            )
-            print("OK", heard_by)
-            heard_by_ids = [place_being.id for place_being in heard_by]
-            for controller in self.runtime.find_controllers(self.universe_id):
-                print("Account id", controller.account_id, "in", heard_by_ids)
-                if controller.being_id in heard_by_ids:
-                    controller.send_ontopic(utterance)
+        place = being.place
+        heard_by = [place_being for place_being in place.beings]
+        text = '{{me}} says,"{content}"'.format(content=value)
+        utterance = Utterance(
+            text=text,
+            being=being,
+            heard=heard_by,
+            timestamp=datetime.datetime.now()
+        )
+        print("OK", heard_by)
+        heard_by_ids = [place_being.id for place_being in heard_by]
+        for controller in self.runtime.find_controllers(self.universe_id):
+            print("Account id", controller.account_id, "in", heard_by_ids)
+            if controller.being_id in heard_by_ids:
+                controller.send_ontopic(utterance)
 
     @Commands("offtopic", startswith=["("])
     @db_session
     def do_offtopic(self, command=None, startswith=None, tokens=None, value=""):
         print("Player would like to offtopic:", value)
+        value = Dice.find_and_roll(value)
         offtopic = Offtopic(
             text=value,
             account=Account[self.account_id],

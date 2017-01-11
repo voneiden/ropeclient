@@ -10,8 +10,11 @@ export default class OfftopicMessage extends Message {
     }
 
     render() {
+
         console.log(this.props.message);
         let message = this.props.message;
+        let text = this.replaceDiceRolls(message.v);
+
 
         // System message, no account
         if (!message.a) {
@@ -29,7 +32,7 @@ export default class OfftopicMessage extends Message {
                     {" "}
                     <span className="rc-account">&lt;{message.a}&gt;</span>
                     {" "}
-                    <span className="rc-text">{message.v}</span>
+                    <span className="rc-text">{text}</span>
                 </div>
             );
         }
