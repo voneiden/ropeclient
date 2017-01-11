@@ -62,8 +62,8 @@ class OfftopicMessage(object):
 
     @classmethod
     def from_model(cls, model):
-        account_id = model.account.id if model.account else None
-        return cls(text=model.text, timestamp=model.timestamp, account=account_id)
+        #account_id = model.account.id if model.account else None
+        return cls(text=model.text, timestamp=model.timestamp, account=model.account)
 
 
 class PasswordRequest(object):

@@ -22,7 +22,7 @@ def gamemaster(f):
     return is_gamemaster
 
 
-def being(f):
+def is_being(f):
     """
     Decorator for limiting a command to a being only.
 
@@ -30,10 +30,11 @@ def being(f):
     :return:
     """
 
-    def is_being(self, *args, **kwargs):
+    def check_is_being(self, *args, **kwargs):
+        # TODO
         return f(self, *args, **kwargs)
 
-    return is_being
+    return check_is_being
 
 
 def soul(f):
@@ -45,6 +46,7 @@ def soul(f):
     """
 
     def is_soul(self, *args, **kwargs):
+        # TODO
         return f(self, *args, **kwargs)
 
     return is_soul

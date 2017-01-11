@@ -23,5 +23,7 @@ class Passage(db.Entity):
 
 
 class Region(db.Entity):
+    id = PrimaryKey(int, auto=True)
+    name = Required(str, 32)
     places = Set("Place")
     planet = Required("Planet")

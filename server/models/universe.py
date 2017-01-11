@@ -21,7 +21,6 @@ import utils.crypt
 from pony.orm import PrimaryKey, Required, Optional, Set, db_session, select, Json
 from models.database import db
 
-
 class Universe(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str, 128, unique=True)
@@ -55,7 +54,6 @@ class Universe(db.Entity):
         return universe
 
 
-
 class Planet(db.Entity):
     """
     Never go full retard
@@ -65,11 +63,14 @@ class Planet(db.Entity):
 
     regions = Set("Region")
 
-    inclination = Required(float, default=7.155)
-    orbital_period = Required(float, default=365*24.0)
-    sidereal_period = Required(float, default=24.0)
-
-    orbital_angle = Required(float, default=0)
-    sidereal_angle = Required(float, default=0)
-
     spacetime = Optional(Json)
+
+    @classmethod
+    @db_session
+    def start_tasks(cls, runtime):
+        from tasks.spacetime import Spacetime
+
+        for planet in Planet.select(lambda p: True):
+            Spacetime(planet.id, runtime)
+
+

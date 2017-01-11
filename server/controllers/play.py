@@ -64,6 +64,30 @@ class PlayController(BaseController):
         self.being_id = None
         self.start()
 
+    @property
+    def account(self):
+        if self.account_id:
+            return Account[self.account_id]
+        else:
+            return None
+
+    @property
+    def universe(self):
+        if self.universe_id:
+            return Universe[self.universe_id]
+        else:
+            return None
+
+    @property
+    def being(self):
+        if self.being_id:
+            return Being[self.being_id]
+        else:
+            return None
+
+
+
+
     @db_session
     def start(self):
         # Send player list
@@ -137,12 +161,12 @@ class PlayController(BaseController):
         return self.syntax_error()
 
     @Commands("default", "say")
-    @being
+    @is_being
     @db_session
     def do_say(self, command=None, startswith=None, tokens=None, value=""):
         print("Player would like to say:", value)
-        if self.being_id is not None:
-            being = Being[self.being_id]
+        being = self.being
+        if being is not None:
             place = being.place
             heard_by = [place_being for place_being in place.beings]
             text = '{{me}} says,"{content}"'.format(content=value)

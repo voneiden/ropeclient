@@ -5,7 +5,7 @@ import json
 import logging
 from controllers.login import LoginController
 from models.database import db, db_mapping
-
+from models.universe import Planet
 
 SECURE = False
 DEVELOPMENT = True
@@ -42,6 +42,7 @@ class Runtime(object):
         return self.controller_mapping.get(universe_id, {}).values()
 
 runtime = Runtime()
+
 
 class Connection(object):
     def __init__(self, websocket, address):
@@ -110,6 +111,11 @@ def display_startup_info():
     print("\n################\n\n")
 
 
+def start_tasks():
+    #Planet.start_tasks(runtime)
+    pass
+
+
 def run():
     # Setup logging
     logger = logging.getLogger("")
@@ -142,6 +148,7 @@ def run():
         loop.run_until_complete(secure_server)
 
     loop.call_later(1, display_startup_info)
+    loop.call_later(1, start_tasks)
     loop.run_forever()
 
 
