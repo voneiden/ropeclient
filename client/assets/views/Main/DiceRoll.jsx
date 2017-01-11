@@ -15,7 +15,7 @@ function SumRolls(a, b) {
 export default class DiceRoll extends React.Component {
     constructor(props) {
         super(props);
-        
+
     }
 
 

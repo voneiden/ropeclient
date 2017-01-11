@@ -16,12 +16,13 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import logging
 
 from controllers.base import BaseController
 from utils.decorators.commands import Commands, dynamic_command
 from utils.decorators.requirements import *
 from utils.autonumber import AutoNumber
-from pony.orm import db_session, commit, select, get
+from pony.orm import db_session, commit, select, get, MultipleObjectsFoundError
 from models.things import Thing, Being
 from models.account import Account
 from models.universe import Universe
@@ -88,6 +89,11 @@ class PlayController(BaseController):
             return None
 
 
+    @property
+    def ghost(self):
+        return self.universe.beings.select(lambda being: being.ghost is True and being.account == self.account).first()
+
+
 
 
     @db_session
@@ -104,19 +110,8 @@ class PlayController(BaseController):
 
         # TODO Universe send offtopic joined
 
-
-        # Create a ghost or something..
-        universe = Universe[self.universe_id]
-        default_place = [place for place in universe.places][0]
-        account = Account[self.account_id]
-        being = Being(
-            name="Ghost of {}".format(account.name),
-            universe=universe,
-            place=default_place,
-            account=account
-        )
-        commit()
-        self.being_id = being.id
+        # TODO either attach to previous being or do_detach to become a ghost
+        self.do_detach()
         self.do_look()
 
     #TODO: db session?
@@ -169,6 +164,32 @@ class PlayController(BaseController):
                 continue
         """
         return self.syntax_error()
+
+    @Commands("detach")
+    @db_session
+    def do_detach(self):
+        # Get rid of current being
+        # TODO
+        account = self.account
+        universe = self.universe
+        place = [place for place in universe.places][0]
+
+        # "Attach" to ghost
+        ghost = self.ghost
+        if ghost is None:
+            ghost = Being(
+                name="Ghost of {}".format(account.name),
+                universe=universe,
+                place=place,
+                account=account,
+                ghost=True
+            )
+            commit()
+
+        self.being_id = ghost.id
+
+
+
 
     @Commands("default", "say")
     @is_being

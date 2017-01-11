@@ -17,6 +17,7 @@ class Being(db.Entity):
     things = Set("Thing")
     account = Optional("Account")
     data = Optional(LongStr)
+    ghost = Required(bool, default=True, sql_default='1')
 
 
 class Thing(db.Entity):
