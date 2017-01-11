@@ -71,7 +71,6 @@ class MenuController(BaseController):
                 selected_universe = self.fetch_nth_universe(number_choice)
                 if not selected_universe:
                     return self.main_menu_view(error_message="No such number was found..")
-
                 print("Selected universe:", selected_universe)
                 self.connection.controller = PlayController(self.connection, self.runtime, self.account_id, selected_universe[0].id)
 

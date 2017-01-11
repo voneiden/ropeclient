@@ -95,6 +95,14 @@ class PlayController(BaseController):
         self.send_playerlist(account_names)
         self.send_clear()
 
+        # Send offtopics
+        offtopic_history = self.universe.offtopics.select(lambda x: True)[:100]
+        if len(offtopic_history):
+            self.send_offtopic(*offtopic_history)
+
+        # TODO Universe send offtopic joined
+
+
         # Create a ghost or something..
         universe = Universe[self.universe_id]
         default_place = [place for place in universe.places][0]
