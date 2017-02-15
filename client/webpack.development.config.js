@@ -25,14 +25,14 @@ const ExtractTextPlugin = require("extract-text-webpack-plugin");
 module.exports = {
     context: __dirname,
     entry: [
-        "webpack-dev-server/client?http://localhost:3000",
+        "webpack-dev-server/client?http://localhost:8090",
         "webpack/hot/only-dev-server",
         "./assets/index"
     ],
     output: {
         path: path.resolve("./assets/bundles/"),
         filename: "main.js",
-        publicPath: "http://localhost:3000/assets/bundles/", // Tell django to use this URL to load packages and not use STATIC_URL + bundle_name
+        publicPath: "http://localhost:8090/assets/bundles/", // Tell django to use this URL to load packages and not use STATIC_URL + bundle_name
     },
 
     plugins: [

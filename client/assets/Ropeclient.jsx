@@ -20,12 +20,14 @@ import React from "react";
 import "./styles/main.scss";
 import classNames from "classnames";
 import MainView from "./views/MainView";
+import ConfigView from "./views/ConfigView";
 
 export default class Ropeclient extends React.Component {
     constructor(props) {
         super(props);
 
         this.state = {
+            showConfig: false,
             ontopicMessages: [],
             offtopicMessages: [],
             passwordMode: false,
@@ -40,6 +42,8 @@ export default class Ropeclient extends React.Component {
         this.onSocketClose = this.onSocketClose.bind(this);
         this.onSocketMessage = this.onSocketMessage.bind(this);
         this.onSocketError = this.onSocketError.bind(this);
+
+        this.toggleConfig = this.toggleConfig.bind(this);
 
         this.process = this.process.bind(this);
 
@@ -201,11 +205,19 @@ export default class Ropeclient extends React.Component {
         this.setState(state);
     }
 
+    toggleConfig() {
+        this.setState({
+            showConfig: !this.state.showConfig
+        });
+    }
+
     render() {
         console.log();
-        return (
-            <div id ="ropeclient-app" className="flex-column">
-                <MainView
+        let mainContent;
+        if (this.state.showConfig) {
+            mainContent = <ConfigView></ConfigView>;
+        } else {
+            mainContent = <MainView
                     ontopicMessages={this.state.ontopicMessages}
                     offtopicMessages={this.state.offtopicMessages}
                     passwordMode={this.state.passwordMode}
@@ -213,7 +225,12 @@ export default class Ropeclient extends React.Component {
                     sendMessage={this.send}
                     sendIsTyping={this.sendIsTyping}
 
-                />
+                />;
+        }
+        return (
+            <div id ="ropeclient-app" className="flex-column">
+                <div id="rc-configure-btn" onClick={ this.toggleConfig }><i className="material-icons">settings</i></div>
+                { mainContent }
             </div>
         );
     }

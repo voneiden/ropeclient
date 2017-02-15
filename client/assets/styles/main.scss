@@ -129,3 +129,28 @@ $rc-input-height: 50px;
 .rc-dice-roll:hover .rc-dice-roll-results {
   display: inline;
 }
+
+#rc-configure-btn {
+  height: 25px;
+  width: 25px;
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  background-color: red;
+}
+
+#rc-configure {
+  justify-content: center;
+  > div {
+    padding: 2em;
+
+    width: 400px;
+  }
+}
+
+.rc-configure-align {
+  justify-content: flex-end;
+  *:first-child {
+    margin-right: auto;
+  }
+}
