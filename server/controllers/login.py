@@ -81,9 +81,9 @@ class LoginController(BaseController):
             # State - Login username
             if self.state == State.login_username:
                 account = Account.get(lambda account: account.name.lower() == value.lower())
-                self.account_id = account.id
 
                 if account:
+                    self.account_id = account.id
                     self.request_password()
                     self.state = State.login_password
                 else:

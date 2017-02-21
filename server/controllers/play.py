@@ -22,6 +22,9 @@ from controllers.base import BaseController
 from utils.decorators.commands import Commands, dynamic_command
 from utils.decorators.requirements import *
 from utils.autonumber import AutoNumber
+from utils.emotes import emote_converter
+
+
 from pony.orm import db_session, commit, select, get, MultipleObjectsFoundError
 from models.things import Thing, Being
 from models.account import Account
@@ -200,7 +203,14 @@ class PlayController(BaseController):
         being = self.being
         place = being.place
         heard_by = [place_being for place_being in place.beings]
-        text = '{{me}} says,"{content}"'.format(content=value)
+        (value, second_tonal_verb, third_tonal_verb) = emote_converter(value)
+
+        text = '{{name:{being_id}:{second_tonal_verb}:{third_tonal_verb}}}, "{content}"'.format(
+            being_id=being.id,
+            content=value,
+            second_tonal_verb=second_tonal_verb,
+            third_tonal_verb=third_tonal_verb)
+
         utterance = Utterance(
             text=text,
             being=being,

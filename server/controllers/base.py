@@ -62,8 +62,8 @@ class BaseController(object):
                 logging.warning("Invalid message:", message)
             raise KeyError
 
-    @staticmethod
-    def convert_content(message_class, content):
+
+    def convert_content(self, message_class, content):
         """
         Converts content to message objects. Content can be either string or a database (message) model
 
@@ -74,7 +74,7 @@ class BaseController(object):
         if isinstance(content, str):
             return message_class(content)
         elif isinstance(content, pony.orm.core.Entity):
-            return message_class.from_model(content)
+            return message_class.from_model(content, self)
         else:
             raise ValueError("Unknown content: {}".format(content))
 
@@ -98,7 +98,7 @@ class BaseController(object):
 
         logging.info("Success")
 
-    def send_ontopic(self, *ontopic_lines):
+    def send_ontopic(self, *utterances):
         """
         Converts and sends ontopic messages
 
@@ -107,7 +107,7 @@ class BaseController(object):
         """
         logging.info("Sending ontopic")
 
-        messages = [self.convert_content(OntopicMessage, line) for line in ontopic_lines]
+        messages = [self.convert_content(OntopicMessage, line) for line in utterances]
         self.send_messages(*messages)
 
         logging.info("Success")

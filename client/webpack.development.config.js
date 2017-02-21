@@ -23,6 +23,8 @@ const ExtractTextPlugin = require("extract-text-webpack-plugin");
 
 
 module.exports = {
+    headers: { "Access-Control-Allow-Origin": "*" },
+
     context: __dirname,
     entry: [
         "webpack-dev-server/client?http://localhost:8090",

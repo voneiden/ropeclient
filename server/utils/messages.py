@@ -1,8 +1,27 @@
 import datetime
 import random
+import re
 from models.account import Account
 from models.things import Being
 from pony.orm import db_session
+
+@db_session
+def nameReplacer(controller, match):
+    being_id = int(match.groups()[0])
+    print(being_id, controller.being_id)
+    who = None
+    verb = None
+    if being_id == controller.being_id:
+        who = "You"
+        verb = match.groups()[1]
+    else:
+        who = "Somebody"
+        verb = match.groups()[2]
+
+    return "{who} {verb}".format(who=who, verb=verb)
+
+
+# TODO capitalize sentences
 
 class OntopicMessage(object):
     def __init__(self, text, timestamp=None, account=None):
@@ -30,10 +49,16 @@ class OntopicMessage(object):
 
     @classmethod
     @db_session
-    def from_model(cls, model):
-        account = Being[model.being.id].account
+    def from_model(cls, model, controller):
+        being = Being[model.being.id]
+        account = being.account
         account_id = account.id if account else None
-        return cls(text=model.text, timestamp=model.timestamp, account=account_id)
+
+        # Parse text TODO some sort of re.subtract
+        #model.
+        text = re.sub("{name:(\d+):(.+?):(.+?)}", lambda match: nameReplacer(controller, match), model.text)
+
+        return cls(text=text, timestamp=model.timestamp, account=account_id)
 
 
 class OfftopicMessage(object):
@@ -61,7 +86,7 @@ class OfftopicMessage(object):
         self.a = account
 
     @classmethod
-    def from_model(cls, model):
+    def from_model(cls, model, controller):
         #account_id = model.account.id if model.account else None
         return cls(text=model.text, timestamp=model.timestamp, account=model.account)
 
