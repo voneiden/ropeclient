@@ -1,4 +1,6 @@
 import React from "react";
+import PropTypes from "prop-types";
+
 import classNames from "classnames";
 import OfftopicMessage from "./OfftopicMessage";
 
@@ -25,5 +27,5 @@ export default class OfftopicContainer extends React.Component {
 
 
 OfftopicContainer.propTypes = {
-    messages: React.PropTypes.array.isRequired
+    messages: PropTypes.array.isRequired
 };

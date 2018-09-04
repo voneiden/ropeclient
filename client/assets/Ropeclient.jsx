@@ -215,7 +215,7 @@ export default class Ropeclient extends React.Component {
         console.log();
         let mainContent;
         if (this.state.showConfig) {
-            mainContent = <ConfigView></ConfigView>;
+            mainContent = <ConfigView/>;
         } else {
             mainContent = <MainView
                     ontopicMessages={this.state.ontopicMessages}

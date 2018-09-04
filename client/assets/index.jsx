@@ -15,10 +15,9 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-let React = require("react");
-let ReactDOM = require("react-dom");
-let Ropeclient = require("./Ropeclient");
+import React from "react";
+import ReactDOM from "react-dom";
+import Ropeclient from "./Ropeclient";
 
 console.log("Init ropeclient");
 

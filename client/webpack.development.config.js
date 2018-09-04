@@ -19,22 +19,27 @@
 var path = require("path");
 var webpack = require("webpack");
 var BundleTracker = require("webpack-bundle-tracker");
-const ExtractTextPlugin = require("extract-text-webpack-plugin");
+//const ExtractTextPlugin = require("extract-text-webpack-plugin");
 
 
 module.exports = {
-    headers: { "Access-Control-Allow-Origin": "*" },
 
     context: __dirname,
     entry: [
-        "webpack-dev-server/client?http://localhost:8090",
+        "webpack-dev-server/client?http://localhost:8080",
         "webpack/hot/only-dev-server",
         "./assets/index"
     ],
+    mode: "development",
     output: {
         path: path.resolve("./assets/bundles/"),
         filename: "main.js",
-        publicPath: "http://localhost:8090/assets/bundles/", // Tell django to use this URL to load packages and not use STATIC_URL + bundle_name
+        publicPath: "http://localhost:8080/assets/bundles/",
+    },
+    devServer: {
+        headers: {
+            "Access-Control-Allow-Origin": "*"
+        }
     },
 
     plugins: [
@@ -45,24 +50,24 @@ module.exports = {
             "__DEVELOPMENT__": true
         }),
         new webpack.SourceMapDevToolPlugin(),
-        new ExtractTextPlugin("styles/[name].[contenthash].css"),
+        //new ExtractTextPlugin("styles/[name].[contenthash].css"),
         new webpack.optimize.OccurrenceOrderPlugin(),
         new webpack.HotModuleReplacementPlugin(),
-        new webpack.NoErrorsPlugin(), // don"t reload if there is an error
+        new webpack.NoEmitOnErrorsPlugin(), // don"t reload if there is an error
         new BundleTracker({filename: "./webpack-stats.json"}),
     ],
 
     module: {
-        loaders: [
+        rules: [
             // we pass the output from babel loader to react-hot loader
-            { test: /\.jsx?$/, exclude: /node_modules/, loaders: ["react-hot", "babel"] },
-            { test: /\.scss$/, exclude: /node_modules/, loaders: ["style","css?localIdentName=[path][name]--[local]","sass"]}
+            { test: /\.jsx?$/, exclude: /node_modules/, loaders: ["babel-loader"] },
+            { test: /\.scss$/, exclude: /node_modules/, loaders: ["style-loader","css-loader?localIdentName=[path][name]--[local]","sass-loader"]}
         ]
     },
 
     resolve: {
-        modulesDirectories: ["node_modules", "bower_components"],
-        extensions: ["", ".js", ".jsx"],
+        modules: ["node_modules", "bower_components"],
+        extensions: [".js", ".jsx"],
     },
 
     node: {

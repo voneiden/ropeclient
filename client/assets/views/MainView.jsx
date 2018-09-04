@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import classNames from "classnames";
 
 import OfftopicContainer from "./Main/OfftopicContainer";
@@ -33,9 +34,9 @@ export default class MainView extends React.Component {
 }
 
 MainView.propTypes = {
-    offtopicMessages: React.PropTypes.array.isRequired,
-    ontopicMessages: React.PropTypes.array.isRequired,
-    players: React.PropTypes.object.isRequired,
-    sendMessage: React.PropTypes.func.isRequired,
-    sendIsTyping: React.PropTypes.func.isRequired
+    offtopicMessages: PropTypes.array.isRequired,
+    ontopicMessages: PropTypes.array.isRequired,
+    players: PropTypes.object.isRequired,
+    sendMessage: PropTypes.func.isRequired,
+    sendIsTyping: PropTypes.func.isRequired
 };

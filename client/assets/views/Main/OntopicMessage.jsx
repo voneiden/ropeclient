@@ -1,4 +1,6 @@
 import React from "react";
+import PropTypes from "prop-types";
+
 import classNames from "classnames";
 import Message from "./Message";
 
@@ -20,5 +22,5 @@ export default class OntopicMessage extends Message {
 
 
 OntopicMessage.propTypes = {
-    message: React.PropTypes.object.isRequired
+    message: PropTypes.object.isRequired
 };
