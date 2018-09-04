@@ -1,1 +1,3 @@
 pony
+websockets
+sqlite3

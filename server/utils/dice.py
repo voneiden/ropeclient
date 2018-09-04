@@ -47,8 +47,8 @@ class Dice(object):
 
         # Dice rolls
         if operation[2]:
-            dices = int(operation[1])
-            sides = int(operation[3])
+            dices = int(operation[1]) if operation[1] else 1
+            sides = int(operation[3]) if operation[3] else 1
             if dices < 1 or sides < 2 or MAX_DICES > 100 or MAX_SIDES > 1000:
                 return False
             else:

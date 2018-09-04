@@ -9,7 +9,7 @@
     "jquery": "3.1.x",
     "classnames": "2.2.5",
     "js-sha256": "0.3.0",
-    "moment": "2.17.1"
+    "moment": "2.22.2"
   },
   "devDependencies": {
     "babel": "^5.4.7",
