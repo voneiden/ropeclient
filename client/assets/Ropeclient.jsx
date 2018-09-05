@@ -17,11 +17,13 @@
  */
 
 import React from "react";
+import {inject} from "mobx-react";
 import "./styles/main.scss";
 import classNames from "classnames";
 import MainView from "./views/MainView";
 import ConfigView from "./views/ConfigView";
 
+@inject("stateStore")
 export default class Ropeclient extends React.Component {
     constructor(props) {
         super(props);
@@ -165,27 +167,21 @@ export default class Ropeclient extends React.Component {
                     break;
 
                 case "pll": {
-                    let players = {};
-                    for (let player of data.v) {
-                        players[player] = false;
-                    }
-                    state.players = players;
+                    console.log("Received player list", data);
+                    let players = data.v.map((name) => ({name: name, typing: false}));
+                    this.props.stateStore.replacePlayers(players);
                     break;
                 }
 
                 case "pit": {
-                    let update = {};
-                    update[data.a] = true;
-                    state.players = Object.assign(this.state.players, update);
-                    console.log("pit", state.players);
+                    console.log("Received player is typing", data);
+                    this.props.stateStore.setPlayerTyping(data.a, true);
                     break;
                 }
 
                 case "pnt": {
-                    let update = {};
-                    update[data.a] = false;
-                    state.players = Object.assign(this.state.players, update);
-                    console.log("pnt", state.players);
+                    console.log("Received player not typing", data);
+                    this.props.stateStore.setPlayerTyping(data.a, false);
                     break;
                 }
 
@@ -218,14 +214,14 @@ export default class Ropeclient extends React.Component {
             mainContent = <ConfigView/>;
         } else {
             mainContent = <MainView
-                    ontopicMessages={this.state.ontopicMessages}
-                    offtopicMessages={this.state.offtopicMessages}
-                    passwordMode={this.state.passwordMode}
-                    players={this.state.players}
-                    sendMessage={this.send}
-                    sendIsTyping={this.sendIsTyping}
+                ontopicMessages={this.state.ontopicMessages}
+                offtopicMessages={this.state.offtopicMessages}
+                passwordMode={this.state.passwordMode}
+                players={this.state.players}
+                sendMessage={this.send}
+                sendIsTyping={this.sendIsTyping}
 
-                />;
+            />;
         }
         return (
             <div id ="ropeclient-app" className="flex-column">

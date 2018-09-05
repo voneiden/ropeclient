@@ -18,7 +18,8 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import Ropeclient from "./Ropeclient";
+import {Provider} from "mobx-react";
+import stateStore from "./stores/stateStore";
+console.log("Init ropeclient", stateStore);
 
-console.log("Init ropeclient");
-
-ReactDOM.render(<Ropeclient/>, document.getElementById("ropeclient-container"));
+ReactDOM.render(<Provider stateStore={stateStore}><Ropeclient/></Provider>, document.getElementById("ropeclient-container"));
