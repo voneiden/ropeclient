@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import asyncio
 import websockets
+import websockets.exceptions as wex
 import json
 import logging
 from controllers.login import LoginController
@@ -79,7 +80,11 @@ class Connection(object):
         """
         logging.info("Handling requests from " + self.address)
         while True:
-            raw_message = yield from self.websocket.recv()
+            try:
+                raw_message = yield from self.websocket.recv()
+            except wex.ConnectionClosed:
+                logging.info("Connection closed to address {address}".format(address=self.address))
+                break
             if not raw_message:
                 break
             logging.info("Received payload from address [{address}]: {message}".format(address=self.address, message=raw_message))

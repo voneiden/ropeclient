@@ -142,4 +142,4 @@ class BaseController(object):
         self.send_offtopic("Come again?")
 
     def stop(self):
-        logging.info("Stopping base controller for account: ", self.account_id)
+        logging.info("Stopping base controller for account: {account_id}".format(account_id=self.account_id))
