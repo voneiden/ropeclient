@@ -59,11 +59,6 @@ export default class Ropeclient extends React.Component {
      * Connection specific methods
      */
     connect(url) {
-        this.socket = new WebSocket("ws://localhost:8090");
-        this.socket.onopen = this.onSocketOpen;
-        this.socket.onerror = this.onSocketError;
-        this.socket.onmessage = this.onSocketMessage;
-        this.socket.onclose = this.onSocketClose;
 
     }
 
@@ -102,103 +97,9 @@ export default class Ropeclient extends React.Component {
 
     }
     onSocketMessage(event) {
-        try {
-            return this.process(JSON.parse(event.data));
-        }
-        catch (ex) {
-            console.error("Failed to parse data: " + event.data, ex);
-            return false;
-        }
 
 
-    }
 
-    process(dataset) {
-
-        if (!Array.isArray(dataset)) {
-            dataset = [dataset];
-        }
-        let clearOfftopic = false;
-        let offtopicMessages = [];
-
-        let clearOntopic = false;
-        let ontopicMessages = [];
-
-        let state = {
-            passwordMode: false
-        };
-
-        for (let data of dataset) {
-            if (!data.k) {
-                console.warn("Invalid data, no key", data);
-                return false;
-            }
-
-            switch (data.k) {
-                case "oft":
-                    offtopicMessages.push(data);
-                    break;
-                case "ont":
-                    console.log("Got ont message");
-                    ontopicMessages.push(data);
-                    break;
-
-                case "pwd":
-                    console.log("Password mode requested:", data);
-                    state.passwordMode = data;
-
-                    break;
-                case "clr":
-                    switch (data.v) {
-                        case "oft":
-                            clearOfftopic = true;
-                            offtopicMessages = [];
-                            break;
-                        case "ont":
-                            clearOntopic = true;
-                            ontopicMessages = [];
-                            break;
-                        default:
-                            clearOfftopic = clearOntopic = true;
-                            offtopicMessages = [];
-                            offtopicMessages = [];
-                            break;
-                    }
-                    break;
-
-                case "pll": {
-                    console.log("Received player list", data);
-                    let players = data.v.map((name) => ({name: name, typing: false}));
-                    this.props.stateStore.replacePlayers(players);
-                    break;
-                }
-
-                case "pit": {
-                    console.log("Received player is typing", data);
-                    this.props.stateStore.setPlayerTyping(data.a, true);
-                    break;
-                }
-
-                case "pnt": {
-                    console.log("Received player not typing", data);
-                    this.props.stateStore.setPlayerTyping(data.a, false);
-                    break;
-                }
-
-                default:
-                    console.warn("Unknown data packet", data);
-            }
-        }
-
-        if (offtopicMessages.length || clearOfftopic) {
-            state.offtopicMessages = clearOfftopic ? offtopicMessages : this.state.offtopicMessages.concat(offtopicMessages);
-        }
-
-        if (ontopicMessages.length || clearOntopic) {
-            state.ontopicMessages = clearOntopic ? ontopicMessages : this.state.ontopicMessages.concat(ontopicMessages);
-        }
-
-        this.setState(state);
     }
 
     toggleConfig() {

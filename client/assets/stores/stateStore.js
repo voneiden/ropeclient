@@ -1,5 +1,8 @@
-import {observable, action} from "mobx";
+import {observable, action, computed} from "mobx";
+import {MODE} from "../utils/enums";
+
 export class StateStore {
+    @observable mode = MODE.NORMAL;
     @observable offtopicMessages = [];
     @observable ontopicMessages = [];
     @observable players = [];
@@ -20,7 +23,13 @@ export class StateStore {
         player[0].typing = typing;
         console.log(this.players);
     }
+
+    @computed
+    get isPasswordMode() {
+        return this.mode === MODE.PASSWORD;
+    }
 }
+
 
 const stateStore = new StateStore();
 console.log("Statestore", stateStore);
