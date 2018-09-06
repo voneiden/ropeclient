@@ -1,5 +1,5 @@
 import stateStore from "../stores/stateStore";
-import {action} from "mobx";
+import {action, autorun} from "mobx";
 
 let websocket = null;
 const defaultUrl = "ws://localhost:8090";
@@ -16,7 +16,7 @@ function onError(event) {
 function onMessage(event) {
     console.info("Websocket message", event);
     try {
-        return processer.process(JSON.parse(event.data));
+        return net.process(JSON.parse(event.data));
     }
     catch (ex) {
         console.error("Failed to parse data: " + event.data, ex);
@@ -24,8 +24,16 @@ function onMessage(event) {
     }
 }
 
-export default class Net {
-    static connect(url=defaultUrl) {
+export class Net {
+
+    constructor() {
+        autorun(() => {
+            this.sendTyping(stateStore.isTyping);
+        }, {delay: 10})
+    }
+
+
+    connect(url = defaultUrl) {
         if (websocket === null) {
             websocket = new WebSocket(url);
             websocket.onopen = onOpen;
@@ -36,7 +44,7 @@ export default class Net {
         return false;
     }
 
-    static sendText(text) {
+    sendText(text) {
         if (websocket) {
             let message = {
                 k: "msg",
@@ -50,7 +58,7 @@ export default class Net {
         }
     }
 
-    static sendTyping(isTyping) {
+    sendTyping(isTyping) {
         if (websocket) {
             let message = {
                 k: isTyping ? "pit" : "pnt",
@@ -59,9 +67,6 @@ export default class Net {
             websocket.send(JSON.stringify(message));
         }
     }
-}
-
-class Processer {
 
     @action
     process(dataset) {
@@ -142,13 +147,21 @@ class Processer {
         }
 
         if (newOfftopicMessages.length || clearOfftopic) {
-            if (!clearOfftopic) { stateStore.offtopicMessages.push(...newOfftopicMessages); }
-            else { stateStore.offtopicMessages.replace(newOfftopicMessages); }
+            if (!clearOfftopic) {
+                stateStore.offtopicMessages.push(...newOfftopicMessages);
+            }
+            else {
+                stateStore.offtopicMessages.replace(newOfftopicMessages);
+            }
         }
 
         if (newOntopicMessages.length || clearOntopic) {
-            if (!clearOntopic) { stateStore.ontopicMessages.push(...newOntopicMessages); }
-            else { stateStore.ontopicMessages.replace(newOntopicMessages); }
+            if (!clearOntopic) {
+                stateStore.ontopicMessages.push(...newOntopicMessages);
+            }
+            else {
+                stateStore.ontopicMessages.replace(newOntopicMessages);
+            }
         }
 
         if (passwordMode) {
@@ -158,4 +171,5 @@ class Processer {
     }
 }
 
-const processer = new Processer();
+const net = new Net();
+export default net;

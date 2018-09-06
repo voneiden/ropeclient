@@ -1,4 +1,4 @@
-import {observable, action, computed} from "mobx";
+import {observable, action, computed, autorun} from "mobx";
 import {MODE} from "../utils/enums";
 
 export class StateStore {
@@ -12,6 +12,7 @@ export class StateStore {
     @observable offtopicMessages = [];
     @observable ontopicMessages = [];
     @observable players = [];
+    @observable isTyping = false;
 
     @action
     replacePlayers(players) {

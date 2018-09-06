@@ -29,11 +29,8 @@ export default class Input extends React.Component {
 
         let isTyping = event.target.value.length > 0;
         console.log(event.target.value.length > 0);
-        if (isTyping !== this.state.isTyping) {
-            this.setState({
-                isTyping: isTyping
-            });
-            Net.sendTyping(isTyping);
+        if (isTyping !== this.props.stateStore.isTyping) {
+            this.props.stateStore.isTyping = isTyping;
         }
     }
 
@@ -51,6 +48,9 @@ export default class Input extends React.Component {
 
             Net.sendText(message);
             event.target.value = "";
+            if (this.props.stateStore.isTyping) {
+                this.props.stateStore.isTyping = false;
+            }
         }
     }
 
