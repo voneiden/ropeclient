@@ -1,4 +1,5 @@
 import stateStore from "../stores/stateStore";
+import {action} from "mobx";
 
 let websocket = null;
 const defaultUrl = "ws://localhost:8090";
@@ -12,9 +13,10 @@ function onError(event) {
     console.error("Websocket error", event);
 }
 
-function onMessage() {
+function onMessage(event) {
+    console.info("Websocket message", event);
     try {
-        return this.process(JSON.parse(event.data));
+        return processer.process(JSON.parse(event.data));
     }
     catch (ex) {
         console.error("Failed to parse data: " + event.data, ex);
@@ -33,91 +35,127 @@ export default class Net {
         }
         return false;
     }
+
+    static sendText(text) {
+        if (websocket) {
+            let message = {
+                k: "msg",
+                v: text ? text : ""
+            };
+            console.log("Send", message);
+            websocket.send(JSON.stringify(message));
+        }
+        if (stateStore.isPasswordMode) {
+            stateStore.setPasswordMode(false);
+        }
+    }
+
+    static sendTyping(isTyping) {
+        if (websocket) {
+            let message = {
+                k: isTyping ? "pit" : "pnt",
+            };
+            console.log("Send", message);
+            websocket.send(JSON.stringify(message));
+        }
+    }
 }
 
-function process(dataset) {
-    if (!Array.isArray(dataset)) {
-        dataset = [dataset];
-    }
-    let clearOfftopic = false;
-    let offtopicMessages = [];
+class Processer {
 
-    let clearOntopic = false;
-    let ontopicMessages = [];
-
-    let state = {
-        passwordMode: false
-    };
-
-    for (let data of dataset) {
-        if (!data.k) {
-            console.warn("Invalid data, no key", data);
-            return false;
+    @action
+    process(dataset) {
+        console.log("Process dataset", dataset);
+        if (!Array.isArray(dataset)) {
+            dataset = [dataset];
         }
 
-        switch (data.k) {
-            case "oft":
-                offtopicMessages.push(data);
-                break;
-            case "ont":
-                console.log("Got ont message");
-                ontopicMessages.push(data);
-                break;
+        let clearOfftopic = false;
+        let newOfftopicMessages = [];
 
-            case "pwd":
-                console.log("Password mode requested:", data);
-                state.passwordMode = data;
+        let clearOntopic = false;
+        let newOntopicMessages = [];
 
-                break;
-            case "clr":
-                switch (data.v) {
-                    case "oft":
-                        clearOfftopic = true;
-                        offtopicMessages = [];
-                        break;
-                    case "ont":
-                        clearOntopic = true;
-                        ontopicMessages = [];
-                        break;
-                    default:
-                        clearOfftopic = clearOntopic = true;
-                        offtopicMessages = [];
-                        offtopicMessages = [];
-                        break;
+        let passwordMode = false;
+
+        for (let data of dataset) {
+            if (!data.k) {
+                console.warn("Invalid data, no key", data);
+                continue;
+            }
+
+            switch (data.k) {
+                case "oft":
+                    console.log("Got oft message");
+                    newOfftopicMessages.push(data);
+                    break;
+                case "ont":
+                    console.log("Got ont message");
+                    newOntopicMessages.push(data);
+                    break;
+
+                case "pwd":
+                    console.log("Password passwordMode requested:", data);
+                    stateStore.setPasswordMode(data);
+
+                    break;
+                case "clr":
+                    switch (data.v) {
+                        case "oft":
+                            clearOfftopic = true;
+                            newOfftopicMessages = [];
+                            break;
+                        case "ont":
+                            clearOntopic = true;
+                            newOntopicMessages = [];
+                            break;
+                        default:
+                            clearOfftopic = clearOntopic = true;
+                            newOfftopicMessages = [];
+                            newOfftopicMessages = [];
+                            break;
+                    }
+                    break;
+
+                case "pll": {
+                    console.log("Received player list", data);
+                    let players = data.v.map((name) => ({name: name, typing: false}));
+                    stateStore.replacePlayers(players);
+                    break;
                 }
-                break;
 
-            case "pll": {
-                console.log("Received player list", data);
-                let players = data.v.map((name) => ({name: name, typing: false}));
-                this.props.stateStore.replacePlayers(players);
-                break;
+                case "pit": {
+                    console.log("Received player is typing", data);
+                    stateStore.setPlayerTyping(data.a, true);
+                    break;
+                }
+
+                case "pnt": {
+                    console.log("Received player not typing", data);
+                    stateStore.setPlayerTyping(data.a, false);
+                    break;
+                }
+
+                default:
+                    console.warn("Unknown data packet", data);
             }
-
-            case "pit": {
-                console.log("Received player is typing", data);
-                this.props.stateStore.setPlayerTyping(data.a, true);
-                break;
-            }
-
-            case "pnt": {
-                console.log("Received player not typing", data);
-                this.props.stateStore.setPlayerTyping(data.a, false);
-                break;
-            }
-
-            default:
-                console.warn("Unknown data packet", data);
         }
-    }
 
-    if (offtopicMessages.length || clearOfftopic) {
-        state.offtopicMessages = clearOfftopic ? offtopicMessages : this.state.offtopicMessages.concat(offtopicMessages);
-    }
+        if (newOfftopicMessages.length || clearOfftopic) {
+            if (!clearOfftopic) { stateStore.offtopicMessages.push(...newOfftopicMessages); }
+            else { stateStore.offtopicMessages.replace(newOfftopicMessages); }
+        }
 
-    if (ontopicMessages.length || clearOntopic) {
-        state.ontopicMessages = clearOntopic ? ontopicMessages : this.state.ontopicMessages.concat(ontopicMessages);
-    }
+        if (newOntopicMessages.length || clearOntopic) {
+            if (!clearOntopic) { stateStore.ontopicMessages.push(...newOntopicMessages); }
+            else { stateStore.ontopicMessages.replace(newOntopicMessages); }
+        }
 
-    this.setState(state);
+        if (passwordMode) {
+            stateStore.setPasswordMode(passwordMode);
+        }
+        console.log(stateStore);
+    }
 }
+
+const processer = new Processer();

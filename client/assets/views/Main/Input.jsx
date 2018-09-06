@@ -1,10 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom";
-
+import {inject, observer} from "mobx-react";
 import classNames from "classnames";
 import sha256 from "js-sha256";
+import Net from "../../utils/net";
 
 
+@inject("stateStore")
+@observer
 export default class Input extends React.Component {
     constructor(props) {
         super(props);
@@ -26,27 +29,27 @@ export default class Input extends React.Component {
 
         let isTyping = event.target.value.length > 0;
         console.log(event.target.value.length > 0);
-        if (isTyping != this.state.isTyping) {
+        if (isTyping !== this.state.isTyping) {
             this.setState({
                 isTyping: isTyping
             });
-            this.props.sendIsTyping(isTyping);
+            Net.sendTyping(isTyping);
         }
     }
 
     onKeyPress(event) {
-        if (event.key == "Enter" && !event.shiftKey) {
+        if (event.key === "Enter" && !event.shiftKey) {
             event.stopPropagation();
             event.preventDefault();
             let message = event.target.value;
-            if (this.props.passwordMode) {
-                message = sha256(event.target.value + this.props.passwordMode.ss);
-                if (this.props.passwordMode.ds) {
-                    message = sha256(message + this.props.passwordMode.ds);
+            if (this.props.stateStore.isPasswordMode) {
+                message = sha256(event.target.value + this.props.stateStore.passwordMode.ss);
+                if (this.props.stateStore.passwordMode.ds) {
+                    message = sha256(message + this.props.stateStore.passwordMode.ds);
                 }
             }
 
-            this.props.sendMessage(message);
+            Net.sendText(message);
             event.target.value = "";
         }
     }
@@ -71,7 +74,7 @@ export default class Input extends React.Component {
     }
 
     render() {
-        if (this.props.passwordMode) {
+        if (this.props.stateStore.isPasswordMode) {
             return (
                 <div id ="rc-input" className="flex flex-row">
                     <input

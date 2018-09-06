@@ -18,8 +18,12 @@
 
 import React from "react";
 import {inject} from "mobx-react";
-import "./styles/main.scss";
 import classNames from "classnames";
+import autoBind from "react-autobind";
+import Net from "./utils/net";
+
+import "./styles/main.scss";
+
 import MainView from "./views/MainView";
 import ConfigView from "./views/ConfigView";
 
@@ -30,77 +34,16 @@ export default class Ropeclient extends React.Component {
 
         this.state = {
             showConfig: false,
-            ontopicMessages: [],
-            offtopicMessages: [],
-            passwordMode: false,
-            players: {}
         };
-        this.socket = null;
 
-        this.connect = this.connect.bind(this);
-        this.send = this.send.bind(this);
-        this.sendIsTyping = this.sendIsTyping.bind(this);
-        this.onSocketOpen = this.onSocketOpen.bind(this);
-        this.onSocketClose = this.onSocketClose.bind(this);
-        this.onSocketMessage = this.onSocketMessage.bind(this);
-        this.onSocketError = this.onSocketError.bind(this);
-
-        this.toggleConfig = this.toggleConfig.bind(this);
-
-        this.process = this.process.bind(this);
+        autoBind(this);
 
     }
 
     componentDidMount() {
-        this.connect();
+        Net.connect();
     }
 
-    /*
-     * Connection specific methods
-     */
-    connect(url) {
-
-    }
-
-    send(text) {
-        if (this.socket) {
-            let message = {
-                k: "msg",
-                v: text ? text : ""
-            };
-            console.log("Send", message);
-            this.socket.send(JSON.stringify(message));
-        }
-        if (this.state.passwordMode) {
-            this.setState({
-                passwordMode: false
-            });
-        }
-    }
-    sendIsTyping(isTyping) {
-        if (this.socket) {
-            let message = {
-                k: isTyping ? "pit" : "pnt",
-            };
-            console.log("Send", message);
-            this.socket.send(JSON.stringify(message));
-        }
-    }
-
-    onSocketOpen() {
-        this.send("test");
-    }
-    onSocketClose() {
-
-    }
-    onSocketError() {
-
-    }
-    onSocketMessage(event) {
-
-
-
-    }
 
     toggleConfig() {
         this.setState({
@@ -119,9 +62,6 @@ export default class Ropeclient extends React.Component {
                 offtopicMessages={this.state.offtopicMessages}
                 passwordMode={this.state.passwordMode}
                 players={this.state.players}
-                sendMessage={this.send}
-                sendIsTyping={this.sendIsTyping}
-
             />;
         }
         return (

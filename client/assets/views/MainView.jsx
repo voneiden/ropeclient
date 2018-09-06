@@ -21,11 +21,7 @@ export default class MainView extends React.Component {
                 <div id="rc-main-bodytext" className="flex flex-column flex-grow">
                     <div className="flex-grow-2 flex-column"><OfftopicContainer messages={this.props.offtopicMessages}/></div>
                     <div className="flex-grow-3 flex-column"><OntopicContainer messages={this.props.ontopicMessages}/></div>
-                    <Input
-                        sendMessage={this.props.sendMessage}
-                        sendIsTyping={this.props.sendIsTyping}
-                        passwordMode={this.props.passwordMode}
-                    />
+                    <Input/>
                 </div>
                 <NameList players={this.props.players}/>
             </div>
@@ -37,6 +33,4 @@ MainView.propTypes = {
     offtopicMessages: PropTypes.array.isRequired,
     ontopicMessages: PropTypes.array.isRequired,
     players: PropTypes.object.isRequired,
-    sendMessage: PropTypes.func.isRequired,
-    sendIsTyping: PropTypes.func.isRequired
 };

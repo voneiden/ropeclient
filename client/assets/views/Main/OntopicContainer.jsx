@@ -1,20 +1,21 @@
 import React from "react";
 import PropTypes from "prop-types";
-
 import classNames from "classnames";
+import {inject, observer} from "mobx-react";
+import stateStore from "../../stores/stateStore";
+
+
 import OntopicMessage from "./OntopicMessage";
 
-
+@inject("stateStore")
+@observer
 export default class OntopicContainer extends React.Component {
     constructor(props) {
         super(props);
-
-        this.state = {};
-
     }
 
     render() {
-        let messages = this.props.messages.map(function (message, index) {
+        let messages = this.props.stateStore.ontopicMessages.map(function (message, index) {
             return <OntopicMessage message={message} key={index}/>;
         });
         return (
@@ -26,5 +27,4 @@ export default class OntopicContainer extends React.Component {
 }
 
 OntopicContainer.propTypes = {
-    messages: PropTypes.array.isRequired
 };
